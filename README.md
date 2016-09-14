@@ -55,3 +55,7 @@ val clusterSpec: ClusterSpec = ???
 val launch = cm.launchCluster(clusterSpec)
 val terminate = launch.flatMap(_.terminate)
 ```
+
+### Contributing to Flint
+
+If you'd like to contribute to the Flint codebase, please read about the contribution process in [CONTRIBUTING.md](CONTRIBUTING.md). Then consult [DEVELOPING.md](DEVELOPING.md) for tips for hacking on the codebase.
