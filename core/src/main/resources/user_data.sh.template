@@ -1,0 +1,17 @@
+yum -y update
+hostname $(hostname).ec2.internal
+curl -fsSL https://get.docker.com/ | sh
+
+cat << EOF > /root/.dockercfg
+{
+  "https://index.docker.io/v1/": {
+    "auth": "%AUTH_CREDZ_BASE64%",
+    "email": "%EMAIL%"
+  }
+}
+EOF
+
+echo "fs.file-max = 100000" >> /etc/sysctl.conf
+sysctl -p
+
+service docker start

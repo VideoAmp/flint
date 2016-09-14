@@ -1,0 +1,20 @@
+--style defaultWithAlign
+--maxColumn 99
+--alignByArrowEnumeratorGenerator false
+--alignByOpenParenCallSite false
+--alignByOpenParenDefnSite false
+--alignMixedOwners true
+--allowNewlineBeforeColonInMassiveReturnTypes true
+--assumeStandardLibraryStripMargin true
+--binPackImportSelectors false
+--binPackParentConstructors false
+--continuationIndentCallSite 2
+--continuationIndentDefnSite 4
+--danglingParentheses false
+--indentOperators true
+--reformatComments true
+--scalaDocs
+--spaceAfterTripleEquals true
+--spaceBeforeContextBoundColon false
+--spacesInImportCurlyBraces true
+--unindentTopLevelOperators true

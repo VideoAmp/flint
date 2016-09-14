@@ -1,0 +1,64 @@
+import java.util.concurrent.{ Executors, ForkJoinPool, ThreadFactory }
+
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutorService, Future }
+import scala.io.Source
+import scala.util.Try
+
+import com.typesafe.config.{ Config, ConfigFactory }
+
+package object flint {
+  def validateFlintConfig(config: Config): Unit = {
+    val referenceConfig = ConfigFactory.defaultReference
+    config.checkValid(referenceConfig, "aws")
+    config.checkValid(referenceConfig, "docker")
+  }
+
+  val flintThreadFactory = new ThreadFactory with ForkJoinPool.ForkJoinWorkerThreadFactory {
+    private val defaultWorkerFactory = ForkJoinPool.defaultForkJoinWorkerThreadFactory
+    private val defaultFactory       = Executors.defaultThreadFactory
+
+    override def newThread(pool: ForkJoinPool) = {
+      val thread = defaultWorkerFactory.newThread(pool)
+      thread.setDaemon(true)
+      thread
+    }
+
+    override def newThread(r: Runnable) = {
+      val thread = defaultFactory.newThread(r)
+      thread.setDaemon(true)
+      thread
+    }
+  }
+
+  /**
+    * We use a custom exection context throughout Flint because the AWS ExecutorFactory requires an
+    * ExecutorService, and neither the global Scala ExecutionContext nor the ActorSystem.dispatcher
+    * provide an ExecutorService to share. Also, we use daemon threads in this ExecutionContext so
+    * that they don't block JVM exit
+    */
+  implicit lazy val flintExecutionContext: ExecutionContextExecutorService = {
+    val executorService =
+      new ForkJoinPool(Runtime.getRuntime.availableProcessors, flintThreadFactory, null, true)
+
+    ExecutionContext.fromExecutorService(executorService)
+  }
+
+  private[flint] type Seq[+T] = collection.immutable.Seq[T]
+  private[flint] val Seq = collection.immutable.Seq
+
+  private[flint] def loop[T, U](future: => Future[T])(f: Try[T] => U): Unit =
+    future.andThen(PartialFunction(f)).foreach(_ => loop(future)(f))
+
+  private[flint] def readTextResource(resourceName: String): String =
+    Source
+      .fromInputStream(
+        Thread.currentThread.getContextClassLoader.getResourceAsStream(resourceName),
+        "UTF-8")
+      .getLines
+      .mkString("\n")
+
+  private[flint] implicit class RichString(string: String) {
+    def replaceMacro(macroName: String, macroReplacement: String): String =
+      string.replace(s"%$macroName%", macroReplacement)
+  }
+}

@@ -1,0 +1,3 @@
+docker run %SCRATCH_VOLUMES% -dt --ulimit nofile=100000:100000 --net=host \
+  -e "SPARK_LOCAL_DIRS=%SPARK_LOCAL_DIRS%" \
+  videoamp/spark:%IMAGE_TAG% /usr/local/sbin/boot-master.sh
