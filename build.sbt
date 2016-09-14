@@ -1,9 +1,11 @@
 lazy val commonSettings = Seq(
   organization := "com.videoamp",
   scalaVersion := "2.11.8",
+  javacOptions := Seq("-g"),
   scalacOptions := Seq(
     "-deprecation",
-    "-language:_",
+    "-language:implicitConversions",
+    "-feature",
     "-unchecked",
     "-Xlint:_",
     "-Ywarn-adapted-args",
