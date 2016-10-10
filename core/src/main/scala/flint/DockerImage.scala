@@ -5,7 +5,6 @@ case class DockerImage(repo: String, tag: String) {
 }
 
 object DockerImage {
-  def apply(canonicalName: String): DockerImage = {
+  def apply(canonicalName: String): DockerImage =
     DockerImage(canonicalName.takeWhile(_ != '/'), canonicalName.dropWhile(_ != '/').drop(1))
-  }
 }

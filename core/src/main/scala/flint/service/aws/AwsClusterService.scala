@@ -200,11 +200,10 @@ private[aws] object AwsClusterService {
   // private[service] for testing
   private[service] def createBlockDeviceMapping(
       deviceLetter: String,
-      virtualNumber: Int): BlockDeviceMapping = {
+      virtualNumber: Int): BlockDeviceMapping =
     new BlockDeviceMapping()
       .withDeviceName("/dev/sd" + deviceLetter)
       .withVirtualName("ephemeral" + virtualNumber)
-  }
 
   // private[service] for testing
   private[service] def createUserData(

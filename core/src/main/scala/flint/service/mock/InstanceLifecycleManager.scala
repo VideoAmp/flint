@@ -16,7 +16,7 @@ private[mock] class InstanceLifecycleManager {
 
   private class LifecycleSimulator(instanceId: String, val lifecycleState: Var[LifecycleState])
       extends Runnable {
-    override def run() = {
+    override def run() =
       if (lifecycleState.now == Terminated) {
         instanceLifecycleStateMap.remove(instanceId).foreach(_._2.cancel(false))
       } else {
@@ -27,7 +27,6 @@ private[mock] class InstanceLifecycleManager {
           case state       => state
         }
       }
-    }
   }
 
   private[mock] def createInstance(instanceId: String): Rx[LifecycleState] = {
