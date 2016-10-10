@@ -42,7 +42,7 @@ package object aws {
   private[aws] implicit class InstanceSpecsClusterSpec(clusterSpec: ClusterSpec) {
     def masterInstanceSpecs(): InstanceSpecs = instanceSpecsMap(clusterSpec.masterInstanceType)
 
-    def workerInstanceSpecs(): InstanceSpecs = instanceSpecsMap(clusterSpec.masterInstanceType)
+    def workerInstanceSpecs(): InstanceSpecs = instanceSpecsMap(clusterSpec.workerInstanceType)
   }
 
   private[aws] implicit class InstanceTypeInstanceSpecs(instanceSpecs: InstanceSpecs) {
