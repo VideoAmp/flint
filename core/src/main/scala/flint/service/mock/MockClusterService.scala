@@ -67,6 +67,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
       Future.successful(workers() = cluster.workers.now ++ (0 until count).map(_ =>
           instance(workerInstanceType, placementGroup)))
 
-    override protected def changeDockerImage0(dockerImage: DockerImage) = ???
+    override protected def changeDockerImage0(dockerImage: DockerImage) =
+      Future.successful(cluster.dockerImage.asVar() = dockerImage)
   }
 }
