@@ -17,6 +17,7 @@ private[aws] object Tags {
   val DockerImage        = "flint_docker_image"
   val Owner              = "flint_owner"
   val SparkRole          = "flint_spark_cluster_role"
+  val WorkerInstanceType = "flint_worker_instance_type"
 
   private val LegacyClusterId   = "cluster_id"
   private val LegacyClusterTTL  = "lifetime_hours"
@@ -26,28 +27,48 @@ private[aws] object Tags {
   def instanceTags(
       clusterSpec: ClusterSpec,
       role: SparkClusterRole,
+      includeLegacyTags: Boolean): Seq[Tag] =
+    instanceTags(
+      clusterSpec.id,
+      clusterSpec.dockerImage,
+      clusterSpec.owner,
+      clusterSpec.ttl,
+      clusterSpec.idleTimeout,
+      clusterSpec.workerInstanceType,
+      role,
+      includeLegacyTags)
+
+  def instanceTags(
+      clusterId: ClusterId,
+      dockerImage: DockerImage,
+      owner: String,
+      ttl: Option[Duration],
+      idleTimeout: Option[Duration],
+      workerInstanceType: String,
+      role: SparkClusterRole,
       includeLegacyTags: Boolean): Seq[Tag] = {
     val noTags = Map.empty[String, String]
 
     val commonTags = Map(
-      ClusterId   -> clusterSpec.id.toString,
-      Owner       -> clusterSpec.owner,
-      SparkRole   -> role.name,
-      DockerImage -> clusterSpec.dockerImage.canonicalName)
+      ClusterId          -> clusterId.toString,
+      Owner              -> owner,
+      SparkRole          -> role.name,
+      DockerImage        -> dockerImage.canonicalName,
+      WorkerInstanceType -> workerInstanceType)
 
     val ttlTags =
-      clusterSpec.ttl.map(ttl => Map(ClusterTTL -> s"${ttl.toHours}h")).getOrElse(noTags)
+      ttl.map(ttl => Map(ClusterTTL -> s"${ttl.toHours}h")).getOrElse(noTags)
     val idleTimeoutTags =
-      clusterSpec.idleTimeout
+      idleTimeout
         .map(idleTimeout => Map(ClusterIdleTimeout -> s"${idleTimeout.toMinutes}m"))
         .getOrElse(noTags)
 
     val legacyTags = if (includeLegacyTags) {
       Map(
-        LegacyClusterId   -> clusterSpec.id.toString,
-        LegacyName        -> s"Flint Spark ${role.name} : ${clusterSpec.owner}",
-        LegacyClusterTTL  -> clusterSpec.ttl.map(_.toHours).getOrElse(1L).toString,
-        LegacyDockerImage -> clusterSpec.dockerImage.tag)
+        LegacyClusterId   -> clusterId.toString,
+        LegacyName        -> s"Flint Spark ${role.name} : $owner",
+        LegacyClusterTTL  -> ttl.map(_.toHours).getOrElse(1L).toString,
+        LegacyDockerImage -> dockerImage.tag)
     } else { noTags }
 
     (commonTags ++ ttlTags ++ idleTimeoutTags ++ legacyTags).map {
@@ -94,6 +115,9 @@ private[aws] object Tags {
       .map(_.takeWhile(_ != 'm'))
       .map(_.toLong)
       .map(Duration.ofMinutes)
+
+  def getWorkerInstanceType(instance: AwsInstance): Option[String] =
+    getTag(instance, WorkerInstanceType)
 
   private def getTag(instance: AwsInstance, tag: String): Option[String] =
     instance.getTags.asScala.find(_.getKey == tag).map(_.getValue)

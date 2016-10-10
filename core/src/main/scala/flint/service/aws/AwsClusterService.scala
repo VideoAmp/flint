@@ -3,6 +3,7 @@ package service
 package aws
 
 import java.net.InetAddress
+import java.time.Duration
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -31,14 +32,11 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   override def clusters: Rx[Map[ClusterId, ManagedCluster]] = awsClusters.clusters
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
-    val blockDeviceMappings = (("b", 0) :: ("c", 1) :: Nil).map {
-      case (deviceLetter, virtualNumber) => createBlockDeviceMapping(deviceLetter, virtualNumber)
-    }
     val masterUserData =
       createUserData(SparkClusterRole.Master, spec.dockerImage, blockDeviceMappings, dockerConfig)
     val masterRequest =
       createRunInstancesRequest(
-        s"${spec.id}-master",
+        Some(s"${spec.id}-master"),
         spec.masterInstanceSpecs.awsInstanceType,
         numInstances = 1,
         spec.placementGroup,
@@ -62,28 +60,20 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         ec2Client.createTags(createTagsRequest).map(_ => master)
       }
       .flatMap { master =>
-        val workerSpecs = spec.workerInstanceSpecs
-        val workerUserData =
-          createWorkerUserData(
-            master.ipAddress,
-            workerSpecs,
-            spec.dockerImage,
-            blockDeviceMappings,
-            dockerConfig)
-        val workersRequest =
-          createRunInstancesRequest(
-            s"${spec.id}-workers",
-            workerSpecs.awsInstanceType,
-            spec.numWorkers,
-            spec.placementGroup,
-            blockDeviceMappings,
-            workerUserData,
-            awsConfig)
-        ec2Client.runInstances(workersRequest).map(r => (master, r))
+        addWorkers(
+          master,
+          Some(s"${spec.id}-initial_workers"),
+          spec.id,
+          spec.dockerImage,
+          spec.owner,
+          spec.ttl,
+          spec.idleTimeout,
+          spec.numWorkers,
+          spec.workerInstanceType,
+          spec.placementGroup).map(r => (master, r))
       }
       .flatMap {
-        case (master, reservation) =>
-          val workers = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
+        case (master, workers) =>
           val tags = Tags.instanceTags(
             spec,
             SparkClusterRole.Worker,
@@ -104,10 +94,56 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
                 spec.idleTimeout,
                 master,
                 workers),
-              this)
+              this,
+              spec.workerInstanceType)
           awsClusters.clusters() = awsClusters.clusters.now.updated(spec.id, managedCluster)
           managedCluster
       }
+  }
+
+  private[aws] def addWorkers(
+      master: Instance,
+      clientToken: Option[String],
+      clusterId: ClusterId,
+      dockerImage: DockerImage,
+      owner: String,
+      ttl: Option[Duration],
+      idleTimeout: Option[Duration],
+      numWorkers: Int,
+      instanceType: String,
+      placementGroup: Option[String]): Future[Seq[Instance]] = {
+    val workerSpecs = instanceSpecsMap(instanceType)
+    val workerUserData =
+      createWorkerUserData(
+        master.ipAddress,
+        workerSpecs,
+        dockerImage,
+        blockDeviceMappings,
+        dockerConfig)
+    val workersRequest =
+      createRunInstancesRequest(
+        clientToken,
+        workerSpecs.awsInstanceType,
+        numWorkers,
+        placementGroup,
+        blockDeviceMappings,
+        workerUserData,
+        awsConfig)
+    ec2Client.runInstances(workersRequest).flatMap { reservation =>
+      val workers = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
+      val tags = Tags.instanceTags(
+        clusterId,
+        dockerImage,
+        owner,
+        ttl,
+        idleTimeout,
+        instanceType,
+        SparkClusterRole.Worker,
+        includeLegacyTags = awsConfig.get[Boolean]("legacy_compatibility").value)
+      val createTagsRequest =
+        new CreateTagsRequest().withResources(workers.map(_.id): _*).withTags(tags: _*)
+      ec2Client.createTags(createTagsRequest).map(_ => workers)
+    }
   }
 
   private[aws] def describeFlintInstances(): Future[Seq[Reservation]] = {
@@ -143,6 +179,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 }
 
 private[aws] object AwsClusterService {
+  private val blockDeviceMappings = (("b", 0) :: ("c", 1) :: Nil).map {
+    case (deviceLetter, virtualNumber) => createBlockDeviceMapping(deviceLetter, virtualNumber)
+  }
+
   private def createEc2Client(awsConfig: Config): Ec2Client = {
     val accessKey           = awsConfig.get[String]("access_key").value
     val secretAccessKey     = awsConfig.get[String]("secret_access_key").value
@@ -161,14 +201,13 @@ private[aws] object AwsClusterService {
   }
 
   private def createRunInstancesRequest(
-      clientToken: String,
+      clientToken: Option[String],
       instanceType: InstanceType,
       numInstances: Int,
       placementGroup: Option[String],
       blockDeviceMappings: Seq[BlockDeviceMapping],
       userData: String,
       awsConfig: Config) = {
-
     val amiId = awsConfig.get[String]("ami_id").value
 
     val iamInstanceProfile = new IamInstanceProfileSpecification().withArn(
@@ -179,7 +218,6 @@ private[aws] object AwsClusterService {
 
     val request = new RunInstancesRequest(amiId, numInstances, numInstances)
       .withBlockDeviceMappings(blockDeviceMappings: _*)
-      .withClientToken(clientToken)
       .withDisableApiTermination(false)
       .withEbsOptimized(false)
       .withIamInstanceProfile(iamInstanceProfile)
@@ -191,10 +229,14 @@ private[aws] object AwsClusterService {
       .withSubnetId(awsConfig.get[String]("subnet_id").value)
       .withUserData(Base64.encodeAsString(userData.getBytes("UTF-8"): _*))
 
+    val withClientToken = clientToken.map { clientToken =>
+      request.withClientToken(clientToken)
+    } getOrElse request
+
     placementGroup.map { placementGroup =>
       val placement = new Placement().withGroupName(placementGroup)
-      request.withPlacement(placement)
-    } getOrElse request
+      withClientToken.withPlacement(placement)
+    } getOrElse withClientToken
   }
 
   // private[service] for testing

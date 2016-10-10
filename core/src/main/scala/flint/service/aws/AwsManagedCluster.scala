@@ -10,12 +10,26 @@ import rx._
 
 private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
-    awsClusterService: AwsClusterService)
+    awsClusterService: AwsClusterService,
+    workerInstanceType: String)
     extends ManagedCluster {
   override def terminate(): Future[Unit] =
     terminateClusterInstances(cluster.master, cluster.workers)
 
-  override protected def addWorkers0(count: Int) = ???
+  override protected def addWorkers0(count: Int) =
+    awsClusterService
+      .addWorkers(
+        cluster.master,
+        None,
+        cluster.id,
+        cluster.dockerImage.now,
+        cluster.owner,
+        cluster.ttl,
+        cluster.idleTimeout,
+        count,
+        workerInstanceType,
+        cluster.master.placementGroup)
+      .map(_ => ())
 
   override protected def changeDockerImage0(dockerImage: DockerImage) = ???
 
@@ -63,17 +77,19 @@ private[aws] object AwsManagedCluster {
       awsClusterService: AwsClusterService)(implicit ctx: Ctx.Owner): Option[AwsManagedCluster] =
     Tags.findMaster(clusterId, instances).flatMap { masterAwsInstance =>
       Tags.getDockerImage(masterAwsInstance).flatMap { dockerImage =>
-        Tags.getOwner(masterAwsInstance).map { owner =>
-          val ttl         = Tags.getClusterTTL(masterAwsInstance)
-          val idleTimeout = Tags.getClusterIdleTimeout(masterAwsInstance)
-          val master      = awsClusterService.flintInstance(masterAwsInstance)
-          val workers =
-            Tags.filterWorkers(clusterId, instances).map(awsClusterService.flintInstance)
+        Tags.getOwner(masterAwsInstance).flatMap { owner =>
+          Tags.getWorkerInstanceType(masterAwsInstance).map { workerInstanceType =>
+            val ttl         = Tags.getClusterTTL(masterAwsInstance)
+            val idleTimeout = Tags.getClusterIdleTimeout(masterAwsInstance)
+            val master      = awsClusterService.flintInstance(masterAwsInstance)
+            val workers =
+              Tags.filterWorkers(clusterId, instances).map(awsClusterService.flintInstance)
 
-          val cluster =
-            Cluster(clusterId, dockerImage, owner, ttl, idleTimeout, master, workers)
+            val cluster =
+              Cluster(clusterId, dockerImage, owner, ttl, idleTimeout, master, workers)
 
-          new AwsManagedCluster(cluster, awsClusterService)
+            new AwsManagedCluster(cluster, awsClusterService, workerInstanceType)
+          }
         }
       }
     }
