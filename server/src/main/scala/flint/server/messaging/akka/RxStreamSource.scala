@@ -1,5 +1,6 @@
 package flint
-package service
+package server
+package messaging
 package akka
 
 import scala.concurrent.Future

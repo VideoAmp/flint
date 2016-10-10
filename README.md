@@ -37,7 +37,7 @@ Run `sbt core/console`.
 
 (Docs to come...)
 
-Once in a REPL, you can use a `ClusterManager` to launch, manage and terminate clusters:
+Once in a REPL, you can use a `ClusterService` to launch, manage and terminate clusters:
 
 ```scala
 import flint._, service._, aws._
@@ -46,14 +46,36 @@ import java.util.UUID
 import com.typesafe.config.ConfigFactory
 import rx.Ctx.Owner.Unsafe._
 
+implicit val ec = flint.flintExecutionContext
+
 val flintConfig = ConfigFactory.parseFile(new File("conf/application.conf")).getConfig("flint")
 validateFlintConfig(flintConfig)
-val cm: ClusterManager = new AwsClusterManager(flintConfig)
+
+val cs: ClusterService = new AwsClusterService(flintConfig)
 
 // Define your ClusterSpec
-val clusterSpec: ClusterSpec = ???
-val launch = cm.launchCluster(clusterSpec)
-val terminate = launch.flatMap(_.terminate)
+val clusterSpec =
+  ClusterSpec(
+    UUID.randomUUID,
+    DockerImage("videoamp/spark", "2.0.1-SNAPSHOT-2.6.0-cdh5.5.1-b49-9273bdd-92"),
+    "Michael",
+    None,
+    None,
+    "t2.micro",
+    "t2.micro",
+    2)
+
+// Launch it
+cs.launchCluster(clusterSpec).foreach { managedCluster =>
+  managedCluster.cluster.lifecycleState.foreach { state =>
+    if (state == Running) {
+      println("Compute, compute, compute...")
+      Thread.sleep(3000)
+      println("Terminating...")
+      managedCluster.terminate
+    }
+  }
+}
 ```
 
 ### Contributing to Flint

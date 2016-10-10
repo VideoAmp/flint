@@ -1,3 +1,4 @@
+import java.util.UUID
 import java.util.concurrent.{ Executors, ForkJoinPool, ThreadFactory }
 
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutorService, Future }
@@ -6,7 +7,15 @@ import scala.util.Try
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
-package object flint {
+import rx._
+
+package object flint extends Collections {
+  type ClusterId = UUID
+
+  object ClusterId {
+    def apply(uuidString: String): ClusterId = UUID.fromString(uuidString)
+  }
+
   def validateFlintConfig(config: Config): Unit = {
     val referenceConfig = ConfigFactory.defaultReference
     config.checkValid(referenceConfig, "aws")
@@ -36,15 +45,14 @@ package object flint {
     * provide an ExecutorService to share. Also, we use daemon threads in this ExecutionContext so
     * that they don't block JVM exit
     */
-  implicit lazy val flintExecutionContext: ExecutionContextExecutorService = {
+  private[flint] implicit lazy val executionContext: ExecutionContextExecutorService = {
     val executorService =
       new ForkJoinPool(Runtime.getRuntime.availableProcessors, flintThreadFactory, null, true)
 
     ExecutionContext.fromExecutorService(executorService)
   }
 
-  private[flint] type Seq[+T] = collection.immutable.Seq[T]
-  private[flint] val Seq = collection.immutable.Seq
+  lazy val flintExecutionContext = executionContext
 
   private[flint] def loop[T, U](future: => Future[T])(f: Try[T] => U): Unit =
     future.andThen(PartialFunction(f)).foreach(_ => loop(future)(f))
@@ -57,8 +65,12 @@ package object flint {
       .getLines
       .mkString("\n")
 
-  private[flint] implicit class RichString(string: String) {
+  private[flint] implicit class MacroString(string: String) {
     def replaceMacro(macroName: String, macroReplacement: String): String =
       string.replace(s"%$macroName%", macroReplacement)
+  }
+
+  private[flint] implicit class VarRx[T](rx: Rx[T]) {
+    def asVar: Var[T] = rx.asInstanceOf[Var[T]]
   }
 }

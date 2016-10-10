@@ -1,5 +1,6 @@
 package flint
-package service
+package server
+package messaging
 package akka
 
 import scala.concurrent.Future
@@ -14,7 +15,7 @@ private[akka] class AkkaWebSocketMessageSender[Send <: Message](
     extends MessageSender[Send] {
   import actorSystem.dispatcher
 
-  def sendMessage(message: Send): Future[Unit] = {
+  def sendMessage(message: Send): Future[Send] = {
     import MessageSerializer.serializeMessage
 
     val messageText = serializeMessage(message)
@@ -23,7 +24,7 @@ private[akka] class AkkaWebSocketMessageSender[Send <: Message](
     sourceQueue.synchronized {
       sourceQueue.offer(wsMessage)
     } flatMap {
-      case QueueOfferResult.Enqueued    => Future.successful(())
+      case QueueOfferResult.Enqueued    => Future.successful(message)
       case QueueOfferResult.Failure(ex) => Future.failed(ex)
       case QueueOfferResult.Dropped =>
         Future.failed(

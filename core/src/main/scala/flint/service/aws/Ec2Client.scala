@@ -26,6 +26,12 @@ private[aws] class Ec2Client(awsEc2Client: AmazonEC2Async) {
     handler.future.map(_.getInstanceStatuses.asScala.toIndexedSeq)
   }
 
+  def describeInstances(request: DescribeInstancesRequest): Future[Seq[Reservation]] = {
+    val handler = new AwsHandler[DescribeInstancesRequest, DescribeInstancesResult]
+    awsEc2Client.describeInstancesAsync(request, handler)
+    handler.future.map(_.getReservations.asScala.toIndexedSeq)
+  }
+
   def runInstances(request: RunInstancesRequest): Future[Reservation] = {
     val handler = new AwsHandler[RunInstancesRequest, RunInstancesResult]
     awsEc2Client.runInstancesAsync(request, handler)

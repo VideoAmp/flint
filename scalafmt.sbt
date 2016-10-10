@@ -1,1 +1,1 @@
-scalafmtConfig in ThisBuild := Some(file(".scalafmt"))
+scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf"))

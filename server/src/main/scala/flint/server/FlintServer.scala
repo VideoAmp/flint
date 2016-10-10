@@ -1,7 +1,8 @@
 package flint
 package server
 
-import service.akka.AkkaServer
+import messaging.akka.AkkaServer
+import service.aws.AwsClusterService
 
 import com.typesafe.config.{ Config, ConfigFactory, ConfigParseOptions }
 
@@ -17,14 +18,16 @@ object FlintServer {
     val config             = ConfigFactory.defaultApplication(configParseOptions)
     validateConfig(config)
 
-    val serverConfig = config.get[Config]("flint.server").value
+    val flintConfig  = config.get[Config]("flint").value
+    val serverConfig = flintConfig.get[Config]("flint.server").value
     val bindAddress  = serverConfig.get[String]("bind_address").value
     val serviceRoute = serverConfig.get[String]("service_route").value
 
     val bindInterface = bindAddress.takeWhile(_ != ':')
     val bindPort      = bindAddress.dropWhile(_ != ':').drop(1).toInt
 
-    val server: Server with Killable = AkkaServer()
+    val clusterService               = new AwsClusterService(flintConfig)
+    val server: Server with Killable = AkkaServer(clusterService)
     val bindingFuture                = server.bindTo(bindInterface, bindPort, serviceRoute)
 
     bindingFuture.map { binding =>

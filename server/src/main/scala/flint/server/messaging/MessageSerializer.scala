@@ -1,11 +1,12 @@
 package flint
-package service
+package server
+package messaging
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
 
-private[service] object MessageSerializer {
+private[server] object MessageSerializer {
   private val mapper = new ObjectMapper with ScalaObjectMapper
   mapper.registerModule(DefaultScalaModule)
 

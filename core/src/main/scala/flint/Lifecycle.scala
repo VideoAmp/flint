@@ -2,6 +2,6 @@ package flint
 
 import rx.Rx
 
-trait Lifecycle extends Killable {
+trait Lifecycle {
   val lifecycleState: Rx[LifecycleState]
 }

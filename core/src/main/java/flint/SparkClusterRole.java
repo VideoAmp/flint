@@ -1,5 +1,5 @@
 package flint;
 
 public enum SparkClusterRole {
-  master, worker
+  Master, Worker
 }

@@ -4,14 +4,16 @@ import java.net.InetAddress
 
 import scala.concurrent.Future
 
-import rx.Rx
+import rx._
 
 case class Instance(
     id: String,
     ipAddress: InetAddress,
+    placementGroup: Option[String],
     lifecycleState: Rx[LifecycleState],
     specs: InstanceSpecs)(terminator: () => Future[Unit])
-    extends Lifecycle {
+    extends Lifecycle
+    with Killable {
 
   override def terminate(): Future[Unit] = terminator()
 
@@ -21,4 +23,14 @@ case class Instance(
   }
 
   override def hashCode(): Int = id.hashCode
+}
+
+object Instance {
+  private[flint] def apply(
+      id: String,
+      ipAddress: InetAddress,
+      placementGroup: Option[String],
+      lifecycleState: LifecycleState,
+      specs: InstanceSpecs)(terminator: () => Future[Unit]): Instance =
+    new Instance(id, ipAddress, placementGroup, Var(lifecycleState), specs)(terminator)
 }

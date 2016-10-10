@@ -8,3 +8,5 @@ javaOptions ++= Seq(
 )
 
 connectInput := true
+
+libraryDependencies += "org.apache.logging.log4j" % "log4j-1.2-api" % "2.7"

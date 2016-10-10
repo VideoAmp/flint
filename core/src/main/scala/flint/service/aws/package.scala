@@ -7,8 +7,10 @@ InstanceType._
 package object aws {
   private val instanceSpecSeq = Seq(
     instanceSpecs(T2Micro, 1, 1, "0.013"),
-    instanceSpecs(R3Large, 2, 13, "0.166"),
     instanceSpecs(C38xlarge, 32, 52, "1.68"),
+    instanceSpecs(M4Large, 2, 6, "0.12"),
+    instanceSpecs(P216xlarge, 64, 716, "14.4"),
+    instanceSpecs(R3Large, 2, 13, "0.166"),
     instanceSpecs(R38xlarge, 32, 236, "2.66"),
     instanceSpecs(X132xlarge, 128, 1940, "13.338"))
 
@@ -19,7 +21,7 @@ package object aws {
       hourlyPrice: String) =
     InstanceSpecs(instanceType.toString, cores, ram, BigDecimal(hourlyPrice))
 
-  private val instanceSpecsMap =
+  private[aws] val instanceSpecsMap =
     instanceSpecSeq.map(specs => specs.instanceType -> specs).toMap
 
   private[aws] implicit def instanceState2LifecycleState(
@@ -37,13 +39,13 @@ package object aws {
     }
   }
 
-  private[aws] implicit class RichClusterSpec(clusterSpec: ClusterSpec) {
+  private[aws] implicit class InstanceSpecsClusterSpec(clusterSpec: ClusterSpec) {
     def masterInstanceSpecs(): InstanceSpecs = instanceSpecsMap(clusterSpec.masterInstanceType)
 
     def workerInstanceSpecs(): InstanceSpecs = instanceSpecsMap(clusterSpec.masterInstanceType)
   }
 
-  private[aws] implicit class RichInstanceSpecs(instanceSpecs: InstanceSpecs) {
+  private[aws] implicit class InstanceTypeInstanceSpecs(instanceSpecs: InstanceSpecs) {
     def awsInstanceType(): InstanceType = InstanceType.fromValue(instanceSpecs.instanceType)
   }
 }

@@ -74,7 +74,7 @@ You can also disable only one rule, by specifying its rule id:
 
   <check level="error" class="org.scalastyle.scalariform.EnsureSingleSpaceBeforeTokenChecker" enabled="true">
    <parameters>
-     <parameter name="tokens">ELSE, TRY, CATCH, FINALLY, LARROW, RARROW</parameter>
+     <parameter name="tokens">ELSE, TRY, CATCH, FINALLY, LARROW</parameter>
    </parameters>
   </check>
 
@@ -121,7 +121,7 @@ You can also disable only one rule, by specifying its rule id:
   <check level="error" class="org.scalastyle.scalariform.ImportOrderChecker" enabled="true">
     <parameters>
       <parameter name="groups">flint,java,scala,akka,com,io,net,org,configs,rx</parameter>
-      <parameter name="group.flint">(aws\..*)|(mock\..*)|(server\..*)|(service\..*)</parameter>
+      <parameter name="group.flint">(aws\..*)|(flint\..*)|(messaging\..*)|(mock\..*)|(server\..*)|(service\..*)</parameter>
       <parameter name="group.java">javax?\..*</parameter>
       <parameter name="group.scala">scala\..*</parameter>
       <parameter name="group.akka">_root_\.akka\..*</parameter>
