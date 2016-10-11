@@ -9,6 +9,7 @@ package object aws {
     instanceSpecs(T2Micro, 1, 1, "0.013"),
     instanceSpecs(C38xlarge, 32, 52, "1.68"),
     instanceSpecs(M4Large, 2, 6, "0.12"),
+    instanceSpecs(P28xlarge, 32, 460, "7.2"),
     instanceSpecs(P216xlarge, 64, 716, "14.4"),
     instanceSpecs(R3Large, 2, 13, "0.166"),
     instanceSpecs(R38xlarge, 32, 236, "2.66"),
