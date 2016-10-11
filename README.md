@@ -1,6 +1,6 @@
 # Welcome to Flint!
 
-Blah blah blah...
+Flint is a Scala library for managing on-demand Spark clusters. It includes a WebSocket server for remote interaction.
 
 ### Server Quickstart
 
@@ -10,7 +10,7 @@ Blah blah blah...
 1. Run `sbt assembly`.
 1. Run the server with
 ```
-java -Dconfig.file=<path-to-server.conf> -jar server/target/scala-2.11/flint-server-assembly-0.1-SNAPSHOT.jar
+java -Dconfig.file=<path-to-server.conf> -jar server/target/scala-2.11/flint-server-assembly-*.jar
 ```
 
 ### Scala Library Quickstart
