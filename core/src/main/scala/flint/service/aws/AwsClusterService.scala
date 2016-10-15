@@ -280,7 +280,7 @@ private[aws] object AwsClusterService {
     chunks += ""
 
     val instanceTemplate =
-      readTextResource(s"user_data-$clusterRole.sh.template")
+      readTextResource(s"user_data-${clusterRole.name.toLowerCase}.sh.template")
         .replaceMacro("SPARK_LOCAL_DIRS", scratchVolumeMountPoints.mkString(","))
         .replaceMacro(
           "SCRATCH_VOLUMES",
