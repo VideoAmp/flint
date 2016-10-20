@@ -4,14 +4,18 @@ Flint is a Scala library for managing on-demand Spark clusters. It includes a We
 
 ### Server Quickstart
 
-1. Download [application-template.conf](conf/application-template.conf) to a file named `application.conf` and customize to your environment.
-1. Download [creds-template.conf](conf/creds-template.conf) to a file named `creds.conf` and put your Docker and AWS credentials inside.
 1. Download [server-template.conf](conf/server-template.conf) to a file named `server.conf` and customize as desired.
+1. Download [aws_service-template.conf](conf/aws_service-template.conf) to a file named `aws_service.conf` and customize to your environment.
+1. Download [creds-template.conf](conf/creds-template.conf) to a file named `creds.conf` and put your Docker and AWS credentials inside.
 1. Run `sbt assembly`.
 1. Run the server with
 ```
 java -Dconfig.file=<path-to-server.conf> -jar server/target/scala-2.11/flint-server-assembly-*.jar
 ```
+
+A default logging configuration file is provided in [conf/log4j2.xml](conf/log4j2.xml). See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring the logger.
+
+The Flint server uses [Akka](http://akka.io/), which has its own logging configuration. For the sake of simplicity, you can adjust the default Akka log level by specifying the `akka.loglevel` system property, e.g. `-Dakka.loglevel=error`.
 
 ### Scala Library Quickstart
 

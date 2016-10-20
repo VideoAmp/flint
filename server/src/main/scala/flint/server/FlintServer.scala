@@ -33,13 +33,13 @@ object FlintServer extends LazyLogging {
         case "aws"  => new AwsClusterService(flintConfig)
         case "mock" => new MockClusterService
       }
-    logger.info("Using cluster service " + clusterService)
+    logger.info("Using " + clusterService.getClass.getSimpleName)
 
     val server: Server with Killable = AkkaServer(clusterService)
     val bindingFuture                = server.bindTo(bindInterface, bindPort, serviceRoute)
 
     bindingFuture.map { binding =>
-      logger.info(s"Websocket server online at http://$bindAddress$serviceRoute")
+      logger.info(s"WebSocket server online at ws://$bindAddress$serviceRoute")
       // scalastyle:off println
       println("Press RETURN to stop...")
       // scalastyle:on println
