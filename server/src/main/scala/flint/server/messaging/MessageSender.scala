@@ -4,6 +4,6 @@ package messaging
 
 import scala.concurrent.Future
 
-private[server] trait MessageSender[Send <: Message] {
+private[messaging] trait MessageSender[Send <: Message] {
   def sendMessage(message: Send): Future[Send]
 }

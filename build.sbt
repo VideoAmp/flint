@@ -34,4 +34,7 @@ lazy val core =
     .addSbtFiles(scalastyleSbt)
     .disablePlugins(sbtassembly.AssemblyPlugin)
 lazy val server =
-  project.dependsOn(core).settings(commonSettings: _*).addSbtFiles(scalastyleSbt)
+  project
+    .dependsOn(core % "compile;test->test")
+    .settings(commonSettings: _*)
+    .addSbtFiles(scalastyleSbt)

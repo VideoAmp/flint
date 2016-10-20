@@ -35,7 +35,7 @@ object FlintServer {
       println(s"Websocket server online at http://$bindAddress$serviceRoute")
       println("Press RETURN to stop...")
       // scalastyle:on println
-      io.StdIn.readLine
+      scala.io.StdIn.readLine
 
       binding
     }.flatMap(_.unbind).onComplete(_ => server.terminate)

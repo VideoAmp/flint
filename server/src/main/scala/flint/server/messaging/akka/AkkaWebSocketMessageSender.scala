@@ -11,14 +11,13 @@ import _root_.akka.stream.QueueOfferResult
 import _root_.akka.stream.scaladsl._
 
 private[akka] class AkkaWebSocketMessageSender[Send <: Message](
-    sourceQueue: SourceQueue[TextMessage])(implicit actorSystem: ActorSystem)
+    sourceQueue: SourceQueue[TextMessage],
+    encodeMessage: Send => String)(implicit actorSystem: ActorSystem)
     extends MessageSender[Send] {
   import actorSystem.dispatcher
 
   def sendMessage(message: Send): Future[Send] = {
-    import MessageSerializer.serializeMessage
-
-    val messageText = serializeMessage(message)
+    val messageText = encodeMessage(message)
     val wsMessage   = TextMessage(messageText)
 
     sourceQueue.synchronized {

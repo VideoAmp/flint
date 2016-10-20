@@ -31,9 +31,12 @@ class AkkaServer(clusterService: ClusterService)(
     val messageSink   = Sink.queue[TextMessage]
     val (messageSourceQueue, messageSinkQueue) =
       messageSource.toMat(messageSink)(Keep.both).run
+    val sender =
+      new AkkaWebSocketMessageSender[ServerMessage](messageSourceQueue, MessageCodec.encode)
+    val receiver =
+      new AkkaWebSocketMessageReceiver[ClientMessage](messageSinkQueue, MessageCodec.decode)
 
-    (new AkkaWebSocketMessageSender[ServerMessage](messageSourceQueue),
-     new AkkaWebSocketMessageReceiver[ClientMessage](messageSinkQueue))
+    (sender, receiver)
   }
 
   private val messageId = new AtomicInteger(0)
@@ -115,8 +118,7 @@ class AkkaServer(clusterService: ClusterService)(
             Future.successful(Some(error))
           }
           .flatMap(error =>
-            sendMessage(
-              ClusterTerminationAttempt(_, clusterId, TerminationReason.ClientRequested, error)))
+            sendMessage(ClusterTerminationAttempt(_, clusterId, ClientRequested, error)))
           .map(Some(_))
       case Some(TerminateWorker(instanceId)) =>
         clusterService.clusters.now.values
@@ -137,8 +139,7 @@ class AkkaServer(clusterService: ClusterService)(
             Future.successful(Some(error))
           }
           .flatMap(error =>
-            sendMessage(
-              WorkerTerminationAttempt(_, instanceId, TerminationReason.ClientRequested, error)))
+            sendMessage(WorkerTerminationAttempt(_, instanceId, ClientRequested, error)))
           .map(Some(_))
       case Some(clientMessage) =>
         logger.error(s"Don't know how to handle client message: $clientMessage")
