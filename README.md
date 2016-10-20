@@ -42,7 +42,6 @@ Once in a REPL, you can use a `ClusterService` to launch, manage and terminate c
 ```scala
 import flint._, service._, aws._
 import java.io.File
-import java.util.UUID
 import com.typesafe.config.ConfigFactory
 import rx.Ctx.Owner.Unsafe._
 
@@ -56,7 +55,7 @@ val cs: ClusterService = new AwsClusterService(flintConfig)
 // Define your ClusterSpec
 val clusterSpec =
   ClusterSpec(
-    UUID.randomUUID,
+    ClusterId(),
     DockerImage("videoamp/spark", "2.0.1-SNAPSHOT-2.6.0-cdh5.5.1-b49-9273bdd-92"),
     "Michael",
     None,

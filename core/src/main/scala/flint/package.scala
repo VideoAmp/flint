@@ -13,6 +13,8 @@ package object flint extends Collections {
   type ClusterId = UUID
 
   object ClusterId {
+    def apply(): ClusterId = UUID.randomUUID
+
     def apply(uuidString: String): ClusterId = UUID.fromString(uuidString)
   }
 
