@@ -42,7 +42,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
     val memory      = 8
     val hourlyPrice = BigDecimal("1.25")
 
-    InstanceSpecs(instanceType, cores, memory, hourlyPrice)
+    InstanceSpecs(instanceType, cores, memory, Storage(1, 32), hourlyPrice)
   }
 
   private def terminateClusterInstances(

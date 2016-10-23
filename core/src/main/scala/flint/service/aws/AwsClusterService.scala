@@ -11,7 +11,7 @@ import scala.concurrent.Future
 import com.amazonaws.auth._
 import com.amazonaws.client.builder.ExecutorFactory
 import com.amazonaws.services.ec2._
-import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, _ }
+import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Storage => _, _ }
 import com.amazonaws.util.Base64
 import com.typesafe.config.Config
 
@@ -32,15 +32,15 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   override def clusters: Rx[Map[ClusterId, ManagedCluster]] = awsClusters.clusters
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
+    val blockDeviceMappings = createBlockDeviceMappings(spec.masterInstanceSpecs.storage)
     val masterUserData =
       createUserData(SparkClusterRole.Master, spec.dockerImage, blockDeviceMappings, dockerConfig)
     val masterRequest =
       createRunInstancesRequest(
         Some(s"${spec.id}-master"),
-        spec.masterInstanceSpecs.awsInstanceType,
+        spec.masterInstanceSpecs,
         numInstances = 1,
         spec.placementGroup,
-        blockDeviceMappings,
         masterUserData,
         awsConfig)
 
@@ -114,19 +114,13 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       placementGroup: Option[String]): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
     val workerUserData =
-      createWorkerUserData(
-        master.ipAddress,
-        workerSpecs,
-        dockerImage,
-        blockDeviceMappings,
-        dockerConfig)
+      createWorkerUserData(master.ipAddress, workerSpecs, dockerImage, dockerConfig)
     val workersRequest =
       createRunInstancesRequest(
         clientToken,
-        workerSpecs.awsInstanceType,
+        workerSpecs,
         numWorkers,
         placementGroup,
-        blockDeviceMappings,
         workerUserData,
         awsConfig)
     ec2Client.runInstances(workersRequest).flatMap { reservation =>
@@ -179,10 +173,6 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 }
 
 private[aws] object AwsClusterService {
-  private val blockDeviceMappings = (("b", 0) :: ("c", 1) :: Nil).map {
-    case (deviceLetter, virtualNumber) => createBlockDeviceMapping(deviceLetter, virtualNumber)
-  }
-
   private def createEc2Client(awsConfig: Config): Ec2Client = {
     val accessKey           = awsConfig.get[String]("access_key").value
     val secretAccessKey     = awsConfig.get[String]("secret_access_key").value
@@ -202,10 +192,9 @@ private[aws] object AwsClusterService {
 
   private def createRunInstancesRequest(
       clientToken: Option[String],
-      instanceType: InstanceType,
+      instanceSpecs: InstanceSpecs,
       numInstances: Int,
       placementGroup: Option[String],
-      blockDeviceMappings: Seq[BlockDeviceMapping],
       userData: String,
       awsConfig: Config) = {
     val amiId = awsConfig.get[String]("ami_id").value
@@ -216,13 +205,15 @@ private[aws] object AwsClusterService {
         .flatMap(_.get[String]("arn"))
         .value)
 
+    val blockDeviceMappings = createBlockDeviceMappings(instanceSpecs.storage)
+
     val request = new RunInstancesRequest(amiId, numInstances, numInstances)
       .withBlockDeviceMappings(blockDeviceMappings: _*)
       .withDisableApiTermination(false)
       .withEbsOptimized(false)
       .withIamInstanceProfile(iamInstanceProfile)
       .withInstanceInitiatedShutdownBehavior(ShutdownBehavior.Terminate)
-      .withInstanceType(instanceType)
+      .withInstanceType(instanceSpecs.instanceType)
       .withKeyName(awsConfig.get[String]("key_name").value)
       .withMonitoring(false)
       .withSecurityGroupIds(awsConfig.get[Seq[String]]("security_groups").value: _*)
@@ -247,6 +238,12 @@ private[aws] object AwsClusterService {
       .withDeviceName("/dev/sd" + deviceLetter)
       .withVirtualName("ephemeral" + virtualNumber)
 
+  private def createBlockDeviceMappings(storage: Storage) =
+    (0 until storage.devices).map { virtualNumber =>
+      val deviceLetter = ('b' + virtualNumber).toChar.toString
+      createBlockDeviceMapping(deviceLetter, virtualNumber)
+    }
+
   // private[service] for testing
   private[service] def createUserData(
       clusterRole: SparkClusterRole,
@@ -260,8 +257,13 @@ private[aws] object AwsClusterService {
     chunks +=
       s"""#!/bin/bash
          |
-         |mkdir ${scratchVolumeMountPoints.mkString(" ")}
          |""".stripMargin
+
+    if (scratchVolumeMountPoints.nonEmpty) {
+      chunks +=
+        s"""mkdir ${scratchVolumeMountPoints.mkString(" ")}
+           |""".stripMargin
+    }
 
     chunks ++= blockDeviceMappings.zip(scratchVolumeMountPoints).flatMap {
       case (mapping, mountPoint) =>
@@ -279,12 +281,16 @@ private[aws] object AwsClusterService {
     chunks += baseTemplate
     chunks += ""
 
+    val sparkLocalDirs = if (scratchVolumeMountPoints.nonEmpty) {
+      scratchVolumeMountPoints
+    } else {
+      Seq("/tmp")
+    }
+
     val instanceTemplate =
       readTextResource(s"user_data-${clusterRole.name.toLowerCase}.sh.template")
-        .replaceMacro("SPARK_LOCAL_DIRS", scratchVolumeMountPoints.mkString(","))
-        .replaceMacro(
-          "SCRATCH_VOLUMES",
-          scratchVolumeMountPoints.map(x => s"-v $x:$x").mkString(" "))
+        .replaceMacro("SPARK_LOCAL_DIRS", sparkLocalDirs.mkString(","))
+        .replaceMacro("SCRATCH_VOLUMES", sparkLocalDirs.map(x => s"-v $x:$x").mkString(" "))
         .replaceMacro("IMAGE_TAG", dockerImage.tag)
 
     chunks += instanceTemplate
@@ -292,12 +298,12 @@ private[aws] object AwsClusterService {
     chunks.result.mkString("\n")
   }
 
-  private def createWorkerUserData(
+  private[service] def createWorkerUserData(
       masterIpAddress: InetAddress,
       workerSpecs: InstanceSpecs,
       dockerImage: DockerImage,
-      blockDeviceMappings: Seq[BlockDeviceMapping],
       dockerConfig: Config): String = {
+    val blockDeviceMappings = createBlockDeviceMappings(workerSpecs.storage)
     val baseUserData =
       createUserData(SparkClusterRole.Worker, dockerImage, blockDeviceMappings, dockerConfig)
     baseUserData
