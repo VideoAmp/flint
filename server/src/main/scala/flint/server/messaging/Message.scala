@@ -31,7 +31,7 @@ private[messaging] final case class ChangeDockerImage(
 
 private[messaging] final case class ClusterLaunchAttempt(
     id: Int,
-    spec: ClusterSpec,
+    clusterSpec: ClusterSpec,
     error: Option[String])
     extends ServerMessage
 
@@ -49,7 +49,7 @@ private[messaging] final case class DockerImageChangeAttempt(
     error: Option[String])
     extends ServerMessage
 
-private[messaging] final case class LaunchCluster(spec: ClusterSpec) extends ClientMessage
+private[messaging] final case class LaunchCluster(clusterSpec: ClusterSpec) extends ClientMessage
 
 private[messaging] final case class TerminateCluster(clusterId: ClusterId) extends ClientMessage
 

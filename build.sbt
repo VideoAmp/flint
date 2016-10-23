@@ -18,23 +18,28 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused-import"),
   scalacOptions in (Compile, console) := Seq("-language:_"))
 
+lazy val disablePublishing = Seq(publish := {}, publishLocal := {})
+
 lazy val root = (project in file("."))
   .aggregate(core, server)
   .settings(commonSettings: _*)
-  .settings(
-    aggregate in publish := false
-  )
-  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(disablePublishing: _*)
 
-lazy val scalastyleSbt = file("../scalastyle.sbt")
+scalastyle := {}
+scalastyle in Test := {}
+
+disablePlugins(sbtassembly.AssemblyPlugin)
+
+lazy val scalastyleSbt = file("../sbt/scalastyle.sbt")
 
 lazy val core =
   project
     .settings(commonSettings: _*)
-    .addSbtFiles(scalastyleSbt)
     .disablePlugins(sbtassembly.AssemblyPlugin)
+    .addSbtFiles(scalastyleSbt)
 lazy val server =
   project
     .dependsOn(core % "compile;test->test")
     .settings(commonSettings: _*)
+    .settings(disablePublishing: _*)
     .addSbtFiles(scalastyleSbt)

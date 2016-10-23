@@ -39,4 +39,20 @@ object TestMessages {
       WorkerAdditionAttempt(0, clusterId, 3, error),
       WorkerTerminationAttempt(0, instanceId, IdleTimeout, error)
     )
+
+  def main(args: Array[String]): Unit = {
+    // scalastyle:off println
+    def printMessages(messages: Seq[Message]): Unit =
+      messages
+        .sortBy(_.getClass.getSimpleName)
+        .map(MessageCodec.encode(_, pretty = true))
+        .foreach(println)
+
+    println("Server message examples:")
+    printMessages(testMessages.collect { case m: ServerMessage => m })
+    println
+    println("Client message examples:")
+    printMessages(testMessages.collect { case m: ClientMessage => m })
+    // scalastyle:on println
+  }
 }
