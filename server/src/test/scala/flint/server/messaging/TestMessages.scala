@@ -33,6 +33,8 @@ object TestMessages {
       ClusterLaunchAttempt(0, clusterSpec, error),
       ClusterTerminationAttempt(0, clusterId, ClientRequested, error),
       DockerImageChangeAttempt(0, clusterId, dockerImage, error),
+      InstanceContainerState(0, instanceId, ContainerRunning),
+      InstanceState(0, instanceId, Running),
       LaunchCluster(clusterSpec),
       TerminateCluster(clusterId),
       TerminateWorker(instanceId),

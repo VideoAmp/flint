@@ -1,6 +1,18 @@
-image=videoamp/spark:%IMAGE_TAG%
+start_script=/sbin/start-spark-container.sh
 
-docker pull $image
+cat << EOF > $start_script
+#!/bin/bash
+
+if [ \$# -eq 1 ]; then
+  image=\$1
+else
+  image=videoamp/spark:%IMAGE_TAG%
+fi
+
+instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+
+aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE% Key=%DOCKER_IMAGE_TAG_KEY%,Value=\$image
+docker pull \$image
 
 until nc -z %SPARK_MASTER_IP% 8080;
 do
@@ -8,8 +20,16 @@ do
   sleep 1
 done
 
-docker run %SCRATCH_VOLUMES% -dt --ulimit nofile=100000:100000 --net=host \
+aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_STARTING_STATE_TAG_VALUE%
+docker run --name=flint-spark %SCRATCH_VOLUMES% -dt \
+  --ulimit nofile=100000:100000 --net=host \
   -e "SPARK_LOCAL_DIRS=%SPARK_LOCAL_DIRS%" \
   -e "SPARK_MASTER_IP=%SPARK_MASTER_IP%" \
   -e "SPARK_WORKER_MEMORY=%WORKER_MEMORY%" \
-  $image /usr/local/sbin/boot-worker.sh
+  \$image /usr/local/sbin/boot-worker.sh
+aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_RUNNING_STATE_TAG_VALUE%
+EOF
+
+chmod 755 $start_script
+
+$start_script

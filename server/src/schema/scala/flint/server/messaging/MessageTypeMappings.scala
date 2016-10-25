@@ -24,6 +24,17 @@ trait MessageTypeMappings extends DefaultTypeMappings {
       "scala.Float"       -> Json.obj("type" -> "number"),
       "scala.Double"      -> Json.obj("type" -> "number"),
       "scala.math.BigInt" -> Json.obj("type" -> "integer"),
+      "flint.ContainerState" ->
+        Json.obj(
+          "type" -> "string",
+          "enum" ->
+            Json.arr("ContainerPending", "ContainerRunning", "ContainerStarting",
+              "ContainerStopped", "ContainerStopping")),
+      "flint.LifecycleState" ->
+        Json.obj(
+          "type" -> "string",
+          "enum" ->
+            Json.arr("Pending", "Running", "Starting", "Terminated", "Terminating")),
       "flint.server.messaging.TerminationReason" ->
         Json.obj(
           "type" -> "string",

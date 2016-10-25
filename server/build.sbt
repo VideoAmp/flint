@@ -30,7 +30,7 @@ ivyConfigurations += Schema
 inConfig(Schema)(Defaults.configSettings)
 
 resolvers += "vamp repo" at "https://videoamp.artifactoryonline.com/videoamp/repo/"
-libraryDependencies += "com.videoamp" %% "autoschema" % "1.0-SNAPSHOT" % Schema
+libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.3" % Schema
 
 inConfig(Schema)(ScalaFmtPlugin.configScalafmtSettings)
 

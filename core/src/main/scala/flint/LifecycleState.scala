@@ -1,22 +1,20 @@
 package flint
 
-sealed trait LifecycleState
+sealed trait LifecycleState {
+  protected val name = toString
+}
 
 object LifecycleState {
-  // TODO: Move to Cluster?
-  def reduce(state1: LifecycleState, state2: LifecycleState): LifecycleState =
-    (state1, state2) match {
-      case (Running, x)       => x
-      case (x, Running)       => x
-      case (Starting, x)      => x
-      case (x, Starting)      => x
-      case (Terminated, x)    => x
-      case (x, Terminated)    => x
-      case (Terminating, x)   => x
-      case (x, Terminating)   => x
-      case (Pending, Pending) => Pending
-    }
+  def apply(name: String): LifecycleState = name match {
+    case Pending.name     => Pending
+    case Running.name     => Running
+    case Starting.name    => Starting
+    case Terminated.name  => Terminated
+    case Terminating.name => Terminating
+  }
 }
+
+case object Pending extends LifecycleState
 
 case object Running extends LifecycleState
 
@@ -25,5 +23,3 @@ case object Starting extends LifecycleState
 case object Terminated extends LifecycleState
 
 case object Terminating extends LifecycleState
-
-case object Pending extends LifecycleState

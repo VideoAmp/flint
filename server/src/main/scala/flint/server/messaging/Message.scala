@@ -10,10 +10,19 @@ private[messaging] sealed trait ClientMessage extends Message
 
 private[messaging] sealed trait ServerMessage extends Message {
   val id: Int
-  val error: Option[String]
 }
 
-private[messaging] sealed trait TerminationReason
+private[messaging] sealed trait TerminationReason {
+  protected val name = toString
+}
+
+object TerminationReason {
+  def apply(name: String): TerminationReason = name match {
+    case ClientRequested.name => ClientRequested
+    case IdleTimeout.name     => IdleTimeout
+    case TTLExpired.name      => TTLExpired
+  }
+}
 
 private[messaging] case object ClientRequested extends TerminationReason
 
@@ -47,6 +56,18 @@ private[messaging] final case class DockerImageChangeAttempt(
     clusterId: ClusterId,
     dockerImage: DockerImage,
     error: Option[String])
+    extends ServerMessage
+
+private[messaging] final case class InstanceContainerState(
+    id: Int,
+    instanceId: String,
+    containerState: ContainerState)
+    extends ServerMessage
+
+private[messaging] final case class InstanceState(
+    id: Int,
+    instanceId: String,
+    state: LifecycleState)
     extends ServerMessage
 
 private[messaging] final case class LaunchCluster(clusterSpec: ClusterSpec) extends ClientMessage
@@ -91,18 +112,25 @@ private[messaging] object MessageCodec {
 
   private implicit val dockerImageJson = deriveJSON[DockerImage]
 
-  private implicit val terminationReasonJson = new JSON[TerminationReason] {
-    override def read(jval: JValue): JValidation[TerminationReason] = jval match {
-      case JString("ClientRequested") => Success(ClientRequested)
-      case JString("IdleTimeout")     => Success(IdleTimeout)
-      case JString("TTLExpired")      => Success(TTLExpired)
-      case JString(x)                 => fail("Invalid termination reason: " + x)
-      case _ =>
-        fail("Termination reason must be a string expected")
+  private def createCaseObjectJson[T](typeDescription: String, fromString: String => T): JSON[T] =
+    new JSON[T] {
+      override def read(jval: JValue): JValidation[T] = jval match {
+        case JString(state) => Success(fromString(state))
+        case _ =>
+          fail(typeDescription + " must be a string")
+      }
+
+      override def write(value: T): JValue = JString(value.toString)
     }
 
-    override def write(value: TerminationReason): JValue = JString(value.toString)
-  }
+  private implicit val lifecycleStateJson =
+    createCaseObjectJson[LifecycleState]("Lifecycle state", LifecycleState.apply)
+
+  private implicit val containerStateJson =
+    createCaseObjectJson[ContainerState]("Container state", ContainerState.apply)
+
+  private implicit val terminationReasonJson =
+    createCaseObjectJson[TerminationReason]("Termination reason", TerminationReason.apply)
 
   private implicit val clusterSpecJson = deriveJSON[ClusterSpec]
 

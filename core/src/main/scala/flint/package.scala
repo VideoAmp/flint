@@ -57,7 +57,7 @@ package object flint extends Collections {
   lazy val flintExecutionContext = executionContext
 
   private[flint] def loop[T, U](future: => Future[T])(f: Try[T] => U): Unit =
-    future.andThen(PartialFunction(f)).foreach(_ => loop(future)(f))
+    future.andThen(PartialFunction(f)).onComplete(_ => loop(future)(f))
 
   private[flint] def readTextResource(resourceName: String): String =
     Source
@@ -68,8 +68,8 @@ package object flint extends Collections {
       .mkString("\n")
 
   private[flint] implicit class MacroString(string: String) {
-    def replaceMacro(macroName: String, macroReplacement: String): String =
-      string.replace(s"%$macroName%", macroReplacement)
+    def replaceMacro(macroName: String, macroReplacement: Any): String =
+      string.replace(s"%$macroName%", macroReplacement.toString)
   }
 
   private[flint] implicit class VarRx[T](rx: Rx[T]) {

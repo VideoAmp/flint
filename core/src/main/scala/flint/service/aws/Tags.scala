@@ -2,7 +2,7 @@ package flint
 package service
 package aws
 
-import flint.{ DockerImage => FDockerImage }
+import flint.{ ContainerState => FContainerState, DockerImage => FDockerImage }
 
 import java.time.Duration
 
@@ -12,8 +12,10 @@ import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 
 private[aws] object Tags {
   val ClusterId          = "flint_cluster_id"
+  val ClusterDockerImage = "flint_cluster_docker_image"
   val ClusterTTL         = "flint_cluster_ttl"
   val ClusterIdleTimeout = "flint_cluster_idle_timeout"
+  val ContainerState     = "flint_container_state"
   val DockerImage        = "flint_docker_image"
   val Owner              = "flint_owner"
   val SparkRole          = "flint_spark_cluster_role"
@@ -53,6 +55,7 @@ private[aws] object Tags {
       ClusterId          -> clusterId.toString,
       Owner              -> owner,
       SparkRole          -> role.name,
+      ClusterDockerImage -> dockerImage.canonicalName,
       DockerImage        -> dockerImage.canonicalName,
       WorkerInstanceType -> workerInstanceType)
 
@@ -74,6 +77,22 @@ private[aws] object Tags {
     (commonTags ++ ttlTags ++ idleTimeoutTags ++ legacyTags).map {
       case (name, value) => new Tag(name, value)
     }.toIndexedSeq
+  }
+
+  def dockerImageTags(dockerImage: DockerImage, includeLegacyTags: Boolean): Seq[Tag] = {
+    val tags = Seq(
+      ClusterDockerImage -> dockerImage.canonicalName,
+      DockerImage        -> dockerImage.canonicalName)
+    val legacyTags =
+      if (includeLegacyTags) {
+        Seq(LegacyDockerImage -> dockerImage.tag)
+      } else {
+        Seq.empty
+      }
+
+    (tags ++ legacyTags).map {
+      case (name, value) => new Tag(name, value)
+    }
   }
 
   def findMaster(clusterId: ClusterId, instances: Seq[AwsInstance]): Option[AwsInstance] =
@@ -101,6 +120,12 @@ private[aws] object Tags {
           .find(_.getKey == ClusterId)
           .map(_.getValue == clusterId.toString)
           .getOrElse(false))
+
+  def getContainerState(instance: AwsInstance): Option[ContainerState] =
+    getTag(instance, ContainerState).map(FContainerState(_))
+
+  def getClusterDockerImage(instance: AwsInstance): Option[FDockerImage] =
+    getTag(instance, ClusterDockerImage).map(FDockerImage(_))
 
   def getDockerImage(instance: AwsInstance): Option[FDockerImage] =
     getTag(instance, DockerImage).map(FDockerImage(_))

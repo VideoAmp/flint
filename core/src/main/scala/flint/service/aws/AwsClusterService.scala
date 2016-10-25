@@ -12,6 +12,7 @@ import com.amazonaws.auth._
 import com.amazonaws.client.builder.ExecutorFactory
 import com.amazonaws.services.ec2._
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Storage => _, _ }
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementAsyncClientBuilder
 import com.amazonaws.util.Base64
 import com.typesafe.config.Config
 
@@ -25,6 +26,11 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   private val dockerConfig = flintConfig.get[Config]("docker").value
   private val awsConfig    = flintConfig.get[Config]("aws").value
 
+  private[aws] val legacyCompatibility = awsConfig.get[Boolean]("legacy_compatibility").value
+
+  private lazy val ssmClient                        = createSsmClient(awsConfig)
+  override val managementService: ManagementService = new AwsManagementService(ssmClient)
+
   private lazy val ec2Client = createEc2Client(awsConfig)
   private lazy val awsClusters =
     new AwsClusters(this, awsConfig.get[Config]("clusters_refresh").value)
@@ -34,7 +40,12 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     val blockDeviceMappings = createBlockDeviceMappings(spec.masterInstanceSpecs.storage)
     val masterUserData =
-      createUserData(SparkClusterRole.Master, spec.dockerImage, blockDeviceMappings, dockerConfig)
+      createUserData(
+        SparkClusterRole.Master,
+        spec.dockerImage,
+        blockDeviceMappings,
+        awsConfig,
+        dockerConfig)
     val masterRequest =
       createRunInstancesRequest(
         Some(s"${spec.id}-master"),
@@ -51,13 +62,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         flintInstance(masterAwsInstance)
       }
       .flatMap { master =>
-        val tags = Tags.instanceTags(
-          spec,
-          SparkClusterRole.Master,
-          includeLegacyTags = awsConfig.get[Boolean]("legacy_compatibility").value)
-        val createTagsRequest =
-          new CreateTagsRequest().withResources(master.id).withTags(tags: _*)
-        ec2Client.createTags(createTagsRequest).map(_ => master)
+        val tags =
+          Tags.instanceTags(spec, SparkClusterRole.Master, legacyCompatibility)
+        tagInstances(Seq(master), tags).map(_ => master)
       }
       .flatMap { master =>
         addWorkers(
@@ -69,18 +76,12 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
           spec.ttl,
           spec.idleTimeout,
           spec.numWorkers,
-          spec.workerInstanceType,
-          spec.placementGroup).map(r => (master, r))
+          spec.workerInstanceType).map(r => (master, r))
       }
       .flatMap {
         case (master, workers) =>
-          val tags = Tags.instanceTags(
-            spec,
-            SparkClusterRole.Worker,
-            includeLegacyTags = awsConfig.get[Boolean]("legacy_compatibility").value)
-          val createTagsRequest =
-            new CreateTagsRequest().withResources(workers.map(_.id): _*).withTags(tags: _*)
-          ec2Client.createTags(createTagsRequest).map(_ => (master, workers))
+          val tags = Tags.instanceTags(spec, SparkClusterRole.Worker, legacyCompatibility)
+          tagInstances(workers, tags).map(_ => (master, workers))
       }
       .map {
         case (master, workers) =>
@@ -96,7 +97,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
                 workers),
               this,
               spec.workerInstanceType)
-          awsClusters.clusters() = awsClusters.clusters.now.updated(spec.id, managedCluster)
+          awsClusters(spec.id) = managedCluster
           managedCluster
       }
   }
@@ -110,17 +111,16 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       ttl: Option[Duration],
       idleTimeout: Option[Duration],
       numWorkers: Int,
-      instanceType: String,
-      placementGroup: Option[String]): Future[Seq[Instance]] = {
+      instanceType: String): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
     val workerUserData =
-      createWorkerUserData(master.ipAddress, workerSpecs, dockerImage, dockerConfig)
+      createWorkerUserData(master.ipAddress, workerSpecs, dockerImage, awsConfig, dockerConfig)
     val workersRequest =
       createRunInstancesRequest(
         clientToken,
         workerSpecs,
         numWorkers,
-        placementGroup,
+        master.placementGroup,
         workerUserData,
         awsConfig)
     ec2Client.runInstances(workersRequest).flatMap { reservation =>
@@ -133,7 +133,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         idleTimeout,
         instanceType,
         SparkClusterRole.Worker,
-        includeLegacyTags = awsConfig.get[Boolean]("legacy_compatibility").value)
+        legacyCompatibility)
       val createTagsRequest =
         new CreateTagsRequest().withResources(workers.map(_.id): _*).withTags(tags: _*)
       ec2Client.createTags(createTagsRequest).map(_ => workers)
@@ -150,13 +150,27 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     val instanceId                     = awsInstance.getInstanceId
     val ipAddress                      = InetAddress.getByName(awsInstance.getPrivateIpAddress)
     val lifecycleState: LifecycleState = awsInstance.getState
+    val containerState =
+      Tags.getContainerState(awsInstance).getOrElse(ContainerPending)
     val instanceSpecs =
       instanceSpecsMap(awsInstance.getInstanceType)
-
+    val dockerImage    = Tags.getDockerImage(awsInstance)
     val placementGroup = Option(awsInstance.getPlacement.getGroupName).filterNot(_.isEmpty)
 
-    Instance(instanceId, ipAddress, placementGroup, lifecycleState, instanceSpecs)(() =>
-      terminateInstances(instanceId))
+    Instance(
+      instanceId,
+      ipAddress,
+      placementGroup,
+      dockerImage,
+      lifecycleState,
+      containerState,
+      instanceSpecs)(() => terminateInstances(instanceId))
+  }
+
+  private[aws] def tagInstances(instances: Seq[Instance], tags: Seq[Tag]): Future[Unit] = {
+    val createTagsRequest =
+      new CreateTagsRequest().withResources(instances.map(_.id): _*).withTags(tags: _*)
+    ec2Client.createTags(createTagsRequest)
   }
 
   private[aws] def terminateInstances(instanceIds: String*): Future[Unit] = {
@@ -164,7 +178,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
     ec2Client.terminateInstances(terminateInstancesRequest).map { terminatingInstances =>
       terminatingInstances.foreach { terminatingInstance =>
-        awsClusters.updateInstanceLifecycleState(
+        awsClusters.updateInstanceState(
           terminatingInstance.getInstanceId,
           terminatingInstance.getCurrentState)
       }
@@ -188,6 +202,23 @@ private[aws] object AwsClusterService {
       .build
 
     new Ec2Client(awsEc2Client)
+  }
+
+  private def createSsmClient(awsConfig: Config): SsmClient = {
+    val accessKey           = awsConfig.get[String]("access_key").value
+    val secretAccessKey     = awsConfig.get[String]("secret_access_key").value
+    val credentials         = new BasicAWSCredentials(accessKey, secretAccessKey)
+    val credentialsProvider = new AWSStaticCredentialsProvider(credentials)
+
+    val awsSsmClient = AWSSimpleSystemsManagementAsyncClientBuilder.standard
+      .withRegion(awsConfig.get[String]("region").value)
+      .withCredentials(credentialsProvider)
+      .withExecutorFactory(new ExecutorFactory {
+        override def newExecutor() = flintExecutionContext
+      })
+      .build
+
+    new SsmClient(awsSsmClient)
   }
 
   private def createRunInstancesRequest(
@@ -230,39 +261,35 @@ private[aws] object AwsClusterService {
     } getOrElse withClientToken
   }
 
-  // private[service] for testing
-  private[service] def createBlockDeviceMapping(
+  private def createBlockDeviceMapping(
       deviceLetter: String,
       virtualNumber: Int): BlockDeviceMapping =
     new BlockDeviceMapping()
       .withDeviceName("/dev/sd" + deviceLetter)
       .withVirtualName("ephemeral" + virtualNumber)
 
-  private def createBlockDeviceMappings(storage: Storage) =
+  // private[aws] for testing
+  private[aws] def createBlockDeviceMappings(storage: Storage) =
     (0 until storage.devices).map { virtualNumber =>
       val deviceLetter = ('b' + virtualNumber).toChar.toString
       createBlockDeviceMapping(deviceLetter, virtualNumber)
     }
 
-  // private[service] for testing
-  private[service] def createUserData(
+  // private[aws] for testing
+  private[aws] def createUserData(
       clusterRole: SparkClusterRole,
       dockerImage: DockerImage,
       blockDeviceMappings: Seq[BlockDeviceMapping],
+      awsConfig: Config,
       dockerConfig: Config
   ): String = {
     val scratchVolumeMountPoints = (1 to blockDeviceMappings.length).map("/scratch" + _)
 
     val chunks = Seq.newBuilder[String]
-    chunks +=
-      s"""#!/bin/bash
-         |
-         |""".stripMargin
+    chunks += "#!/bin/bash\n"
 
     if (scratchVolumeMountPoints.nonEmpty) {
-      chunks +=
-        s"""mkdir ${scratchVolumeMountPoints.mkString(" ")}
-           |""".stripMargin
+      chunks += s"mkdir ${scratchVolumeMountPoints.mkString(" ")}\n"
     }
 
     chunks ++= blockDeviceMappings.zip(scratchVolumeMountPoints).flatMap {
@@ -273,39 +300,55 @@ private[aws] object AwsClusterService {
         (s"mkfs.ext4 $internalDeviceName" :: s"mount $internalDeviceName $mountPoint" :: "" :: Nil)
     }
 
-    val baseTemplate =
-      readTextResource("user_data.sh.template")
-        .replaceMacro("AUTH_CREDZ_BASE64", dockerConfig.getString("auth"))
-        .replaceMacro("EMAIL", dockerConfig.getString("email"))
-
-    chunks += baseTemplate
-    chunks += ""
-
     val sparkLocalDirs = if (scratchVolumeMountPoints.nonEmpty) {
       scratchVolumeMountPoints
     } else {
       Seq("/tmp")
     }
 
-    val instanceTemplate =
-      readTextResource(s"user_data-${clusterRole.name.toLowerCase}.sh.template")
+    def replaceContainerTagMacros(text: String): String =
+      text
+        .replaceMacro("CONTAINER_STATE_TAG_KEY", Tags.ContainerState)
+        .replaceMacro("CONTAINER_PENDING_STATE_TAG_VALUE", ContainerPending)
+        .replaceMacro("CONTAINER_RUNNING_STATE_TAG_VALUE", ContainerRunning)
+        .replaceMacro("CONTAINER_STARTING_STATE_TAG_VALUE", ContainerStarting)
+        .replaceMacro("CONTAINER_STOPPED_STATE_TAG_VALUE", ContainerStopped)
+        .replaceMacro("CONTAINER_STOPPING_STATE_TAG_VALUE", ContainerStopping)
+        .replaceMacro("DOCKER_IMAGE_TAG_KEY", Tags.DockerImage)
+        .replaceMacro("AWS_REGION", awsConfig.getString("region"))
+        .replaceMacro("DOCKER_AUTH", dockerConfig.getString("auth"))
+        .replaceMacro("DOCKER_EMAIL", dockerConfig.getString("email"))
         .replaceMacro("SPARK_LOCAL_DIRS", sparkLocalDirs.mkString(","))
         .replaceMacro("SCRATCH_VOLUMES", sparkLocalDirs.map(x => s"-v $x:$x").mkString(" "))
         .replaceMacro("IMAGE_TAG", dockerImage.tag)
 
-    chunks += instanceTemplate
+    val baseTemplate = readTextResource("user_data.sh.template")
+
+    chunks += replaceContainerTagMacros(baseTemplate)
+    chunks += ""
+
+    val instanceTemplate = readTextResource(
+      s"user_data-${clusterRole.name.toLowerCase}.sh.template")
+
+    chunks += replaceContainerTagMacros(instanceTemplate)
 
     chunks.result.mkString("\n")
   }
 
-  private[service] def createWorkerUserData(
+  private def createWorkerUserData(
       masterIpAddress: InetAddress,
       workerSpecs: InstanceSpecs,
       dockerImage: DockerImage,
+      awsConfig: Config,
       dockerConfig: Config): String = {
     val blockDeviceMappings = createBlockDeviceMappings(workerSpecs.storage)
     val baseUserData =
-      createUserData(SparkClusterRole.Worker, dockerImage, blockDeviceMappings, dockerConfig)
+      createUserData(
+        SparkClusterRole.Worker,
+        dockerImage,
+        blockDeviceMappings,
+        awsConfig,
+        dockerConfig)
     baseUserData
       .replaceMacro("WORKER_MEMORY", workerSpecs.memory + "g")
       .replaceMacro("SPARK_MASTER_IP", masterIpAddress.getHostAddress)

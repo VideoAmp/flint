@@ -44,32 +44,35 @@ private[aws] class AwsClusters private[aws] (
             .groupBy(_._1)
             .mapValues(_.map(_._2))
 
-          val clustersNow = clusters.now
+          clusters.synchronized {
+            val clustersNow = clusters.now
 
-          // Update `clusters` from `currentClusterInstances` in three steps:
-          // 1. Retain clusters present in `currentClusterInstances`
-          val retainedClusters = clustersNow.filter {
-            case (clusterId, _) =>
-              currentClusterInstances.contains(clusterId)
+            // Update `clusters` from `currentClusterInstances` in three steps:
+            // 1. Retain clusters present in `currentClusterInstances`
+            val retainedClusters = clustersNow.filter {
+              case (clusterId, _) =>
+                currentClusterInstances.contains(clusterId)
+            }
+
+            // 2. Update retained clusters
+            retainedClusters.foreach {
+              case (clusterId, managedCluster) =>
+                managedCluster() = currentClusterInstances(clusterId)
+            }
+
+            // 3. Create new clusters not present in `clusters`
+            val newClusters = currentClusterInstances.filterNot {
+              case (clusterId, _) => clustersNow.contains(clusterId)
+            }.map {
+              case (clusterId, instances) =>
+                clusterId -> AwsManagedCluster
+                  .forInstances(clusterId, instances, awsClusterService)
+            }.collect {
+              case (clusterId, Some(managedCluster)) => clusterId -> managedCluster
+            }.toMap
+
+            clusters() = retainedClusters ++ newClusters
           }
-
-          // 2. Update retained clusters
-          retainedClusters.foreach {
-            case (clusterId, managedCluster) =>
-              managedCluster() = currentClusterInstances(clusterId)
-          }
-
-          // 3. Create new clusters not present in `clusters`
-          val newClusters = currentClusterInstances.filterNot {
-            case (clusterId, _) => clustersNow.contains(clusterId)
-          }.map {
-            case (clusterId, instances) =>
-              clusterId -> AwsManagedCluster.forInstances(clusterId, instances, awsClusterService)
-          }.collect {
-            case (clusterId, Some(managedCluster)) => clusterId -> managedCluster
-          }.toMap
-
-          clusters() = retainedClusters ++ newClusters
         case Failure(ex) =>
           logger.error("Received exception trying to get instance statuses", ex)
       }
@@ -81,11 +84,14 @@ private[aws] class AwsClusters private[aws] (
     scheduler.scheduleWithFixedDelay(task, 0, pollingInterval.length, pollingInterval.unit)
   }
 
-  private[aws] def updateInstanceLifecycleState(
-      instanceId: String,
-      newLifecycleState: LifecycleState): Unit =
+  private[aws] def update(clusterId: ClusterId, managedCluster: AwsManagedCluster): Unit =
+    clusters.synchronized {
+      clusters() = clusters.now.updated(clusterId, managedCluster)
+    }
+
+  private[aws] def updateInstanceState(instanceId: String, newState: LifecycleState): Unit =
     clusters.now.values
       .flatMap(_.cluster.instances.now)
       .find(_.id == instanceId)
-      .foreach(_.lifecycleState.asVar() = newLifecycleState)
+      .foreach(_.instanceState.asVar() = newState)
 }

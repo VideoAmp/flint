@@ -10,10 +10,11 @@ case class Instance(
     id: String,
     ipAddress: InetAddress,
     placementGroup: Option[String],
-    lifecycleState: Rx[LifecycleState],
+    dockerImage: Rx[Option[DockerImage]],
+    instanceState: Rx[LifecycleState],
+    containerState: Rx[ContainerState],
     specs: InstanceSpecs)(terminator: () => Future[Unit])
-    extends Lifecycle
-    with Killable {
+    extends Killable {
 
   override def terminate(): Future[Unit] = terminator()
 
@@ -30,7 +31,16 @@ object Instance {
       id: String,
       ipAddress: InetAddress,
       placementGroup: Option[String],
-      lifecycleState: LifecycleState,
+      dockerImage: Option[DockerImage],
+      instanceState: LifecycleState,
+      containerState: ContainerState,
       specs: InstanceSpecs)(terminator: () => Future[Unit]): Instance =
-    new Instance(id, ipAddress, placementGroup, Var(lifecycleState), specs)(terminator)
+    new Instance(
+      id,
+      ipAddress,
+      placementGroup,
+      Var(dockerImage),
+      Var(instanceState),
+      Var(containerState),
+      specs)(terminator)
 }

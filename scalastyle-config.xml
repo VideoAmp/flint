@@ -84,7 +84,7 @@ You can also disable only one rule, by specifying its rule id:
     </parameters>
   </check>
 
-  <check customId="println" level="error" class="org.scalastyle.scalariform.TokenChecker" enabled="true">
+  <check customId="println" level="warn" class="org.scalastyle.scalariform.TokenChecker" enabled="true">
     <parameters><parameter name="regex">^println$</parameter></parameters>
     <customMessage><![CDATA[Are you sure you want to println? If yes, wrap the code block with
       // scalastyle:off println
