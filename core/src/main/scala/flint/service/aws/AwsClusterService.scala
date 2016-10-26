@@ -187,20 +187,23 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 }
 
 private[aws] object AwsClusterService {
-  private def createEc2Client(awsConfig: Config): Ec2Client = {
+  private def createAwsEc2Client(awsConfig: Config): AmazonEC2Async = {
     val accessKey           = awsConfig.get[String]("access_key").value
     val secretAccessKey     = awsConfig.get[String]("secret_access_key").value
     val credentials         = new BasicAWSCredentials(accessKey, secretAccessKey)
     val credentialsProvider = new AWSStaticCredentialsProvider(credentials)
 
-    val awsEc2Client = AmazonEC2AsyncClientBuilder.standard
+    AmazonEC2AsyncClientBuilder.standard
       .withRegion(awsConfig.get[String]("region").value)
       .withCredentials(credentialsProvider)
       .withExecutorFactory(new ExecutorFactory {
         override def newExecutor() = flintExecutionContext
       })
       .build
+  }
 
+  private def createEc2Client(awsConfig: Config): Ec2Client = {
+    val awsEc2Client = createAwsEc2Client(awsConfig)
     new Ec2Client(awsEc2Client)
   }
 

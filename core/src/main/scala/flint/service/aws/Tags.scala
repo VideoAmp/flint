@@ -11,6 +11,8 @@ import scala.collection.JavaConverters._
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 
 private[aws] object Tags {
+  val InstanceName = "Name"
+
   val ClusterId          = "flint_cluster_id"
   val ClusterDockerImage = "flint_cluster_docker_image"
   val ClusterTTL         = "flint_cluster_ttl"
@@ -24,7 +26,6 @@ private[aws] object Tags {
   private val LegacyClusterId   = "cluster_id"
   private val LegacyClusterTTL  = "lifetime_hours"
   private val LegacyDockerImage = "docker_image"
-  private val LegacyName        = "Name"
 
   def instanceTags(
       clusterSpec: ClusterSpec,
@@ -52,6 +53,7 @@ private[aws] object Tags {
     val noTags = Map.empty[String, String]
 
     val commonTags = Map(
+      InstanceName       -> s"Flint Spark ${role.name} : $owner",
       ClusterId          -> clusterId.toString,
       Owner              -> owner,
       SparkRole          -> role.name,
@@ -69,7 +71,6 @@ private[aws] object Tags {
     val legacyTags = if (includeLegacyTags) {
       Map(
         LegacyClusterId   -> clusterId.toString,
-        LegacyName        -> s"Flint Spark ${role.name} : $owner",
         LegacyClusterTTL  -> ttl.map(_.toHours).getOrElse(1L).toString,
         LegacyDockerImage -> dockerImage.tag)
     } else { noTags }
