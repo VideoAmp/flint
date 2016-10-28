@@ -23,10 +23,11 @@ object FlintServer extends LazyLogging {
     val flintConfig  = config.get[Config]("flint").value
     val serverConfig = flintConfig.get[Config]("server").value
     val bindAddress  = serverConfig.get[String]("bind_address").value
-    val serviceRoute = serverConfig.get[String]("service_route").value
 
     val bindInterface = bindAddress.takeWhile(_ != ':')
     val bindPort      = bindAddress.dropWhile(_ != ':').drop(1).toInt
+
+    val serviceRoute = "/api/version/1/messaging"
 
     val clusterService =
       serverConfig.get[String]("cluster_service").value match {
@@ -39,9 +40,9 @@ object FlintServer extends LazyLogging {
     val bindingFuture                = server.bindTo(bindInterface, bindPort, serviceRoute)
 
     bindingFuture.map { binding =>
-      logger.info(s"WebSocket server online at ws://$bindAddress$serviceRoute")
+      logger.info(s"Flint messaging server online at ws://$bindAddress$serviceRoute")
       // scalastyle:off println
-      println("Press RETURN to stop...")
+      println("Press RETURN to exit")
       // scalastyle:on println
       scala.io.StdIn.readLine
 
