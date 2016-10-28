@@ -37,6 +37,9 @@ private[akka] class ConnectionFlowFactory(
               .leftMap(logDecodingErrors(logger, messageText, _))
               .toOption
               .collect {
+                case message: ClientMessage =>
+                  messageReceiver.receivedMessage.asVar() = Some(message)
+                  message
                 case message: ServerMessage =>
                   messageSender.sendMessage(message)
                   message
@@ -45,12 +48,11 @@ private[akka] class ConnectionFlowFactory(
         .to(completionSink)
 
     val source = new RxStreamSource(
-      messageReceiver.receivedMessage
-        .filter(_.isDefined)
-        .map(_.get)
-        .map(MessageCodec.encode)
-        .map(TextMessage(_)))(completionPromise.future)
+      messageReceiver.receivedMessage.map(_.map(MessageCodec.encode)).map(_.map(TextMessage(_))))(
+      completionPromise.future)
 
-    Flow.fromSinkAndSource(sink, source)
+    Flow.fromSinkAndSource(sink, source).collect {
+      case Some(message) => message
+    }
   }
 }

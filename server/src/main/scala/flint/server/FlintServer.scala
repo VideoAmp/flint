@@ -42,7 +42,7 @@ object FlintServer extends LazyLogging {
     bindingFuture.map { binding =>
       logger.info(s"Flint messaging server online at ws://$bindAddress$serviceRoute")
       // scalastyle:off println
-      println("Press RETURN to exit")
+      println("Press RETURN to shut down")
       // scalastyle:on println
       scala.io.StdIn.readLine
 

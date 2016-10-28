@@ -46,6 +46,7 @@ class AkkaServer(clusterService: ClusterService)(
   override def bindTo(interface: String, port: Int, path: String): Future[Binding] = {
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path(`path`), _, _, _) =>
+        logger.info("Received GET request for messaging websocket")
         req.header[UpgradeToWebSocket] match {
           case Some(upgrade) =>
             upgrade.handleMessages(connectionFlowFactory.newConnectionFlow)

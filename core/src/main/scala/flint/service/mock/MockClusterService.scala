@@ -29,6 +29,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         .toSeq)
     val cluster =
       MockManagedCluster(Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, workers))(
+        this,
         workers,
         workerInstanceType,
         spec.placementGroup)
@@ -37,7 +38,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
     Future.successful(cluster)
   }
 
-  private def instance(
+  private[mock] def instance(
       dockerImage: Option[DockerImage],
       instanceType: String,
       placementGroup: Option[String]): Instance = {
@@ -63,7 +64,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
     InstanceSpecs(instanceType, cores, memory, Storage(1, 32), hourlyPrice)
   }
 
-  private def terminateClusterInstances(
+  private[mock] def terminateClusterInstances(
       master: Instance,
       workers: Rx[Seq[Instance]]): Future[Unit] =
     terminateInstances((master +: workers.now).map(_.id): _*)
@@ -71,27 +72,5 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   private def terminateInstances(instanceIds: String*): Future[Unit] = {
     instanceLifecycleManager.terminateInstances(instanceIds.map(_.toString): _*)
     Future.successful(())
-  }
-
-  private case class MockManagedCluster(cluster: Cluster)(
-      workers: Var[Seq[Instance]],
-      workerInstanceType: String,
-      placementGroup: Option[String])
-      extends ManagedCluster {
-    override protected val managementService = MockManagementService
-
-    override def terminate(): Future[Unit] =
-      terminateClusterInstances(cluster.master, cluster.workers)
-
-    override protected def addWorkers0(count: Int) =
-      Future.successful {
-        val newWorkers = cluster.workers.now ++ (0 until count).map(_ =>
-            instance(Some(cluster.dockerImage.now), workerInstanceType, placementGroup))
-        newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
-        workers() = newWorkers
-      }
-
-    override protected def changeDockerImage0(dockerImage: DockerImage) =
-      Future.successful(cluster.dockerImage.asVar() = dockerImage)
   }
 }
