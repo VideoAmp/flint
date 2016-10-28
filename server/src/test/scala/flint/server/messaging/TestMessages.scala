@@ -30,17 +30,17 @@ object TestMessages {
     Seq(
       AddWorkers(clusterId, 2),
       ChangeDockerImage(clusterId, dockerImage),
-      ClusterLaunchAttempt(0, clusterSpec, error),
-      ClusterTerminationAttempt(0, clusterId, ClientRequested, error),
-      DockerImageChangeAttempt(0, clusterId, dockerImage, error),
-      InstanceContainerState(0, instanceId, ContainerRunning),
-      InstanceDockerImage(0, instanceId, Some(dockerImage)),
-      InstanceState(0, instanceId, Running),
+      ClusterLaunchAttempt(clusterSpec, error),
+      ClusterTerminationAttempt(clusterId, ClientRequested, error),
+      DockerImageChangeAttempt(clusterId, dockerImage, error),
+      InstanceContainerState(instanceId, ContainerRunning),
+      InstanceDockerImage(instanceId, Some(dockerImage)),
+      InstanceState(instanceId, Running),
       LaunchCluster(clusterSpec),
       TerminateCluster(clusterId),
       TerminateWorker(instanceId),
-      WorkerAdditionAttempt(0, clusterId, 3, error),
-      WorkerTerminationAttempt(0, instanceId, IdleTimeout, error)
+      WorkerAdditionAttempt(clusterId, 3, error),
+      WorkerTerminationAttempt(instanceId, IdleTimeout, error)
     )
 
   def main(args: Array[String]): Unit = {

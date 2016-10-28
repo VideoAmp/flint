@@ -4,8 +4,6 @@ package messaging
 
 import service.{ ClusterService, ManagedCluster }
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import scala.concurrent.Future
 
 import com.typesafe.scalalogging.LazyLogging
@@ -17,6 +15,7 @@ private[messaging] final class MessagingProtocol(
     messageSender: MessageSender[ServerMessage],
     messageReceiver: MessageReceiver)(implicit ctx: Ctx.Owner)
     extends LazyLogging {
+  import messageSender.sendMessage
 
   Rx {
     val clusterSystem = clusterService.clusterSystem
@@ -34,7 +33,7 @@ private[messaging] final class MessagingProtocol(
     val instanceName             = instanceIdentityHashCode + ":" + instance.id
 
     instance.dockerImage.foreach { dockerImage =>
-      sendMessage(InstanceDockerImage(_, instance.id, dockerImage))
+      sendMessage(InstanceDockerImage(instance.id, dockerImage))
       logger.trace(
         s"Instance docker image change. " +
           s"Instance $instanceName, " +
@@ -42,7 +41,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.instanceState.foreach { state =>
-      sendMessage(InstanceState(_, instance.id, state))
+      sendMessage(InstanceState(instance.id, state))
       logger.trace(
         s"Instance state change. " +
           s"Instance $instanceName, " +
@@ -50,7 +49,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.containerState.foreach { state =>
-      sendMessage(InstanceContainerState(_, instance.id, state))
+      sendMessage(InstanceContainerState(instance.id, state))
       logger.trace(
         s"Container state change. " +
           s"Instance $instanceName, " +
@@ -83,7 +82,7 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error => sendMessage(WorkerAdditionAttempt(_, clusterId, count, error)))
+          .flatMap(error => sendMessage(WorkerAdditionAttempt(clusterId, count, error)))
           .map(Some(_))
       case Some(ChangeDockerImage(clusterId, dockerImage)) =>
         clusterService.clusterSystem.clusters.now
@@ -102,8 +101,7 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error =>
-            sendMessage(DockerImageChangeAttempt(_, clusterId, dockerImage, error)))
+          .flatMap(error => sendMessage(DockerImageChangeAttempt(clusterId, dockerImage, error)))
           .map(Some(_))
       case Some(LaunchCluster(clusterSpec)) =>
         clusterService
@@ -115,7 +113,7 @@ private[messaging] final class MessagingProtocol(
               logger.error(error, ex)
               Some(error)
           }
-          .flatMap(error => sendMessage(ClusterLaunchAttempt(_, clusterSpec, error)))
+          .flatMap(error => sendMessage(ClusterLaunchAttempt(clusterSpec, error)))
           .map(Some(_))
       case Some(TerminateCluster(clusterId)) =>
         clusterService.clusterSystem.clusters.now
@@ -135,7 +133,7 @@ private[messaging] final class MessagingProtocol(
             Future.successful(Some(error))
           }
           .flatMap(error =>
-            sendMessage(ClusterTerminationAttempt(_, clusterId, ClientRequested, error)))
+            sendMessage(ClusterTerminationAttempt(clusterId, ClientRequested, error)))
           .map(Some(_))
       case Some(TerminateWorker(instanceId)) =>
         clusterService.clusterSystem.clusters.now.values
@@ -156,7 +154,7 @@ private[messaging] final class MessagingProtocol(
             Future.successful(Some(error))
           }
           .flatMap(error =>
-            sendMessage(WorkerTerminationAttempt(_, instanceId, ClientRequested, error)))
+            sendMessage(WorkerTerminationAttempt(instanceId, ClientRequested, error)))
           .map(Some(_))
       case Some(clientMessage: ClientMessage) =>
         logger.error(s"Don't know how to handle client message: $clientMessage")
@@ -172,12 +170,4 @@ private[messaging] final class MessagingProtocol(
       }
     }
   }
-
-  private val messageId = new AtomicInteger(0)
-
-  private def sendMessage(f: Int => ServerMessage): Future[ServerMessage] =
-    messageSender.synchronized {
-      val message = f(messageId.incrementAndGet)
-      messageSender.sendMessage(message)
-    }
 }

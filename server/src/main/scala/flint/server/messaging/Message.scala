@@ -8,9 +8,7 @@ private[messaging] sealed trait Message
 
 private[messaging] sealed trait ClientMessage extends Message
 
-private[messaging] sealed trait ServerMessage extends Message {
-  val id: Int
-}
+private[messaging] sealed trait ServerMessage extends Message
 
 private[messaging] sealed trait TerminationReason {
   protected val name = toString
@@ -39,41 +37,33 @@ private[messaging] final case class ChangeDockerImage(
     extends ClientMessage
 
 private[messaging] final case class ClusterLaunchAttempt(
-    id: Int,
     clusterSpec: ClusterSpec,
     error: Option[String])
     extends ServerMessage
 
 private[messaging] final case class ClusterTerminationAttempt(
-    id: Int,
     clusterId: ClusterId,
     reason: TerminationReason,
     error: Option[String])
     extends ServerMessage
 
 private[messaging] final case class DockerImageChangeAttempt(
-    id: Int,
     clusterId: ClusterId,
     dockerImage: DockerImage,
     error: Option[String])
     extends ServerMessage
 
 private[messaging] final case class InstanceContainerState(
-    id: Int,
     instanceId: String,
     containerState: ContainerState)
     extends ServerMessage
 
 private[messaging] final case class InstanceDockerImage(
-    id: Int,
     instanceId: String,
     dockerImage: Option[DockerImage])
     extends ServerMessage
 
-private[messaging] final case class InstanceState(
-    id: Int,
-    instanceId: String,
-    state: LifecycleState)
+private[messaging] final case class InstanceState(instanceId: String, state: LifecycleState)
     extends ServerMessage
 
 private[messaging] final case class LaunchCluster(clusterSpec: ClusterSpec) extends ClientMessage
@@ -83,14 +73,12 @@ private[messaging] final case class TerminateCluster(clusterId: ClusterId) exten
 private[messaging] final case class TerminateWorker(instanceId: String) extends ClientMessage
 
 private[messaging] final case class WorkerAdditionAttempt(
-    id: Int,
     clusterId: ClusterId,
     count: Int,
     error: Option[String])
     extends ServerMessage
 
 private[messaging] final case class WorkerTerminationAttempt(
-    id: Int,
     instanceId: String,
     reason: TerminationReason,
     error: Option[String])
