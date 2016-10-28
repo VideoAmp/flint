@@ -5,8 +5,6 @@ package akka
 
 import service.ClusterService
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import scala.concurrent.Future
 
 import _root_.akka.actor.ActorSystem
@@ -26,6 +24,7 @@ class AkkaServer(clusterService: ClusterService)(
     materializer: Materializer)
     extends Server
     with LazyLogging {
+
   private val (messageSender, messageReceiver) = {
     val messageSource = Source.queue[TextMessage](0, OverflowStrategy.backpressure)
     val messageSink   = Sink.queue[TextMessage]
@@ -34,127 +33,13 @@ class AkkaServer(clusterService: ClusterService)(
     val sender =
       new AkkaWebSocketMessageSender[ServerMessage](messageSourceQueue, MessageCodec.encode)
     val receiver =
-      new AkkaWebSocketMessageReceiver[ClientMessage](messageSinkQueue, MessageCodec.decode)
+      new AkkaWebSocketMessageReceiver(messageSinkQueue, MessageCodec.decode)
 
     (sender, receiver)
   }
 
-  private val messageId = new AtomicInteger(0)
-
-  messageReceiver.receivedMessage.foreach { optMessage =>
-    optMessage.foreach { message =>
-      logger.trace(s"Received $message")
-    }
-  }
-
-  val result: Rx[Future[Option[ServerMessage]]] = Rx {
-    messageReceiver.receivedMessage() match {
-      case Some(AddWorkers(clusterId, count)) =>
-        clusterService.clusters.now
-          .get(clusterId)
-          .map(_.addWorkers(count))
-          .map { optAddWorkers =>
-            optAddWorkers.map(_ => None).recover {
-              case ex =>
-                val error = s"Failed to add workers to cluster with id: $clusterId"
-                logger.error(error, ex)
-                Some(error)
-            }
-          }
-          .getOrElse {
-            val error = s"Add workers: no cluster with id: $clusterId"
-            logger.error(error)
-            Future.successful(Some(error))
-          }
-          .flatMap(error => sendMessage(WorkerAdditionAttempt(_, clusterId, count, error)))
-          .map(Some(_))
-      case Some(ChangeDockerImage(clusterId, dockerImage)) =>
-        clusterService.clusters.now
-          .get(clusterId)
-          .map(_.changeDockerImage(dockerImage))
-          .map { optChangeDockerImage =>
-            optChangeDockerImage.map(_ => None).recover {
-              case ex =>
-                val error = s"Failed to change Docker image of cluster with id: $clusterId"
-                logger.error(error, ex)
-                Some(error)
-            }
-          }
-          .getOrElse {
-            val error = s"Change docker image: no cluster with id: $clusterId"
-            logger.error(error)
-            Future.successful(Some(error))
-          }
-          .flatMap(error =>
-            sendMessage(DockerImageChangeAttempt(_, clusterId, dockerImage, error)))
-          .map(Some(_))
-      case Some(LaunchCluster(clusterSpec)) =>
-        clusterService
-          .launchCluster(clusterSpec)
-          .map(_ => None)
-          .recover {
-            case ex =>
-              val error = s"Failed to launch cluster for spec: $clusterSpec"
-              logger.error(error, ex)
-              Some(error)
-          }
-          .flatMap(error => sendMessage(ClusterLaunchAttempt(_, clusterSpec, error)))
-          .map(Some(_))
-      case Some(TerminateCluster(clusterId)) =>
-        clusterService.clusters.now
-          .get(clusterId)
-          .map(_.terminate)
-          .map { optTermination =>
-            optTermination.map(_ => None).recover {
-              case ex =>
-                val error = s"Failed to terminate cluster with id: $clusterId"
-                logger.error(error, ex)
-                Some(error)
-            }
-          }
-          .getOrElse {
-            val error = s"Terminate cluster: no cluster with id: $clusterId"
-            logger.error(error)
-            Future.successful(Some(error))
-          }
-          .flatMap(error =>
-            sendMessage(ClusterTerminationAttempt(_, clusterId, ClientRequested, error)))
-          .map(Some(_))
-      case Some(TerminateWorker(instanceId)) =>
-        clusterService.clusters.now.values
-          .flatMap(_.cluster.liveWorkers.now)
-          .find(_.id == instanceId)
-          .map(_.terminate)
-          .map { optTermination =>
-            optTermination.map(_ => None).recover {
-              case ex =>
-                val error = s"Failed to terminate worker with instance id: $instanceId"
-                logger.error(error, ex)
-                Some(error)
-            }
-          }
-          .getOrElse {
-            val error = s"Terminate worker: no worker with instance id: $instanceId"
-            logger.error(error)
-            Future.successful(Some(error))
-          }
-          .flatMap(error =>
-            sendMessage(WorkerTerminationAttempt(_, instanceId, ClientRequested, error)))
-          .map(Some(_))
-      case Some(clientMessage) =>
-        logger.error(s"Don't know how to handle client message: $clientMessage")
-        Future.successful(None)
-      case None => Future.successful(None)
-    }
-  }
-
-  result.foreach { futureOptMessage =>
-    futureOptMessage.foreach { optMessage =>
-      optMessage.foreach { message =>
-        logger.trace(s"Replied with $message")
-      }
-    }
-  }
+  private val protocol =
+    new MessagingProtocol(clusterService, messageSender, messageReceiver)
 
   private val connectionFlowFactory = new ConnectionFlowFactory(messageSender, messageReceiver)
 
@@ -178,12 +63,6 @@ class AkkaServer(clusterService: ClusterService)(
       }
     }
   }
-
-  private def sendMessage(f: Int => ServerMessage): Future[ServerMessage] =
-    messageSender.synchronized {
-      val message = f(messageId.incrementAndGet)
-      messageSender.sendMessage(message)
-    }
 }
 
 object AkkaServer {

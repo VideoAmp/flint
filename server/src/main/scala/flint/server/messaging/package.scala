@@ -7,7 +7,7 @@ import scalaz.{ NonEmptyList, ValidationNel }
 import scalaz.syntax.foldable._
 
 package object messaging {
-  private[messaging] type MessageValidation[M <: Message] = ValidationNel[String, M]
+  private[messaging] type MessageValidation = ValidationNel[String, Message]
 
   private[messaging] def logDecodingErrors(
       logger: Logger,

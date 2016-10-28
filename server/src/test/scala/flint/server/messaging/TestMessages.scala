@@ -34,6 +34,7 @@ object TestMessages {
       ClusterTerminationAttempt(0, clusterId, ClientRequested, error),
       DockerImageChangeAttempt(0, clusterId, dockerImage, error),
       InstanceContainerState(0, instanceId, ContainerRunning),
+      InstanceDockerImage(0, instanceId, Some(dockerImage)),
       InstanceState(0, instanceId, Running),
       LaunchCluster(clusterSpec),
       TerminateCluster(clusterId),

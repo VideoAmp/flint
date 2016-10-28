@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
   <Appenders>
+    <Console name="FlintConsole" target="SYSTEM_OUT">
+      <PatternLayout
+        pattern="%d{HH:mm:ss.SSS} [%t] %-5level Flint %logger{1} - %msg%n" />
+    </Console>
     <Console name="Console" target="SYSTEM_OUT">
       <PatternLayout
         pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
     </Console>
   </Appenders>
   <Loggers>
+    <Logger name="flint" level="info" additivity="false">
+      <AppenderRef ref="FlintConsole" />
+    </Logger>
     <Root level="info">
       <AppenderRef ref="Console" />
     </Root>

@@ -15,11 +15,9 @@ import com.typesafe.scalalogging.LazyLogging
 
 import rx._
 
-import scalaz.Success
-
 private[akka] class ConnectionFlowFactory(
     messageSender: MessageSender[ServerMessage],
-    messageReceiver: MessageReceiver[ClientMessage])(
+    messageReceiver: MessageReceiver)(
     implicit ctx: Ctx.Owner,
     actorSystem: ActorSystem,
     materializer: Materializer)
@@ -35,13 +33,15 @@ private[akka] class ConnectionFlowFactory(
       }.map(
           messageText =>
             MessageCodec
-              .decode[ServerMessage](messageText)
+              .decode(messageText)
               .leftMap(logDecodingErrors(logger, messageText, _))
-              .map { message =>
-                messageSender.sendMessage(message)
-                message
+              .toOption
+              .collect {
+                case message: ServerMessage =>
+                  messageSender.sendMessage(message)
+                  message
             })
-        .collect { case Success(message) => message }
+        .collect { case Some(message) => message }
         .to(completionSink)
 
     val source = new RxStreamSource(

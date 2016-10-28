@@ -76,6 +76,7 @@ object MessageSchemaGenerator {
         createMessageSchema[ClusterTerminationAttempt],
         createMessageSchema[DockerImageChangeAttempt],
         createMessageSchema[InstanceContainerState],
+        createMessageSchema[InstanceDockerImage],
         createMessageSchema[InstanceState],
         createMessageSchema[WorkerAdditionAttempt],
         createMessageSchema[WorkerTerminationAttempt]

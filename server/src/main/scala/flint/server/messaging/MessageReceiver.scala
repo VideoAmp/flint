@@ -4,6 +4,6 @@ package messaging
 
 import rx.Rx
 
-private[messaging] trait MessageReceiver[Recv <: Message] {
-  val receivedMessage: Rx[Option[Recv]]
+private[messaging] trait MessageReceiver {
+  val receivedMessage: Rx[Option[Message]]
 }

@@ -64,6 +64,12 @@ private[messaging] final case class InstanceContainerState(
     containerState: ContainerState)
     extends ServerMessage
 
+private[messaging] final case class InstanceDockerImage(
+    id: Int,
+    instanceId: String,
+    dockerImage: Option[DockerImage])
+    extends ServerMessage
+
 private[messaging] final case class InstanceState(
     id: Int,
     instanceId: String,
@@ -157,6 +163,6 @@ private[messaging] object MessageCodec {
       compactJson(toJValue(message))
     }
 
-  def decode[M <: Message](messageText: String): MessageValidation[M] =
-    fromJSON[Message](messageText).leftMap(_.map(_.toString)).map(_.asInstanceOf[M])
+  def decode(messageText: String): MessageValidation =
+    fromJSON[Message](messageText).leftMap(_.map(_.toString))
 }

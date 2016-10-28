@@ -14,14 +14,14 @@ import com.typesafe.scalalogging.LazyLogging
 
 import rx._
 
-private[akka] class AkkaWebSocketMessageReceiver[Recv <: Message](
+private[akka] class AkkaWebSocketMessageReceiver(
     messageSinkQueue: SinkQueue[TextMessage],
-    decodeMessage: String => MessageValidation[Recv])(
+    decodeMessage: String => MessageValidation)(
     implicit actorSystem: ActorSystem,
     materializer: Materializer)
-    extends MessageReceiver[Recv]
+    extends MessageReceiver
     with LazyLogging {
-  override val receivedMessage = Var[Option[Recv]](None)
+  override val receivedMessage = Var(Option.empty[Message])
 
   loop(messageSinkQueue.pull) {
     case Success(Some(textMessage)) =>

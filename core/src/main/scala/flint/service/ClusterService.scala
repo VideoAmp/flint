@@ -3,12 +3,10 @@ package service
 
 import scala.concurrent.Future
 
-import rx._
-
 trait ClusterService {
-  val managementService: ManagementService
+  val clusterSystem: ClusterSystem
 
-  def clusters: Rx[Map[ClusterId, ManagedCluster]]
+  val managementService: ManagementService
 
   def launchCluster(spec: ClusterSpec): Future[ManagedCluster]
 }

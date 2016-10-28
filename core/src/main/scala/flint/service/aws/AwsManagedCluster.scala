@@ -38,7 +38,7 @@ private[aws] class AwsManagedCluster(
     super.changeDockerImage0(dockerImage).flatMap { _ =>
       val dockerImageTags =
         Tags.dockerImageTags(dockerImage, clusterService.legacyCompatibility)
-      clusterService.tagInstances(Seq(cluster.master), dockerImageTags)
+      clusterService.tagInstances(Seq(cluster.master.id), dockerImageTags)
     }
 
   private[aws] def update(instances: Seq[AwsInstance]): Unit =
@@ -77,6 +77,8 @@ private[aws] class AwsManagedCluster(
         case (workerId, _) =>
           workersNow.map(_.id).contains(workerId)
       }.map { case (_, workerInstance) => clusterService.flintInstance(workerInstance) }
+
+      newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
 
       cluster.workers.asVar() = retainedWorkers ++ newWorkers
     }

@@ -32,10 +32,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   override val managementService: ManagementService = new AwsManagementService(ssmClient)
 
   private lazy val ec2Client = createEc2Client(awsConfig)
-  private lazy val awsClusters =
-    new AwsClusters(this, awsConfig.get[Config]("clusters_refresh").value)
 
-  override def clusters: Rx[Map[ClusterId, ManagedCluster]] = awsClusters.clusters
+  override lazy val clusterSystem =
+    new AwsClusterSystem(this, awsConfig.get[Config]("clusters_refresh").value)
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     val blockDeviceMappings = createBlockDeviceMappings(spec.masterInstanceSpecs.storage)
@@ -64,7 +63,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       .flatMap { master =>
         val tags =
           Tags.instanceTags(spec, SparkClusterRole.Master, legacyCompatibility)
-        tagInstances(Seq(master), tags).map(_ => master)
+        tagInstances(Seq(master.id), tags).map(_ => master)
       }
       .flatMap { master =>
         addWorkers(
@@ -81,7 +80,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       .flatMap {
         case (master, workers) =>
           val tags = Tags.instanceTags(spec, SparkClusterRole.Worker, legacyCompatibility)
-          tagInstances(workers, tags).map(_ => (master, workers))
+          tagInstances(workers.map(_.id), tags).map(_ => (master, workers))
       }
       .map {
         case (master, workers) =>
@@ -97,7 +96,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
                 workers),
               this,
               spec.workerInstanceType)
-          awsClusters(spec.id) = managedCluster
+          clusterSystem.addCluster(managedCluster)
           managedCluster
       }
   }
@@ -167,9 +166,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       instanceSpecs)(() => terminateInstances(instanceId))
   }
 
-  private[aws] def tagInstances(instances: Seq[Instance], tags: Seq[Tag]): Future[Unit] = {
+  private[aws] def tagInstances(instanceIds: Seq[String], tags: Seq[Tag]): Future[Unit] = {
     val createTagsRequest =
-      new CreateTagsRequest().withResources(instances.map(_.id): _*).withTags(tags: _*)
+      new CreateTagsRequest().withResources(instanceIds: _*).withTags(tags: _*)
     ec2Client.createTags(createTagsRequest)
   }
 
@@ -178,7 +177,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
     ec2Client.terminateInstances(terminateInstancesRequest).map { terminatingInstances =>
       terminatingInstances.foreach { terminatingInstance =>
-        awsClusters.updateInstanceState(
+        tagInstances(
+          instanceIds.toStream,
+          Seq(new Tag(Tags.ContainerState, ContainerStopped.toString)))
+        clusterSystem.updateInstanceState(
           terminatingInstance.getInstanceId,
           terminatingInstance.getCurrentState)
       }

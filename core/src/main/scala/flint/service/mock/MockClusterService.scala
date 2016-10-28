@@ -14,7 +14,11 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
 
   private lazy val instanceLifecycleManager = new InstanceLifecycleManager
 
-  override val clusters = Var(Map.empty[ClusterId, ManagedCluster])
+  override val clusterSystem = new ClusterSystem {
+    override val clusters = Var(Map.empty[ClusterId, ManagedCluster])
+
+    override val newCluster = Var(Option.empty[ManagedCluster])
+  }
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._
@@ -28,7 +32,8 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         workers,
         workerInstanceType,
         spec.placementGroup)
-    clusters() = clusters.now.updated(id, cluster)
+    clusterSystem.newCluster() = Some(cluster)
+    clusterSystem.clusters() = clusterSystem.clusters.now.updated(id, cluster)
     Future.successful(cluster)
   }
 
@@ -79,8 +84,12 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
       terminateClusterInstances(cluster.master, cluster.workers)
 
     override protected def addWorkers0(count: Int) =
-      Future.successful(workers() = cluster.workers.now ++ (0 until count).map(_ =>
-          instance(Some(cluster.dockerImage.now), workerInstanceType, placementGroup)))
+      Future.successful {
+        val newWorkers = cluster.workers.now ++ (0 until count).map(_ =>
+            instance(Some(cluster.dockerImage.now), workerInstanceType, placementGroup))
+        newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
+        workers() = newWorkers
+      }
 
     override protected def changeDockerImage0(dockerImage: DockerImage) =
       Future.successful(cluster.dockerImage.asVar() = dockerImage)
