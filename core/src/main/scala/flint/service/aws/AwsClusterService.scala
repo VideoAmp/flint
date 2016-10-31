@@ -327,7 +327,7 @@ private[aws] object AwsClusterService {
         .replaceMacro("SCRATCH_VOLUMES", sparkLocalDirs.map(x => s"-v $x:$x").mkString(" "))
         .replaceMacro("IMAGE_TAG", dockerImage.tag)
 
-    val baseTemplate = readTextResource("user_data.sh.template")
+    val baseTemplate = readTextResource("user_data-common.sh.template")
 
     chunks += replaceContainerTagMacros(baseTemplate)
     chunks += ""

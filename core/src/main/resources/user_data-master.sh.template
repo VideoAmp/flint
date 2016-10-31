@@ -1,19 +1,6 @@
 start_script=/sbin/start-spark-container.sh
 
-cat << EOF > $start_script
-#!/bin/bash
-
-if [ \$# -eq 1 ]; then
-  image=\$1
-else
-  image=videoamp/spark:%IMAGE_TAG%
-fi
-
-instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-
-aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE% Key=%DOCKER_IMAGE_TAG_KEY%,Value=\$image
-docker pull \$image
-
+cat << EOF >> $start_script
 aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_STARTING_STATE_TAG_VALUE%
 docker run --name=flint-spark %SCRATCH_VOLUMES% -dt \
   --ulimit nofile=100000:100000 --net=host \

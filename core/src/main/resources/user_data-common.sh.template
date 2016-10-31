@@ -1,6 +1,6 @@
 hostname $(hostname).ec2.internal
 
-yum -y update
+/usr/bin/time yum -y update 2> /tmp/yum_update_time.txt
 
 curl https://amazon-ssm-us-east-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o /tmp/amazon-ssm-agent.rpm
 yum install -y /tmp/amazon-ssm-agent.rpm
@@ -49,3 +49,21 @@ echo "fs.file-max = 100000" >> /etc/sysctl.conf
 sysctl -p
 
 service docker start
+
+start_script=/sbin/start-spark-container.sh
+
+cat << EOF > $start_script
+#!/bin/bash
+
+if [ \$# -eq 1 ]; then
+  image=\$1
+else
+  image=videoamp/spark:%IMAGE_TAG%
+fi
+
+instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+
+aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE% Key=%DOCKER_IMAGE_TAG_KEY%,Value=\$image
+/usr/bin/time docker pull \$image 2> /tmp/docker_pull_time.txt
+
+EOF
