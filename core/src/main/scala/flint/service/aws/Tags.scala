@@ -71,7 +71,7 @@ private[aws] object Tags {
     val legacyTags = if (includeLegacyTags) {
       Map(
         LegacyClusterId   -> clusterId.toString,
-        LegacyClusterTTL  -> ttl.map(_.toHours).getOrElse(1L).toString,
+        LegacyClusterTTL  -> ttl.map(_.toHours).getOrElse(Int.MaxValue.toLong).toString,
         LegacyDockerImage -> dockerImage.tag)
     } else { noTags }
 
