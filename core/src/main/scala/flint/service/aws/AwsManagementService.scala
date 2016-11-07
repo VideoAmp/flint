@@ -22,7 +22,7 @@ private[aws] class AwsManagementService(ssmClient: SsmClient)
       new SendCommandRequest()
         .withDocumentName("AWS-RunShellScript")
         .withInstanceIds(instances.map(_.id).asJava)
-        .withComment(comment)
+        .withComment(comment.take(100))
         .withParameters(
           Map("commands" -> command, "executionTimeout" -> executionTimeout.toSeconds.toString)
             .mapValues(value => Seq(value).asJava)
