@@ -4,5 +4,5 @@ publishTo := {
   if (isSnapshot.value)
     Some("snapshots" at vamp + "snapshot")
   else
-    Some("releases"  at vamp + "release")
+    Some("releases" at vamp + "release")
 }
