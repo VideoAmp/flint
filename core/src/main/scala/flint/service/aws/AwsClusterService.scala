@@ -110,34 +110,37 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       ttl: Option[Duration],
       idleTimeout: Option[Duration],
       numWorkers: Int,
-      instanceType: String): Future[Seq[Instance]] = {
-    val workerSpecs = instanceSpecsMap(instanceType)
-    val workerUserData =
-      createWorkerUserData(master.ipAddress, workerSpecs, dockerImage, awsConfig, dockerConfig)
-    val workersRequest =
-      createRunInstancesRequest(
-        clientToken,
-        workerSpecs,
-        numWorkers,
-        master.placementGroup,
-        workerUserData,
-        awsConfig)
-    ec2Client.runInstances(workersRequest).flatMap { reservation =>
-      val workers = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
-      val tags = Tags.instanceTags(
-        clusterId,
-        dockerImage,
-        owner,
-        ttl,
-        idleTimeout,
-        instanceType,
-        SparkClusterRole.Worker,
-        legacyCompatibility)
-      val createTagsRequest =
-        new CreateTagsRequest().withResources(workers.map(_.id): _*).withTags(tags: _*)
-      ec2Client.createTags(createTagsRequest).map(_ => workers)
+      instanceType: String): Future[Seq[Instance]] =
+    if (numWorkers > 0) {
+      val workerSpecs = instanceSpecsMap(instanceType)
+      val workerUserData =
+        createWorkerUserData(master.ipAddress, workerSpecs, dockerImage, awsConfig, dockerConfig)
+      val workersRequest =
+        createRunInstancesRequest(
+          clientToken,
+          workerSpecs,
+          numWorkers,
+          master.placementGroup,
+          workerUserData,
+          awsConfig)
+      ec2Client.runInstances(workersRequest).flatMap { reservation =>
+        val workers = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
+        val tags = Tags.instanceTags(
+          clusterId,
+          dockerImage,
+          owner,
+          ttl,
+          idleTimeout,
+          instanceType,
+          SparkClusterRole.Worker,
+          legacyCompatibility)
+        val createTagsRequest =
+          new CreateTagsRequest().withResources(workers.map(_.id): _*).withTags(tags: _*)
+        ec2Client.createTags(createTagsRequest).map(_ => workers)
+      }
+    } else {
+      Future.successful(Seq.empty[Instance])
     }
-  }
 
   private[aws] def describeFlintInstances(): Future[Seq[Reservation]] = {
     val flintInstanceFilter = new Filter("tag-key").withValues(Tags.ClusterId)
@@ -166,26 +169,32 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       instanceSpecs)(() => terminateInstances(instanceId))
   }
 
-  private[aws] def tagInstances(instanceIds: Seq[String], tags: Seq[Tag]): Future[Unit] = {
-    val createTagsRequest =
-      new CreateTagsRequest().withResources(instanceIds: _*).withTags(tags: _*)
-    ec2Client.createTags(createTagsRequest)
-  }
-
-  private[aws] def terminateInstances(instanceIds: String*): Future[Unit] = {
-    val terminateInstancesRequest =
-      new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
-    ec2Client.terminateInstances(terminateInstancesRequest).map { terminatingInstances =>
-      terminatingInstances.foreach { terminatingInstance =>
-        tagInstances(
-          instanceIds.toStream,
-          Seq(new Tag(Tags.ContainerState, ContainerStopped.toString)))
-        clusterSystem.updateInstanceState(
-          terminatingInstance.getInstanceId,
-          terminatingInstance.getCurrentState)
-      }
+  private[aws] def tagInstances(instanceIds: Seq[String], tags: Seq[Tag]): Future[Unit] =
+    if (instanceIds.nonEmpty) {
+      val createTagsRequest =
+        new CreateTagsRequest().withResources(instanceIds: _*).withTags(tags: _*)
+      ec2Client.createTags(createTagsRequest)
+    } else {
+      Future.successful(())
     }
-  }
+
+  private[aws] def terminateInstances(instanceIds: String*): Future[Unit] =
+    if (instanceIds.nonEmpty) {
+      val terminateInstancesRequest =
+        new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
+      ec2Client.terminateInstances(terminateInstancesRequest).map { terminatingInstances =>
+        terminatingInstances.foreach { terminatingInstance =>
+          tagInstances(
+            instanceIds.toStream,
+            Seq(new Tag(Tags.ContainerState, ContainerStopped.toString)))
+          clusterSystem.updateInstanceState(
+            terminatingInstance.getInstanceId,
+            terminatingInstance.getCurrentState)
+        }
+      }
+    } else {
+      Future.successful(())
+    }
 }
 
 private[aws] object AwsClusterService {
