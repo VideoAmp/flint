@@ -32,7 +32,6 @@ private[aws] class AwsManagedCluster(
         cluster.idleTimeout,
         count,
         workerInstanceType)
-      .map(_ => ())
 
   override protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] =
     super.changeDockerImage0(dockerImage).flatMap { _ =>

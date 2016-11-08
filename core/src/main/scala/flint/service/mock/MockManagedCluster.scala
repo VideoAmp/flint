@@ -25,6 +25,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
               .instance(Some(cluster.dockerImage.now), workerInstanceType, placementGroup))
       newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
       workers() = newWorkers
+      newWorkers
     }
 
   override protected def changeDockerImage0(dockerImage: DockerImage) =
