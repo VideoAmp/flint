@@ -7,6 +7,7 @@ import io.sphere.json.generic.deriveJSON
 
 import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.client.methods.HttpGet
+import org.apache.http.client.HttpClient
 import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.impl.client.HttpClients.createDefault
 import org.apache.http.message.BasicHeader
@@ -31,17 +32,22 @@ sealed trait Credentials
 case class UserPass(username: String, password: String) extends Credentials
 case class Token(key: String)                           extends Credentials
 
-object Tags {
-  val client = createDefault
-
+class Tags(
+  client: HttpClient,
+  authenticationServiceURLPrefix: String,
+  authenticationServiceURLSuffix: String,
+  registryServiceURLPrefix: String,
+  registryServiceURLSuffix: String
+) {
   def apply(
       repo: String,
       auth: Option[Credentials] = None
   ): ValidationNel[String, List[DockerImage]] = {
-    val tokenURL = "https://auth.docker.io/token?service=registry.docker.io&scope=repository:" +
-        repo + ":pull"
 
-    val tokenRequest = new HttpGet(tokenURL)
+    val tokenRequest = new HttpGet(
+      authenticationServiceURLPrefix
+      + repo
+      + authenticationServiceURLSuffix)
 
     auth match {
       case None => ()
@@ -66,9 +72,10 @@ object Tags {
     }
 
     authToken.flatMap { authToken =>
-      val tagURL = s"https://registry.hub.docker.com/v2/${repo}/tags/list"
-
-      val tagRequest = new HttpGet(tagURL)
+      val tagRequest = new HttpGet(
+        registryServiceURLPrefix
+        + repo
+        + registryServiceURLSuffix)
 
       tagRequest.setHeader("Authorization", s"Bearer ${authToken}")
 
@@ -85,4 +92,14 @@ object Tags {
     }
   }
 
+}
+
+object Tags {
+  def make: Tags = new Tags(
+    createDefault,
+    "https://auth.docker.io/token?service=registry.docker.io&scope=repository:",
+    ":pull",
+    "https://registry.hub.docker.com/v2/",
+    "/tags/list"
+    )
 }
