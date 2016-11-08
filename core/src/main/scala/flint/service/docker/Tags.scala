@@ -33,11 +33,11 @@ case class UserPass(username: String, password: String) extends Credentials
 case class Token(key: String)                           extends Credentials
 
 class Tags(
-  client: HttpClient,
-  authenticationServiceURLPrefix: String,
-  authenticationServiceURLSuffix: String,
-  registryServiceURLPrefix: String,
-  registryServiceURLSuffix: String
+    client: HttpClient,
+    authenticationServiceURLPrefix: String,
+    authenticationServiceURLSuffix: String,
+    registryServiceURLPrefix: String,
+    registryServiceURLSuffix: String
 ) {
   def apply(
       repo: String,
@@ -46,8 +46,8 @@ class Tags(
 
     val tokenRequest = new HttpGet(
       authenticationServiceURLPrefix
-      + repo
-      + authenticationServiceURLSuffix)
+        + repo
+        + authenticationServiceURLSuffix)
 
     auth match {
       case None => ()
@@ -74,8 +74,8 @@ class Tags(
     authToken.flatMap { authToken =>
       val tagRequest = new HttpGet(
         registryServiceURLPrefix
-        + repo
-        + registryServiceURLSuffix)
+          + repo
+          + registryServiceURLSuffix)
 
       tagRequest.setHeader("Authorization", s"Bearer ${authToken}")
 
@@ -101,5 +101,5 @@ object Tags {
     ":pull",
     "https://registry.hub.docker.com/v2/",
     "/tags/list"
-    )
+  )
 }
