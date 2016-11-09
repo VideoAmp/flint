@@ -9,7 +9,6 @@ import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.client.HttpClient
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.auth.BasicScheme
-import org.apache.http.impl.client.HttpClients.createDefault
 import org.apache.http.message.BasicHeader
 import org.apache.http.protocol.BasicHttpContext
 
