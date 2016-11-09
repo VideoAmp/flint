@@ -18,7 +18,6 @@ val log4jVersion = "2.7"
 libraryDependencies ++= Seq(
   "com.typesafe.akka"        %% "akka-http-core"    % akkaVersion,
   "com.typesafe.akka"        %% "akka-http-testkit" % akkaVersion,
-  "io.sphere"                %% "sphere-json"       % "0.6.5",
   "org.apache.logging.log4j" % "log4j-api"          % log4jVersion % "runtime",
   "org.apache.logging.log4j" % "log4j-core"         % log4jVersion % "runtime",
   "org.apache.logging.log4j" % "log4j-1.2-api"      % log4jVersion % "runtime",

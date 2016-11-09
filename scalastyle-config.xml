@@ -120,7 +120,7 @@ You can also disable only one rule, by specifying its rule id:
        doesn't match one of the given groups. -->
   <check level="error" class="org.scalastyle.scalariform.ImportOrderChecker" enabled="true">
     <parameters>
-      <parameter name="groups">flint,java,scala,akka,com,io,net,org,configs,play,rx,scalaz</parameter>
+      <parameter name="groups">flint,java,scala,akka,com,io,net,org,better,configs,play,rx,scalaz</parameter>
       <parameter name="group.flint">(aws\..*)|(flint\..*)|(messaging\..*)|(mock\..*)|(server\..*)|(service\..*)</parameter>
       <parameter name="group.java">javax?\..*</parameter>
       <parameter name="group.scala">scala\..*</parameter>
@@ -129,6 +129,7 @@ You can also disable only one rule, by specifying its rule id:
       <parameter name="group.io">io\..*</parameter>
       <parameter name="group.net">net\..*</parameter>
       <parameter name="group.org">org\..*</parameter>
+      <parameter name="group.better">better\..*</parameter>
       <parameter name="group.configs">configs\..*</parameter>
       <parameter name="group.play">play\..*</parameter>
       <parameter name="group.rx">rx\..*</parameter>
