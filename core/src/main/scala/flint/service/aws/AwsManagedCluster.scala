@@ -21,17 +21,16 @@ private[aws] class AwsManagedCluster(
     terminateClusterInstances(cluster.master, cluster.workers)
 
   override protected def addWorkers0(count: Int) =
-    clusterService
-      .addWorkers(
-        cluster.master,
-        None,
-        cluster.id,
-        cluster.dockerImage.now,
-        cluster.owner,
-        cluster.ttl,
-        cluster.idleTimeout,
-        count,
-        workerInstanceType)
+    clusterService.addWorkers(
+      cluster.master,
+      None,
+      cluster.id,
+      cluster.dockerImage.now,
+      cluster.owner,
+      cluster.ttl,
+      cluster.idleTimeout,
+      count,
+      workerInstanceType)
 
   override protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] =
     super.changeDockerImage0(dockerImage).flatMap { _ =>
