@@ -6,8 +6,8 @@ import io.sphere.json.{ fromJSON, JSON }
 import io.sphere.json.generic.deriveJSON
 
 import org.apache.http.auth.UsernamePasswordCredentials
-import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.HttpClient
+import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.auth.BasicScheme
 import org.apache.http.impl.client.HttpClients.createDefault
 import org.apache.http.message.BasicHeader
@@ -33,11 +33,7 @@ case class UserPass(username: String, password: String) extends Credentials
 case class Token(key: String)                           extends Credentials
 
 class Tags(
-    client: HttpClient,
-    authenticationServiceURLPrefix: String,
-    authenticationServiceURLSuffix: String,
-    registryServiceURLPrefix: String,
-    registryServiceURLSuffix: String
+    client: HttpClient
 ) {
   def apply(
       repo: String,
@@ -45,14 +41,12 @@ class Tags(
   ): ValidationNel[String, List[DockerImage]] = {
 
     val tokenRequest = new HttpGet(
-      authenticationServiceURLPrefix
-        + repo
-        + authenticationServiceURLSuffix)
+      s"https://auth.docker.io/token?service=registry.docker.io&scope=repository:$repo:pull")
 
     auth match {
       case None => ()
       case Some(Token(key)) =>
-        tokenRequest.addHeader(new BasicHeader("Authorization", s"Basic ${key}"))
+        tokenRequest.addHeader(new BasicHeader("Authorization", s"Basic $key"))
       case Some(UserPass(username, password)) =>
         tokenRequest.addHeader(
           new BasicScheme().authenticate(
@@ -67,17 +61,14 @@ class Tags(
       case Success(TokenResponse(token)) => Success(token).toValidationNel
       case Failure(errors) =>
         Failure(
-          s"Failed to extract token from dockerhub server response JSON: ${tokenJSON}"
+          s"Failed to extract token from Docker registry response JSON: $tokenJSON"
             <:: errors.map(_.toString))
     }
 
     authToken.flatMap { authToken =>
-      val tagRequest = new HttpGet(
-        registryServiceURLPrefix
-          + repo
-          + registryServiceURLSuffix)
+      val tagRequest = new HttpGet(s"https://registry.hub.docker.com/v2/$repo/tags/list")
 
-      tagRequest.setHeader("Authorization", s"Bearer ${authToken}")
+      tagRequest.setHeader("Authorization", s"Bearer $authToken")
 
       val tagJSON = client.execute(tagRequest).getEntity.getContent.lines.mkString
 
@@ -86,20 +77,9 @@ class Tags(
           Success(tags.map(DockerImage(name, _))).toValidationNel
         case Failure(errors) =>
           Failure(
-            s"Failed to extract tags from dockerhub server response JSON: ${tagJSON}"
+            s"Failed to extract tags from Docker registry response JSON: $tagJSON"
               <:: errors.map(_.toString))
       }
     }
   }
-
-}
-
-object Tags {
-  def make: Tags = new Tags(
-    createDefault,
-    "https://auth.docker.io/token?service=registry.docker.io&scope=repository:",
-    ":pull",
-    "https://registry.hub.docker.com/v2/",
-    "/tags/list"
-  )
 }
