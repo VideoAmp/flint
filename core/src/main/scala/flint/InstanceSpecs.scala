@@ -3,8 +3,10 @@ package flint
 case class InstanceSpecs(
     instanceType: String,
     cores: Int,
-    memory: Int,
-    storage: Storage,
+    memory: Space,
+    storage: InstanceStorageSpec,
     hourlyPrice: BigDecimal)
 
-case class Storage(devices: Int, storagePerDevice: Int)
+case class InstanceStorageSpec(devices: Int, storagePerDevice: Space) {
+  def totalStorage: Space = storagePerDevice * devices
+}

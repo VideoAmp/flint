@@ -10,11 +10,9 @@ import com.typesafe.scalalogging.LazyLogging
 
 import configs.syntax._
 
-import rx._
-
 object FlintServer extends LazyLogging {
   def main(args: Array[String]): Unit = {
-    import Ctx.Owner.Unsafe._
+    import FlintCtx.owner
 
     val configParseOptions = ConfigParseOptions.defaults.setAllowMissing(false)
     val config             = ConfigFactory.defaultApplication(configParseOptions)

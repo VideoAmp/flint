@@ -22,7 +22,7 @@ class UserDataSpec extends FlatSpec {
   }
 
   it should "create user data with local storage" in {
-    val blockDeviceMappings = createBlockDeviceMappings(Storage(2, 320))
+    val blockDeviceMappings = createBlockDeviceMappings(InstanceStorageSpec(2, GiB(320)))
     createUserData(
       SparkClusterRole.Master,
       DockerImage("test", "me"),

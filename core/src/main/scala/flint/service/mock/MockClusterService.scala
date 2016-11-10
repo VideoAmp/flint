@@ -58,10 +58,10 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
 
   private def instanceSpecs(instanceType: String): InstanceSpecs = {
     val cores       = 4
-    val memory      = 8
+    val memory      = GiB(8)
     val hourlyPrice = BigDecimal("1.25")
 
-    InstanceSpecs(instanceType, cores, memory, Storage(1, 32), hourlyPrice)
+    InstanceSpecs(instanceType, cores, memory, InstanceStorageSpec(1, GiB(32)), hourlyPrice)
   }
 
   private[mock] def terminateClusterInstances(

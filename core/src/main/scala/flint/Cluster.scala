@@ -16,12 +16,13 @@ case class Cluster(
 
   val instances: Rx[Seq[Instance]]      = Rx { master +: workers() }
   val runningWorkers: Rx[Seq[Instance]] = Rx { workers().filter(_.instanceState() == Running) }
-  val liveWorkers: Rx[Seq[Instance]] =
+  val unterminatedWorkers: Rx[Seq[Instance]] =
     Rx { workers().filterNot(_.instanceState() == Terminated) }
 
   val cores: Rx[Int]              = Rx { runningWorkers().map(_.specs.cores).sum }
-  val memory: Rx[Int]             = Rx { runningWorkers().map(_.specs.memory).sum }
-  val hourlyPrice: Rx[BigDecimal] = Rx { liveWorkers().map(_.specs.hourlyPrice).sum }
+  val memory: Rx[Space]           = Rx { runningWorkers().map(_.specs.memory).sum }
+  val storage: Rx[Space]          = Rx { runningWorkers().map(_.specs.storage.totalStorage).sum }
+  val hourlyPrice: Rx[BigDecimal] = Rx { unterminatedWorkers().map(_.specs.hourlyPrice).sum }
 
   val state = Rx { instances().map(_.instanceState()).reduce(mergeInstanceStates) }
 

@@ -10,8 +10,6 @@ javaOptions ++= Seq(
 
 connectInput := true
 
-resolvers += Resolver.bintrayRepo("commercetools", "maven")
-
 val akkaVersion  = "2.4.11"
 val log4jVersion = "2.7"
 

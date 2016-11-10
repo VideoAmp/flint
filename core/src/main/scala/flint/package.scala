@@ -1,7 +1,15 @@
 import java.util.UUID
 import java.util.concurrent.{ Executors, ForkJoinPool, ThreadFactory }
 
-import scala.concurrent.{ ExecutionContext, ExecutionContextExecutorService, Future }
+import scala.concurrent.{
+  Await,
+  Awaitable,
+  ExecutionContext,
+  ExecutionContextExecutorService,
+  Future,
+  Promise
+}
+import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.util.Try
 
@@ -11,6 +19,11 @@ import rx._
 
 package object flint extends Collections {
   type ClusterId = UUID
+
+  // Flint's ur-context
+  object FlintCtx {
+    implicit val owner = Ctx.Owner.safe
+  }
 
   object ClusterId {
     def apply(): ClusterId = UUID.randomUUID
@@ -38,6 +51,24 @@ package object flint extends Collections {
       val thread = defaultFactory.newThread(r)
       thread.setDaemon(true)
       thread
+    }
+  }
+
+  implicit class AwaitableAwaitable[T](awaitable: Awaitable[T]) {
+    def await(atMost: Duration): T = Await.result(awaitable, atMost)
+  }
+
+  implicit class AwaitableRx[T](rx: Rx[T]) {
+    def await(atMost: Duration)(implicit ctx: Ctx.Owner): T = {
+      val promise = Promise[T]()
+      val obs = rx.triggerLater {
+        promise.complete(rx.toTry)
+      }
+      try {
+        Await.result(promise.future, atMost)
+      } finally {
+        obs.kill
+      }
     }
   }
 

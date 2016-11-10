@@ -137,7 +137,7 @@ private[messaging] final class MessagingProtocol(
           .map(Some(_))
       case Some(TerminateWorker(instanceId)) =>
         clusterService.clusterSystem.clusters.now.values
-          .flatMap(_.cluster.liveWorkers.now)
+          .flatMap(_.cluster.unterminatedWorkers.now)
           .find(_.id == instanceId)
           .map(_.terminate)
           .map { optTermination =>

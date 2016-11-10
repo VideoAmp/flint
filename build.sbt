@@ -5,6 +5,7 @@ lazy val commonSettings = Seq(
   scalacOptions := Seq(
     "-deprecation",
     "-language:implicitConversions",
+    "-language:postfixOps",
     "-feature",
     "-unchecked",
     "-Xlint:_",

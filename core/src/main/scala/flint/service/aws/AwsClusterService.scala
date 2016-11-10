@@ -283,7 +283,7 @@ private[aws] object AwsClusterService {
       .withVirtualName("ephemeral" + virtualNumber)
 
   // private[aws] for testing
-  private[aws] def createBlockDeviceMappings(storage: Storage) =
+  private[aws] def createBlockDeviceMappings(storage: InstanceStorageSpec) =
     (0 until storage.devices).map { virtualNumber =>
       val deviceLetter = ('b' + virtualNumber).toChar.toString
       createBlockDeviceMapping(deviceLetter, virtualNumber)
