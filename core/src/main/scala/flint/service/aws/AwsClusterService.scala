@@ -3,7 +3,7 @@ package service
 package aws
 
 import java.net.InetAddress
-import java.time.Duration
+import java.time.{ Duration, Instant }
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -93,7 +93,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
                 spec.ttl,
                 spec.idleTimeout,
                 master,
-                workers),
+                workers,
+                Instant.now),
               this,
               spec.workerInstanceType)
           clusterSystem.addCluster(managedCluster)

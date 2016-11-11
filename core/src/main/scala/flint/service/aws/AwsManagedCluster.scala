@@ -2,6 +2,8 @@ package flint
 package service
 package aws
 
+import java.time.Instant
+
 import scala.concurrent.Future
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance }
@@ -103,7 +105,15 @@ private[aws] object AwsManagedCluster {
               Tags.filterWorkers(clusterId, instances).map(clusterService.flintInstance)
 
             val cluster =
-              Cluster(clusterId, clusterDockerImage, owner, ttl, idleTimeout, master, workers)
+              Cluster(
+                clusterId,
+                clusterDockerImage,
+                owner,
+                ttl,
+                idleTimeout,
+                master,
+                workers,
+                Instant.now())
 
             new AwsManagedCluster(cluster, clusterService, workerInstanceType)
           }

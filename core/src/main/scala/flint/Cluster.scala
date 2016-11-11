@@ -1,6 +1,6 @@
 package flint
 
-import java.time.Duration
+import java.time.{ Duration, Instant }
 
 import rx._
 
@@ -11,7 +11,8 @@ case class Cluster(
     ttl: Option[Duration],
     idleTimeout: Option[Duration],
     master: Instance,
-    workers: Rx[Seq[Instance]])(implicit ctx: Ctx.Owner) {
+    workers: Rx[Seq[Instance]],
+    launchedAt: Instant)(implicit ctx: Ctx.Owner) {
   import Cluster.mergeInstanceStates
 
   val instances: Rx[Seq[Instance]]      = Rx { master +: workers() }
@@ -42,8 +43,17 @@ object Cluster {
       ttl: Option[Duration],
       idleTimeout: Option[Duration],
       master: Instance,
-      workers: Seq[Instance])(implicit ctx: Ctx.Owner): Cluster =
-    new Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, Var(workers))
+      workers: Seq[Instance],
+      launchedAt: Instant)(implicit ctx: Ctx.Owner): Cluster =
+    new Cluster(
+      id,
+      Var(dockerImage),
+      owner,
+      ttl,
+      idleTimeout,
+      master,
+      Var(workers),
+      Instant.now())
 
   def mergeInstanceStates(state1: LifecycleState, state2: LifecycleState): LifecycleState =
     (state1, state2) match {
