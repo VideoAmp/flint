@@ -59,15 +59,13 @@ package object flint extends Collections {
   }
 
   implicit class AwaitableRx[T](rx: Rx[T]) {
-    def await(atMost: Duration)(implicit ctx: Ctx.Owner): T = {
+    def future()(implicit ctx: Ctx.Owner): Future[T] = {
       val promise = Promise[T]()
       val obs = rx.triggerLater {
         promise.complete(rx.toTry)
       }
-      try {
-        Await.result(promise.future, atMost)
-      } finally {
-        obs.kill
+      promise.future.andThen {
+        case _ => obs.kill
       }
     }
   }
