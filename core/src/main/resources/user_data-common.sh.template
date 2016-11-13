@@ -1,5 +1,19 @@
 hostname $(hostname).ec2.internal
 
+mkdir /root/.aws
+
+cat << EOF > /root/.aws/config
+[default]
+region = %AWS_REGION%
+EOF
+
+aws ec2 create-tags --resources $(curl -s http://169.254.169.254/latest/meta-data/instance-id) \
+  --tags Key=Name,Value="%NAME_TAG_VALUE%" \
+         Key=%CLUSTER_ID_TAG_KEY%,Value=%CLUSTER_ID_TAG_VALUE% \
+         Key=%LEGACY_CLUSTER_ID_TAG_KEY%,Value=%CLUSTER_ID_TAG_VALUE% \
+         Key=%OWNER_TAG_KEY%,Value="%OWNER_TAG_VALUE%" \
+         Key=%SPARK_ROLE_TAG_KEY%,Value=%SPARK_ROLE_TAG_VALUE%
+
 /usr/bin/time yum -y update 2> /tmp/yum_update_time.txt
 
 curl https://amazon-ssm-us-east-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o /tmp/amazon-ssm-agent.rpm
@@ -16,13 +30,6 @@ cat << EOF > /root/.dockercfg
 }
 EOF
 
-mkdir /root/.aws
-
-cat << EOF > /root/.aws/config
-[default]
-region = %AWS_REGION%
-EOF
-
 stop_script=/sbin/stop-spark-container.sh
 
 cat << EOF > $stop_script
@@ -30,13 +37,13 @@ cat << EOF > $stop_script
 
 instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
-if [ \$(docker ps -f name=flint-spark -q | wc -l) -eq 1 ]; then
+if [ \$(docker ps -f name=spark -q | wc -l) -eq 1 ]; then
   aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_STOPPING_STATE_TAG_VALUE%
-  docker stop flint-spark
+  docker stop spark
 fi
 
-if [ \$(docker ps -f name=flint-spark -q -a | wc -l) -eq 1 ]; then
-  docker rm flint-spark
+if [ \$(docker ps -f name=spark -q -a | wc -l) -eq 1 ]; then
+  docker rm spark
 fi
 
 aws ec2 delete-tags --resources \$instance_id --tags Key=%DOCKER_IMAGE_TAG_KEY%
@@ -58,12 +65,14 @@ cat << EOF > $start_script
 if [ \$# -eq 1 ]; then
   image=\$1
 else
-  image=videoamp/spark:%IMAGE_TAG%
+  image=%DOCKER_IMAGE_TAG_VALUE%
 fi
 
 instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
-aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE% Key=%DOCKER_IMAGE_TAG_KEY%,Value=\$image
+aws ec2 create-tags --resources \$instance_id \
+  --tags Key=%DOCKER_IMAGE_TAG_KEY%,Value=\$image \
+         Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE%
 /usr/bin/time docker pull \$image 2> /tmp/docker_pull_time.txt
 
 EOF

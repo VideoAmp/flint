@@ -20,15 +20,15 @@ import rx._
 package object flint extends Collections {
   type ClusterId = UUID
 
-  // Flint's ur-context
-  object FlintCtx {
-    implicit val owner = Ctx.Owner.safe
-  }
-
   object ClusterId {
     def apply(): ClusterId = UUID.randomUUID
 
     def apply(uuidString: String): ClusterId = UUID.fromString(uuidString)
+  }
+
+  // Flint's ur-context
+  object FlintCtx {
+    implicit val owner = Ctx.Owner.safe
   }
 
   def validateFlintConfig(config: Config): Unit = {

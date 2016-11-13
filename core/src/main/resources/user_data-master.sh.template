@@ -2,7 +2,7 @@ start_script=/sbin/start-spark-container.sh
 
 cat << EOF >> $start_script
 aws ec2 create-tags --resources \$instance_id --tags Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_STARTING_STATE_TAG_VALUE%
-docker run --name=flint-spark %SCRATCH_VOLUMES% -v /tmp:/tmp -dt \
+docker run --name=spark %SCRATCH_VOLUMES% -v /tmp:/tmp -dt \
   --ulimit nofile=100000:100000 --net=host \
   -e "SPARK_LOCAL_DIRS=%SPARK_LOCAL_DIRS%" \
   \$image /usr/local/sbin/boot-master.sh

@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 
 private[aws] object Tags {
-  val InstanceName = "Name"
+  val ResourceName = "Name"
 
   val ClusterId          = "flint_cluster_id"
   val ClusterDockerImage = "flint_cluster_docker_image"
@@ -22,43 +22,24 @@ private[aws] object Tags {
   val Owner              = "flint_owner"
   val SparkRole          = "flint_spark_cluster_role"
   val WorkerInstanceType = "flint_worker_instance_type"
+  val WorkerBidPrice     = "flint_worker_bid_price"
 
-  private val LegacyClusterId   = "cluster_id"
+  val LegacyClusterId           = "cluster_id"
   private val LegacyClusterTTL  = "lifetime_hours"
   private val LegacyDockerImage = "docker_image"
 
-  def instanceTags(
+  def masterTags(
       clusterSpec: ClusterSpec,
-      role: SparkClusterRole,
-      includeLegacyTags: Boolean): Seq[Tag] =
-    instanceTags(
-      clusterSpec.id,
-      clusterSpec.dockerImage,
-      clusterSpec.owner,
-      clusterSpec.ttl,
-      clusterSpec.idleTimeout,
-      clusterSpec.workerInstanceType,
-      role,
-      includeLegacyTags)
-
-  def instanceTags(
-      clusterId: ClusterId,
-      dockerImage: DockerImage,
-      owner: String,
-      ttl: Option[Duration],
-      idleTimeout: Option[Duration],
-      workerInstanceType: String,
-      role: SparkClusterRole,
+      workerBidPrice: Option[BigDecimal],
       includeLegacyTags: Boolean): Seq[Tag] = {
+    import clusterSpec._
+
     val noTags = Map.empty[String, String]
 
+    val commonResourceTags = commonResourceRequestTags(id, owner, SparkClusterRole.Master)
+
     val commonTags = Map(
-      InstanceName       -> s"Flint Spark ${role.name} : $owner",
-      ClusterId          -> clusterId.toString,
-      Owner              -> owner,
-      SparkRole          -> role.name,
       ClusterDockerImage -> dockerImage.canonicalName,
-      DockerImage        -> dockerImage.canonicalName,
       WorkerInstanceType -> workerInstanceType)
 
     val ttlTags =
@@ -67,15 +48,51 @@ private[aws] object Tags {
       idleTimeout
         .map(idleTimeout => Map(ClusterIdleTimeout -> s"${idleTimeout.toMinutes}m"))
         .getOrElse(noTags)
+    val workerBidPriceTags = workerBidPrice
+      .map(workerBidPrice => Map(WorkerBidPrice -> workerBidPrice.toString))
+      .getOrElse(noTags)
 
     val legacyTags = if (includeLegacyTags) {
       Map(
-        LegacyClusterId   -> clusterId.toString,
+        LegacyClusterId   -> id.toString,
         LegacyClusterTTL  -> ttl.map(_.toHours).getOrElse(Int.MaxValue.toLong).toString,
         LegacyDockerImage -> dockerImage.tag)
     } else { noTags }
 
-    (commonTags ++ ttlTags ++ idleTimeoutTags ++ legacyTags).map {
+    commonResourceTags ++
+      (commonTags ++ ttlTags ++ idleTimeoutTags ++ workerBidPriceTags ++ legacyTags).map {
+        case (name, value) => new Tag(name, value)
+      }.toSeq
+  }
+
+  def workerTags(clusterId: ClusterId, owner: String, includeLegacyTags: Boolean): Seq[Tag] = {
+    val noTags = Map.empty[String, String]
+
+    val commonTags = commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
+
+    val legacyTags = if (includeLegacyTags) {
+      Map(LegacyClusterId -> clusterId.toString)
+    } else { noTags }
+
+    commonTags ++ legacyTags.map {
+      case (name, value) => new Tag(name, value)
+    }.toSeq
+  }
+
+  def spotInstanceRequestTags(clusterId: ClusterId, owner: String): Seq[Tag] =
+    commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
+
+  def commonResourceRequestTags(
+      clusterId: ClusterId,
+      owner: String,
+      role: SparkClusterRole): Seq[Tag] = {
+    val commonTags = Map(
+      ResourceName -> s"Flint Spark ${role.name} : $owner",
+      ClusterId    -> clusterId.toString,
+      Owner        -> owner,
+      SparkRole    -> role.name)
+
+    commonTags.map {
       case (name, value) => new Tag(name, value)
     }.toIndexedSeq
   }
@@ -144,6 +161,9 @@ private[aws] object Tags {
 
   def getWorkerInstanceType(instance: AwsInstance): Option[String] =
     getTag(instance, WorkerInstanceType)
+
+  def getWorkerBidPrice(instance: AwsInstance): Option[BigDecimal] =
+    getTag(instance, WorkerBidPrice).map(BigDecimal(_))
 
   private def getTag(instance: AwsInstance, tag: String): Option[String] =
     instance.getTags.asScala.find(_.getKey == tag).map(_.getValue)

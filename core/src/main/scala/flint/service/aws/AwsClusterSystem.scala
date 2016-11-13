@@ -79,7 +79,7 @@ private[aws] class AwsClusterSystem private[aws] (
             clusters() = retainedClusters ++ newClusters
           }
         case Failure(ex) =>
-          logger.error("Received exception trying to get instance statuses", ex)
+          logger.error("Received exception trying to describe instances", ex)
       }
   }
 

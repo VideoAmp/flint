@@ -9,4 +9,6 @@ trait ClusterService {
   val managementService: ManagementService
 
   def launchCluster(spec: ClusterSpec): Future[ManagedCluster]
+
+  def launchSpotCluster(spec: ClusterSpec, workerBidPrice: BigDecimal): Future[ManagedCluster]
 }

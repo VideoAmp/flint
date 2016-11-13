@@ -38,6 +38,12 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
     Future.successful(cluster)
   }
 
+  override def launchSpotCluster(
+      spec: ClusterSpec,
+      workerBidPrice: BigDecimal): Future[ManagedCluster] =
+    throw new RuntimeException(
+      "Spot clusters are unsupported by the mock cluster service. Use launchCluster() instead")
+
   private[mock] def instance(
       dockerImage: Option[DockerImage],
       instanceType: String,

@@ -75,16 +75,22 @@ object Space {
     }
 }
 
-final case class Bytes(override val bytes: BigInt) extends Space
+final case class Bytes(override val bytes: BigInt) extends Space {
+  override def toString() = bytes + "b"
+}
 
 final case class KiB(kibibytes: BigInt) extends Space {
   override def bytes = kibibytes * 1024L
+
+  override def toString() = kibibytes + "k"
 }
 
 final case class MiB(mebibytes: BigInt) extends Space {
   override def bytes = mebibytes * 1024L * 1024L
 
   def KiB: KiB = new KiB(mebibytes * 1024L)
+
+  override def toString() = mebibytes + "m"
 }
 
 final case class GiB(gibibytes: BigInt) extends Space {
@@ -93,6 +99,8 @@ final case class GiB(gibibytes: BigInt) extends Space {
   def KiB: KiB = new KiB(gibibytes * 1024L * 1024L)
 
   def MiB: MiB = new MiB(gibibytes * 1024L)
+
+  override def toString() = gibibytes + "g"
 }
 
 final case class TiB(tebibytes: BigInt) extends Space {
@@ -103,6 +111,8 @@ final case class TiB(tebibytes: BigInt) extends Space {
   def MiB: MiB = new MiB(tebibytes * 1024L * 1024L)
 
   def GiB: GiB = new GiB(tebibytes * 1024L)
+
+  override def toString() = tebibytes + "t"
 }
 
 final case class PiB(pebibytes: BigInt) extends Space {
@@ -115,4 +125,6 @@ final case class PiB(pebibytes: BigInt) extends Space {
   def GiB: GiB = new GiB(pebibytes * 1024L * 1024L)
 
   def TiB: TiB = new TiB(pebibytes * 1024L)
+
+  override def toString() = pebibytes + "p"
 }

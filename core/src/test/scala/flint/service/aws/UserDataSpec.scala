@@ -14,7 +14,10 @@ class UserDataSpec extends FlatSpec {
 
   it should "create user data without local storage" in {
     createUserData(
+      ClusterId(),
+      "Michael",
       SparkClusterRole.Master,
+      InstanceProvisioning.Normal,
       DockerImage("test", "me"),
       Nil,
       testAwsConfig,
@@ -24,7 +27,10 @@ class UserDataSpec extends FlatSpec {
   it should "create user data with local storage" in {
     val blockDeviceMappings = createBlockDeviceMappings(InstanceStorageSpec(2, GiB(320)))
     createUserData(
+      ClusterId(),
+      "Michael",
       SparkClusterRole.Master,
+      InstanceProvisioning.Normal,
       DockerImage("test", "me"),
       blockDeviceMappings,
       testAwsConfig,
