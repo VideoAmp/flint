@@ -31,6 +31,22 @@ package object flint extends Collections {
     implicit val owner = Ctx.Owner.safe
   }
 
+  implicit class AwaitableAwaitable[T](awaitable: Awaitable[T]) {
+    def await(atMost: Duration): T = Await.result(awaitable, atMost)
+  }
+
+  implicit class AwaitableRx[T](rx: Rx[T]) {
+    def future()(implicit ctx: Ctx.Owner): Future[T] = {
+      val promise = Promise[T]()
+      val obs = rx.triggerLater {
+        promise.complete(rx.toTry)
+      }
+      promise.future.andThen {
+        case _ => obs.kill
+      }
+    }
+  }
+
   def validateFlintConfig(config: Config): Unit = {
     val referenceConfig = ConfigFactory.defaultReference
     config.checkValid(referenceConfig, "aws")
@@ -51,22 +67,6 @@ package object flint extends Collections {
       val thread = defaultFactory.newThread(r)
       thread.setDaemon(true)
       thread
-    }
-  }
-
-  implicit class AwaitableAwaitable[T](awaitable: Awaitable[T]) {
-    def await(atMost: Duration): T = Await.result(awaitable, atMost)
-  }
-
-  implicit class AwaitableRx[T](rx: Rx[T]) {
-    def future()(implicit ctx: Ctx.Owner): Future[T] = {
-      val promise = Promise[T]()
-      val obs = rx.triggerLater {
-        promise.complete(rx.toTry)
-      }
-      promise.future.andThen {
-        case _ => obs.kill
-      }
     }
   }
 
