@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused-import"),
   scalacOptions in (Compile, console) := Seq("-language:_"))
 
-lazy val disablePublishing = Seq(publish := {}, publishLocal := {})
+lazy val disablePublishing = Seq(publishArtifact := false, publish := {}, publishLocal := {})
 
 lazy val root = (project in file("."))
   .aggregate(core, server)
