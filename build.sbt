@@ -17,7 +17,16 @@ lazy val commonSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Ywarn-unused",
     "-Ywarn-unused-import"),
-  scalacOptions in (Compile, console) := Seq("-language:_"))
+  scalacOptions in (Compile, console) := Seq("-language:_"),
+  publishTo := {
+    val vamp = "https://videoamp.artifactoryonline.com/videoamp/"
+
+    if (isSnapshot.value)
+      Some("snapshots" at vamp + "snapshot")
+    else
+      Some("releases" at vamp + "release")
+  }
+)
 
 lazy val disablePublishing = Seq(publishArtifact := false, publish := {}, publishLocal := {})
 
