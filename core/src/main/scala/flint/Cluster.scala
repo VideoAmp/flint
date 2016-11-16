@@ -1,6 +1,6 @@
 package flint
 
-import java.time.Duration
+import scala.concurrent.duration.FiniteDuration
 
 import rx._
 
@@ -8,8 +8,8 @@ case class Cluster(
     id: ClusterId,
     dockerImage: Rx[DockerImage],
     owner: String,
-    ttl: Option[Duration],
-    idleTimeout: Option[Duration],
+    ttl: Option[FiniteDuration],
+    idleTimeout: Option[FiniteDuration],
     master: Instance,
     workers: Rx[Seq[Instance]])(implicit ctx: Ctx.Owner) {
   import Cluster.mergeInstanceStates
@@ -39,8 +39,8 @@ object Cluster {
       id: ClusterId,
       dockerImage: DockerImage,
       owner: String,
-      ttl: Option[Duration],
-      idleTimeout: Option[Duration],
+      ttl: Option[FiniteDuration],
+      idleTimeout: Option[FiniteDuration],
       master: Instance,
       workers: Seq[Instance])(implicit ctx: Ctx.Owner): Cluster =
     new Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, Var(workers))

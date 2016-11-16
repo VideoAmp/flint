@@ -4,14 +4,14 @@ package messaging
 
 import service.ClusterSpec
 
-import java.time.Duration
+import scala.concurrent.duration._
 
 object TestMessages {
   private val clusterId   = ClusterId()
   private val dockerImage = DockerImage("test", "me")
   private val owner       = "Sam"
-  private val ttl         = Some(Duration.ofHours(10))
-  private val idleTimeout = Some(Duration.ofMinutes(15))
+  private val ttl         = Some(10 hours)
+  private val idleTimeout = Some(15 minutes)
   private val clusterSpec =
     ClusterSpec(
       clusterId,

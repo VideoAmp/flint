@@ -4,9 +4,8 @@ package aws
 
 import flint.{ ContainerState => FContainerState, DockerImage => FDockerImage }
 
-import java.time.Duration
-
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 
@@ -150,14 +149,17 @@ private[aws] object Tags {
 
   def getOwner(instance: AwsInstance): Option[String] = getTag(instance, Owner)
 
-  def getClusterTTL(instance: AwsInstance): Option[Duration] =
-    getTag(instance, ClusterTTL).map(_.takeWhile(_ != 'h')).map(_.toLong).map(Duration.ofHours)
+  def getClusterTTL(instance: AwsInstance): Option[FiniteDuration] =
+    getTag(instance, ClusterTTL)
+      .map(_.takeWhile(_ != 'h'))
+      .map(_.toLong)
+      .map(FiniteDuration(_, "hours"))
 
-  def getClusterIdleTimeout(instance: AwsInstance): Option[Duration] =
+  def getClusterIdleTimeout(instance: AwsInstance): Option[FiniteDuration] =
     getTag(instance, ClusterIdleTimeout)
       .map(_.takeWhile(_ != 'm'))
       .map(_.toLong)
-      .map(Duration.ofMinutes)
+      .map(FiniteDuration(_, "minutes"))
 
   def getWorkerInstanceType(instance: AwsInstance): Option[String] =
     getTag(instance, WorkerInstanceType)

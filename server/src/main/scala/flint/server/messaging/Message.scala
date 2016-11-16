@@ -85,23 +85,25 @@ private[messaging] final case class WorkerTerminationAttempt(
     extends ServerMessage
 
 private[messaging] object MessageCodec {
-  import java.time.Duration
+  import scala.concurrent.duration.FiniteDuration
   import io.sphere.json._, generic._
   import org.json4s._, jackson._
   import scalaz.Success
 
-  private implicit val jsonDuration: JSON[Duration] = new JSON[Duration] {
-    override def read(jval: JValue): JValidation[Duration] = jval match {
+  private implicit val jsonDuration: JSON[FiniteDuration] = new JSON[FiniteDuration] {
+    import java.time.{ Duration => JDuration }
+    override def read(jval: JValue): JValidation[FiniteDuration] = jval match {
       case JString(s) =>
         try {
-          Success(Duration.parse(s))
+          Success(FiniteDuration(JDuration.parse(s).toMillis, "millis"))
         } catch {
           case ex: Exception => fail("Failed to parse duration: " + ex.getMessage)
         }
       case _ => fail("String expected")
     }
 
-    override def write(value: Duration): JValue = JString(value.toString)
+    override def write(value: FiniteDuration): JValue =
+      JString(JDuration.ofMillis(value.toMillis).toString)
   }
 
   private implicit val dockerImageJson = deriveJSON[DockerImage]

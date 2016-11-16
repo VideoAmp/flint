@@ -3,10 +3,10 @@ package service
 package aws
 
 import java.net.InetAddress
-import java.time.Duration
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 import com.amazonaws.auth._
 import com.amazonaws.client.builder.ExecutorFactory
@@ -118,8 +118,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       clusterId: ClusterId,
       dockerImage: DockerImage,
       owner: String,
-      ttl: Option[Duration],
-      idleTimeout: Option[Duration],
+      ttl: Option[FiniteDuration],
+      idleTimeout: Option[FiniteDuration],
       numWorkers: Int,
       instanceType: String,
       workerBidPrice: Option[BigDecimal]): Future[Seq[Instance]] =
@@ -158,8 +158,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       clusterId: ClusterId,
       dockerImage: DockerImage,
       owner: String,
-      ttl: Option[Duration],
-      idleTimeout: Option[Duration],
+      ttl: Option[FiniteDuration],
+      idleTimeout: Option[FiniteDuration],
       numWorkers: Int,
       instanceType: String): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
@@ -196,8 +196,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       clusterId: ClusterId,
       dockerImage: DockerImage,
       owner: String,
-      ttl: Option[Duration],
-      idleTimeout: Option[Duration],
+      ttl: Option[FiniteDuration],
+      idleTimeout: Option[FiniteDuration],
       numWorkers: Int,
       instanceType: String,
       bidPrice: BigDecimal): Future[Seq[Instance]] = {
