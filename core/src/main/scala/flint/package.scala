@@ -1,17 +1,9 @@
 import java.util.UUID
 import java.util.concurrent.{ Executors, ForkJoinPool, ThreadFactory }
 
-import scala.concurrent.{
-  Await,
-  Awaitable,
-  ExecutionContext,
-  ExecutionContextExecutorService,
-  Future,
-  Promise
-}
-import scala.concurrent.duration.Duration
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutorService, Future, Promise }
 import scala.io.Source
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
@@ -31,15 +23,19 @@ package object flint extends Collections {
     implicit val owner = Ctx.Owner.safe
   }
 
-  implicit class AwaitableAwaitable[T](awaitable: Awaitable[T]) {
-    def await(atMost: Duration): T = Await.result(awaitable, atMost)
-  }
-
-  implicit class AwaitableRx[T](rx: Rx[T]) {
-    def future()(implicit ctx: Ctx.Owner): Future[T] = {
-      val promise = Promise[T]()
-      val obs = rx.triggerLater {
-        promise.complete(rx.toTry)
+  implicit class CollectibleRx[T](rx: Rx[T]) {
+    def collectFirst[U](pf: PartialFunction[T, U])(implicit ctx: Ctx.Owner): Future[U] = {
+      val promise = Promise[U]()
+      val obs = rx.trigger {
+        rx.toTry match {
+          case Success(x) if pf isDefinedAt x =>
+            Try(pf(x)) match {
+              case Success(value) => promise.success(value)
+              case Failure(ex)    => promise.failure(ex)
+            }
+          case Failure(ex) => promise.failure(ex)
+          case _           =>
+        }
       }
       promise.future.andThen {
         case _ => obs.kill
