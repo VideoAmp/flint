@@ -35,6 +35,8 @@ stop_script=/sbin/stop-spark-container.sh
 cat << EOF > $stop_script
 #!/bin/bash
 
+set -e
+
 instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
 if [ \$(docker ps -f name=spark -q | wc -l) -eq 1 ]; then
@@ -62,16 +64,18 @@ start_script=/sbin/start-spark-container.sh
 cat << EOF > $start_script
 #!/bin/bash
 
+set -e
+
 if [ \$# -eq 1 ]; then
   image=\$1
 else
-  image=%DOCKER_IMAGE_TAG_VALUE%
+  image=%DOCKER_IMAGE_VALUE%
 fi
 
 instance_id=\$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
 aws ec2 create-tags --resources \$instance_id \
-  --tags Key=%DOCKER_IMAGE_TAG_KEY%,Value=\$image \
+  --tags Key=%DOCKER_IMAGE_KEY%,Value=\$image \
          Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE%
 /usr/bin/time docker pull \$image 2> /tmp/docker_pull_time.txt
 
