@@ -18,7 +18,7 @@ import rx._
 
 private[aws] class AwsClusterSystem private[aws] (
     awsClusterService: AwsClusterService,
-    clustersRefreshConfig: Config)(implicit ctx: Ctx.Owner)
+    clustersRefreshConfig: Config)(implicit protected val ctx: Ctx.Owner)
     extends ClusterSystem
     with LazyLogging {
   override val clusters = Var(Map.empty[ClusterId, AwsManagedCluster])

@@ -33,8 +33,8 @@ package object flint extends Collections {
               case Success(value) => promise.success(value)
               case Failure(ex)    => promise.failure(ex)
             }
+          case Success(_)  =>
           case Failure(ex) => promise.failure(ex)
-          case _           =>
         }
       }
       promise.future.andThen {

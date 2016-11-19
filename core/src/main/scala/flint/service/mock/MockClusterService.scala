@@ -15,6 +15,8 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   private lazy val instanceLifecycleManager = new InstanceLifecycleManager
 
   override val clusterSystem = new ClusterSystem {
+    override protected implicit val ctx = MockClusterService.this.ctx
+
     override val clusters = Var(Map.empty[ClusterId, ManagedCluster])
 
     override val newCluster = Var(Option.empty[ManagedCluster])
