@@ -96,7 +96,11 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         Some(s"${spec.id}-master"),
         spec.masterInstanceSpecs,
         numInstances = 1,
-        spec.placementGroup,
+        // Don't put the master in the cluster placement group. For one thing, AWS only allows a
+        // limited variety of instance types to be placed in a placement group. Attempting to place
+        // an unsupported instance type in a placement group will fail. For another, the master's
+        // network bandwidth requirement is effectively zilch
+        placementGroup = None,
         masterUserData,
         awsConfig)
 
