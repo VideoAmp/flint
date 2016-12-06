@@ -104,5 +104,5 @@ private[aws] class AwsClusterSystem private[aws] (
     clusters.now.values
       .flatMap(_.cluster.instances.now)
       .find(_.id == instanceId)
-      .foreach(_.instanceState.asVar() = newState)
+      .foreach(_.state.asVar() = newState)
 }

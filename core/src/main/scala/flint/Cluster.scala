@@ -15,16 +15,16 @@ case class Cluster(
   import Cluster.{ mergeContainerStates, mergeInstanceStates }
 
   val instances: Rx[Seq[Instance]]      = Rx { master +: workers() }
-  val runningWorkers: Rx[Seq[Instance]] = Rx { workers().filter(_.instanceState() == Running) }
+  val runningWorkers: Rx[Seq[Instance]] = Rx { workers().filter(_.state() == Running) }
   val unterminatedWorkers: Rx[Seq[Instance]] =
-    Rx { workers().filterNot(_.instanceState() == Terminated) }
+    Rx { workers().filterNot(_.state() == Terminated) }
 
   val cores: Rx[Int]              = Rx { runningWorkers().map(_.specs.cores).sum }
   val memory: Rx[Space]           = Rx { runningWorkers().map(_.specs.memory).sum }
   val storage: Rx[Space]          = Rx { runningWorkers().map(_.specs.storage.totalStorage).sum }
   val hourlyPrice: Rx[BigDecimal] = Rx { unterminatedWorkers().map(_.specs.hourlyPrice).sum }
 
-  val state          = Rx { instances().map(_.instanceState()).reduce(mergeInstanceStates) }
+  val state          = Rx { instances().map(_.state()).reduce(mergeInstanceStates) }
   val containerState = Rx { instances().map(_.containerState()).reduce(mergeContainerStates) }
 
   override def equals(other: Any): Boolean = other match {

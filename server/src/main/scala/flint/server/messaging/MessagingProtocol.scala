@@ -40,7 +40,7 @@ private[messaging] final class MessagingProtocol(
           s"docker image ${dockerImage}")
     }
 
-    instance.instanceState.foreach { state =>
+    instance.state.foreach { state =>
       sendMessage(InstanceState(instance.id, state))
       logger.trace(
         s"Instance state change. " +

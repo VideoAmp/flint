@@ -43,7 +43,7 @@ private[aws] class AwsManagedCluster(
     Tags.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
       def updateInstance(instance: Instance, awsInstance: AwsInstance) {
         instance.dockerImage.asVar() = Tags.getDockerImage(awsInstance)
-        instance.instanceState.asVar() = awsInstance.getState
+        instance.state.asVar() = awsInstance.getState
         Tags.getContainerState(awsInstance).foreach(instance.containerState.asVar() = _)
       }
 
