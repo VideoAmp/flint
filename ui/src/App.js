@@ -1,8 +1,6 @@
 import React from 'react';
 import R from 'ramda';
 import './App.css';
-import { Grid, Cell } from 'react-flexr';
-import 'react-flexr/styles.css';
 
 import Cluster from './components/Cluster';
 
@@ -17,11 +15,14 @@ const muiTheme = getMuiTheme({
 
 import AppBar from 'material-ui/AppBar';
 
-const buildClusterRow = (index) => <Cell key={index}><Cluster/></Cell>;
-const exampleClusterRows = R.times(buildClusterRow, 2)
+const buildClusterRow = (index) => <div className="cluster" key={index}><Cluster/></div>;
+const exampleClusterRows = R.times(buildClusterRow, 6)
 
-const buildCluster = (index) => <Grid key={index}>{exampleClusterRows}</Grid>;
-const exampleClusters = R.times(buildCluster, 2)
+const exampleClusters = (
+    <div className="clusters">
+        {exampleClusterRows}
+    </div>
+);
 
 export default {
     render() {
@@ -30,7 +31,9 @@ export default {
                 <MuiThemeProvider muiTheme={muiTheme}>
                     <div>
                         <AppBar title="Flint"/>
-                        {exampleClusters}
+                        <div className="cluster-container">
+                            {exampleClusters}
+                        </div>
                     </div>
                 </MuiThemeProvider>
             </div>
