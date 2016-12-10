@@ -970,6 +970,10 @@ binary-extensions@^1.0.0:
   version "1.7.0"
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-1.7.0.tgz#6c1610db163abfb34edfe42fa423343a1e01185d"
 
+bind-decorator@^1.0.10:
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/bind-decorator/-/bind-decorator-1.0.10.tgz#16b52bab374447585f1ed44a2d0fe8d336bd1a6e"
+
 block-stream@*:
   version "0.0.9"
   resolved "https://registry.yarnpkg.com/block-stream/-/block-stream-0.0.9.tgz#13ebfe778a03205cfe03751481ebb4b3300c126a"
@@ -3428,6 +3432,13 @@ material-ui:
     recompose "^0.20.2"
     simple-assign "^0.1.0"
     warning "^3.0.0"
+
+material-ui-number-input@^5.0.16:
+  version "5.0.16"
+  resolved "https://registry.yarnpkg.com/material-ui-number-input/-/material-ui-number-input-5.0.16.tgz#f8a95e14a393419954eef493319aa9b645be1c00"
+  dependencies:
+    bind-decorator "^1.0.10"
+    object-assign "^4.1.0"
 
 math-expression-evaluator@^1.2.14:
   version "1.2.14"

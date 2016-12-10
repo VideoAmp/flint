@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "material-ui": "~0.16.1",
+    "material-ui-number-input": "^5.0.16",
     "ramda": "^0.22.1",
     "react": "~15.3.2",
     "react-dom": "~15.3.2",
