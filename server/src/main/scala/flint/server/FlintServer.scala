@@ -25,7 +25,7 @@ object FlintServer extends LazyLogging {
     val bindInterface = bindAddress.takeWhile(_ != ':')
     val bindPort      = bindAddress.dropWhile(_ != ':').drop(1).toInt
 
-    val serviceRoute = "/api/version/1/messaging"
+    val apiRoot = "/api/version/1"
 
     val clusterService =
       serverConfig.get[String]("cluster_service").value match {
@@ -35,10 +35,11 @@ object FlintServer extends LazyLogging {
     logger.info("Using " + clusterService.getClass.getSimpleName)
 
     val server: Server with Killable = AkkaServer(clusterService)
-    val bindingFuture                = server.bindTo(bindInterface, bindPort, serviceRoute)
+    val bindingFuture                = server.bindTo(bindInterface, bindPort, apiRoot)
 
     bindingFuture.map { binding =>
-      logger.info(s"Flint messaging server online at ws://$bindAddress$serviceRoute")
+      logger.info(s"Flint messaging server online at ${binding.messagingUrl}")
+      logger.info(s"Flint service online at ${binding.serviceUrl}")
       // scalastyle:off println
       println("Press RETURN to shut down")
       // scalastyle:on println

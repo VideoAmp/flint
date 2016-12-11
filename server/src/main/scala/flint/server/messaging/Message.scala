@@ -85,50 +85,8 @@ private[messaging] final case class WorkerTerminationAttempt(
     extends ServerMessage
 
 private[messaging] object MessageCodec {
-  import scala.concurrent.duration.FiniteDuration
   import io.sphere.json._, generic._
   import org.json4s._, jackson._
-  import scalaz.Success
-
-  private implicit val jsonDuration: JSON[FiniteDuration] = new JSON[FiniteDuration] {
-    import java.time.{ Duration => JDuration }
-    override def read(jval: JValue): JValidation[FiniteDuration] = jval match {
-      case JString(s) =>
-        try {
-          Success(FiniteDuration(JDuration.parse(s).toMillis, "millis"))
-        } catch {
-          case ex: Exception => fail("Failed to parse duration: " + ex.getMessage)
-        }
-      case _ => fail("String expected")
-    }
-
-    override def write(value: FiniteDuration): JValue =
-      JString(JDuration.ofMillis(value.toMillis).toString)
-  }
-
-  private implicit val dockerImageJson = deriveJSON[DockerImage]
-
-  private def createCaseObjectJson[T](typeDescription: String, fromString: String => T): JSON[T] =
-    new JSON[T] {
-      override def read(jval: JValue): JValidation[T] = jval match {
-        case JString(state) => Success(fromString(state))
-        case _ =>
-          fail(typeDescription + " must be a string")
-      }
-
-      override def write(value: T): JValue = JString(value.toString)
-    }
-
-  private implicit val lifecycleStateJson =
-    createCaseObjectJson[LifecycleState]("Lifecycle state", LifecycleState.apply)
-
-  private implicit val containerStateJson =
-    createCaseObjectJson[ContainerState]("Container state", ContainerState.apply)
-
-  private implicit val terminationReasonJson =
-    createCaseObjectJson[TerminationReason]("Termination reason", TerminationReason.apply)
-
-  private implicit val clusterSpecJson = deriveJSON[ClusterSpec]
 
   private implicit val messageJson = new JSON[Message] {
     private val json = deriveJSON[Message]

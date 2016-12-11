@@ -22,7 +22,7 @@ The Flint server uses [Akka](http://akka.io/), which has its own logging configu
 Add
 
 ```scala
-libraryDependencies += "com.videoamp" %% "flint" % "0.1-SNAPSHOT"
+libraryDependencies += "com.videoamp" %% "flint" % "1.0-SNAPSHOT"
 ```
 
 to your project's `build.sbt`. See the REPL example below for a Flint code snippet.
@@ -47,36 +47,37 @@ Once in a REPL, you can use a `ClusterService` to launch, manage and terminate c
 import flint._, service._, aws._
 import java.io.File
 import com.typesafe.config.ConfigFactory
-import rx.Ctx.Owner.Unsafe._
+
+import concurrent.Await
+import concurrent.duration._
 
 implicit val ec = flint.flintExecutionContext
 
-val flintConfig = ConfigFactory.parseFile(new File("conf/application.conf")).getConfig("flint")
+val flintConfig = ConfigFactory.parseFile(new File("conf/aws_service.conf")).getConfig("flint")
 validateFlintConfig(flintConfig)
 
 val cs: ClusterService = new AwsClusterService(flintConfig)
 
-// Define your ClusterSpec
-val clusterSpec =
+def newClusterSpec(imageTag: String, workerInstanceType: String, numWorkers: Int) =
   ClusterSpec(
     ClusterId(),
-    DockerImage("videoamp/spark", "2.0.1-SNAPSHOT-2.6.0-cdh5.5.1-b49-9273bdd-92"),
-    "Michael",
+    DockerImage("videoamp/spark", imageTag),
+    "Bob Data User",
     None,
     None,
     "t2.micro",
-    "t2.micro",
-    2)
+    workerInstanceType,
+    numWorkers)
+
+val spec = newClusterSpec("2.1.0-SNAPSHOT-2.6.0-cdh5.5.1-b20-cf492a7-139", "c3.8xlarge", 4)
 
 // Launch it
-cs.launchCluster(clusterSpec).foreach { managedCluster =>
-  managedCluster.cluster.lifecycleState.foreach { state =>
-    if (state == Running) {
-      println("Compute, compute, compute...")
-      Thread.sleep(3000)
-      println("Terminating...")
-      managedCluster.terminate
-    }
+cs.launchCluster(spec).foreach { managedCluster =>
+  managedCluster.cluster.containerState.collectFirst { case ContainerRunning =>
+    println("Compute, compute, compute...")
+    Thread.sleep(3000)
+    println("Terminating...")
+    Await.managedCluster.terminate
   }
 }
 ```
