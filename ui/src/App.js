@@ -32,6 +32,17 @@ export default class App extends React.Component {
         clusterDialogOpen: false,
     };
 
+    getClusters() {
+        fetch("http://localhost:8080/api/version/1/clusters")
+            .then((response) => {
+                console.log(response.json())
+            })
+    };
+
+    componentDidMount() {
+        this.getClusters();
+    };
+
     handleClusterDialogOpen = () => {
         this.setState({ clusterDialogOpen: true });
     };
