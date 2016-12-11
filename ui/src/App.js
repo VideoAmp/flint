@@ -28,6 +28,18 @@ const exampleClusters = (
 );
 
 export default class App extends React.Component {
+    state = {
+        clusterDialogOpen: false,
+    };
+
+    handleClusterDialogOpen = () => {
+        this.setState({ clusterDialogOpen: true });
+    };
+
+    handleClusterDialogClose = () => {
+        this.setState({ clusterDialogOpen: false });
+    };
+
     render() {
         return (
             <div>
@@ -37,6 +49,11 @@ export default class App extends React.Component {
                         <div className="cluster-container">
                             {exampleClusters}
                         </div>
+                        <ClusterDialog
+                            openState={this.state.clusterDialogOpen}
+                            closeDialog={this.handleClusterDialogClose}
+                        />
+                        <FloatingActionButton onTouchTap={this.handleClusterDialogOpen}></FloatingActionButton>
                     </div>
                 </MuiThemeProvider>
             </div>
