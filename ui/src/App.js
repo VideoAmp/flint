@@ -3,7 +3,10 @@ import R from 'ramda';
 import './App.css';
 
 import Cluster from './components/Cluster';
+import ClusterDialog from './components/ClusterDialog'
 
+import FloatingActionButton from 'material-ui/FloatingActionButton';
+import ContentAdd from 'material-ui/svg-icons/content/add';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import {yellow700} from 'material-ui/styles/colors';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
@@ -24,7 +27,7 @@ const exampleClusters = (
     </div>
 );
 
-export default {
+export default class App extends React.Component {
     render() {
         return (
             <div>
