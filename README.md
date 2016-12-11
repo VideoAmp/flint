@@ -77,7 +77,7 @@ cs.launchCluster(spec).foreach { managedCluster =>
     println("Compute, compute, compute...")
     Thread.sleep(3000)
     println("Terminating...")
-    Await.managedCluster.terminate
+    Await.ready(managedCluster.terminate)
   }
 }
 ```
