@@ -60,7 +60,9 @@ export default class App extends React.Component {
                             openState={this.state.clusterDialogOpen}
                             closeDialog={this.handleClusterDialogClose}
                         />
-                        <FloatingActionButton onTouchTap={this.handleClusterDialogOpen}></FloatingActionButton>
+                        <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
+                            <ContentAdd />
+                        </FloatingActionButton>
                     </div>
                 </MuiThemeProvider>
             </div>
