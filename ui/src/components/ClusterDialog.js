@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Grid, Cell } from 'react-flexr';
+import 'react-flexr/styles.css'
 
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
@@ -63,7 +64,7 @@ export default class ClusterDialog extends React.Component {
                 onRequestClose={this.props.closeDialog}
             >
                 <Grid>
-                    <Cell size="1/2">
+                    <Cell>
                         <SelectField floatingLabelText="Build">
                             <MenuItem value={1} primaryText="2.1.1-SNAPSHOT" />
                             <MenuItem value={2} primaryText="2.1.0-SNAPSHOT" />
@@ -71,13 +72,13 @@ export default class ClusterDialog extends React.Component {
                             <MenuItem value={4} primaryText="2.0.1-SNAPSHOT" />
                         </SelectField>
                     </Cell>
-                    <Cell size="1/2">
+                    <Cell>
                         <TextField
                         hintText="Enter your name here"
                         floatingLabelText="Owner"
                         />
                     </Cell>
-                    <Cell size="1/2">
+                    <Cell>
                         <NumberInput
                             id="lifetime-hours-amount-input"
                             floatingLabelText="Lifetime Hours"
@@ -89,19 +90,19 @@ export default class ClusterDialog extends React.Component {
                             onError={this.onLifetimeHoursCountError}
                         />
                     </Cell>
-                    <Cell size="1/2">
+                    <Cell>
                         <SelectField floatingLabelText="Master Type">
                             <MenuItem value={1} primaryText="r3.large" />
                             <MenuItem value={2} primaryText="t2.micro" />
                         </SelectField>
                     </Cell>
-                    <Cell size="1/2">
+                    <Cell>
                         <SelectField floatingLabelText="Worker Type">
                             <MenuItem value={1} primaryText="x1.32xlarge" />
                             <MenuItem value={2} primaryText="c3.8xlarge" />
                         </SelectField>
                     </Cell>
-                    <Cell size="1/2">
+                    <Cell>
                         <NumberInput
                             id="worker-count-amount-input"
                             floatingLabelText="Worker Count"
@@ -113,7 +114,7 @@ export default class ClusterDialog extends React.Component {
                             onError={this.onWorkerCountError}
                         />
                     </Cell>
-                    <Cell size="1/2">
+                    <Cell>
                         <NumberInput
                             id="worker-count-amount-input"
                             floatingLabelText="Idle Timeout (mins)"
