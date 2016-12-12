@@ -30,13 +30,13 @@ const exampleClusters = (
 export default class App extends React.Component {
     state = {
         clusterDialogOpen: false,
+        clusters: [],
     };
 
-    getClusters() {
+    getClusters = () => {
         fetch("http://localhost:8080/api/version/1/clusters")
-            .then((response) => {
-                console.log(response.json())
-            })
+            .then((response) => response.json())
+            .then((clusters) => this.setState({ clusters }));
     };
 
     componentDidMount() {
