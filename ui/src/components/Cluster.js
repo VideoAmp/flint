@@ -1,5 +1,4 @@
 import React from 'react';
-import R from 'ramda';
 
 import NumberInput from 'material-ui-number-input';
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
@@ -10,7 +9,10 @@ import Add from 'material-ui/svg-icons/content/add';
 
 import Instance from './Instance';
 
-const exampleInstances = R.times((index) => <Instance key={index}/>);
+const generateInstance =
+    (instance, master = false) => <Instance key={instance.id} data={instance} master={master} />
+
+const generateInstances = (instances) => instances.map(generateInstance);
 
 export default class Cluster extends React.Component {
     state = {
@@ -46,18 +48,23 @@ export default class Cluster extends React.Component {
             />,
         ];
 
+        // TODO: return short-form image tag
+        const clusterTitle =
+            `${this.props.data.owner} ${this.props.data.dockerImage.tag.split("-")[0]}`
+
         return (
             <div>
                 <Card>
                     <CardHeader
-                        title="Kaleho-Test 2.1.0"
+                        title={clusterTitle}
                         titleStyle={{ "font-size": "125%"}}
                     >
                         <Trash/>
                         <Add onTouchTap={this.handleInstanceDialogOpen}/>
                     </CardHeader>
                     <CardText>
-                        {exampleInstances(Math.floor(Math.random() * 5 + 1))}
+                        {generateInstance(this.props.data.master, true)}
+                        {generateInstances(this.props.data.workers)}
                     </CardText>
                     <CardActions style={{ "backgroundColor": "#ccc"}}>
                         <p>2 cores, 2GB RAM, $0.039/hr</p>

@@ -1,5 +1,4 @@
 import React from 'react';
-import R from 'ramda';
 import './App.css';
 
 import Cluster from './components/Cluster';
@@ -18,14 +17,9 @@ const muiTheme = getMuiTheme({
 
 import AppBar from 'material-ui/AppBar';
 
-const buildClusterRow = (index) => <div className="cluster" key={index}><Cluster/></div>;
-const exampleClusterRows = R.times(buildClusterRow, 6)
-
-const exampleClusters = (
-    <div className="clusters">
-        {exampleClusterRows}
-    </div>
-);
+const generateClusters = (clusters) => clusters.map(
+    cluster => <div className="cluster" key={cluster.id}><Cluster data={cluster} /></div>
+)
 
 export default class App extends React.Component {
     state = {
@@ -58,7 +52,9 @@ export default class App extends React.Component {
                     <div>
                         <AppBar title="Flint"/>
                         <div className="cluster-container">
-                            {exampleClusters}
+                            <div className="clusters">
+                                {generateClusters(this.state.clusters)}
+                            </div>
                         </div>
                         <ClusterDialog
                             openState={this.state.clusterDialogOpen}
