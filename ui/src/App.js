@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.css';
+import R from 'ramda';
 
 import Cluster from './components/Cluster';
 import ClusterDialog from './components/ClusterDialog'
@@ -17,14 +18,15 @@ const muiTheme = getMuiTheme({
 
 import AppBar from 'material-ui/AppBar';
 
-const generateClusters = (clusters) => clusters.map(
-    cluster => <div className="cluster" key={cluster.id}><Cluster data={cluster} /></div>
-)
+const getClusterId = cluster => cluster.id || cluster.instanceId;
+
+const addCluster = (clusters, cluster) => R.concat(clusters, [cluster]);
 
 export default class App extends React.Component {
     state = {
         clusterDialogOpen: false,
         clusters: [],
+        socket: null,
     };
 
     getClusters = () => {
@@ -35,6 +37,18 @@ export default class App extends React.Component {
 
     componentDidMount() {
         this.getClusters();
+
+        const socket = new WebSocket("ws://localhost:8080/api/version/1/messaging")
+        socket.onmessage = ({ data }) => {
+            var message = JSON.parse(data);
+            if(R.prop("$type", message) === "ClusterLaunchAttempt") {
+                this.setState({
+                    clusters: addCluster(this.state.clusters, message.clusterSpec)
+                });
+                console.log("Launched new cluster");
+            }
+        }
+        this.setState({ socket });
     };
 
     handleClusterDialogOpen = () => {
@@ -53,7 +67,14 @@ export default class App extends React.Component {
                         <AppBar title="Flint"/>
                         <div className="cluster-container">
                             <div className="clusters">
-                                {generateClusters(this.state.clusters)}
+                                {
+                                    this.state.clusters.map(cluster =>
+                                        <div className="cluster"
+                                             key={getClusterId(cluster)}>
+                                             <Cluster data={cluster} />
+                                        </div>
+                                    )
+                                }
                             </div>
                         </div>
                         <ClusterDialog
