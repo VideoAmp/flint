@@ -12,8 +12,6 @@ import Instance from './Instance';
 const generateInstance =
     (instance, master = false) => <Instance key={instance.id} data={instance} master={master} />
 
-const generateInstances = (instances) => instances.map(generateInstance);
-
 export default class Cluster extends React.Component {
     state = {
         instanceDialogOpen: false,
@@ -47,24 +45,25 @@ export default class Cluster extends React.Component {
                 onTouchTap={this.handleInstanceDialogClose}
             />,
         ];
+        const {owner, dockerImage, master, workers=[]} = this.props.data;
 
         // TODO: return short-form image tag
         const clusterTitle =
-            `${this.props.data.owner} ${this.props.data.dockerImage.tag.split("-")[0]}`
+            `${owner} ${dockerImage.tag.split("-")[0]}`
 
         return (
             <div>
                 <Card>
                     <CardHeader
                         title={clusterTitle}
-                        titleStyle={{ "font-size": "125%"}}
+                        titleStyle={{ "fontSize": "125%"}}
                     >
                         <Trash/>
                         <Add onTouchTap={this.handleInstanceDialogOpen}/>
                     </CardHeader>
                     <CardText>
-                        {generateInstance(this.props.data.master, true)}
-                        {generateInstances(this.props.data.workers)}
+                        { master ? generateInstance(master, true) : null }
+                        { workers.map(generateInstance) }
                     </CardText>
                     <CardActions style={{ "backgroundColor": "#ccc"}}>
                         <p>2 cores, 2GB RAM, $0.039/hr</p>
