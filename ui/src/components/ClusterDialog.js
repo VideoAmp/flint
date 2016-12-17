@@ -45,7 +45,7 @@ export default class ClusterDialog extends React.Component {
             console.log(clusterSpec);
 
             this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
-            this.props.closeDialog();
+            this.props.close();
         }
     }
 
@@ -81,12 +81,12 @@ export default class ClusterDialog extends React.Component {
     handleOwnerChange = (event) => this.setState({ owner: event.target.value });
 
     render() {
-        const { openState, closeDialog, socket } = this.props;
+        const { openState, close, socket } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
                 label="Cancel"
-                onTouchTap={closeDialog}
+                onTouchTap={close}
             />,
             <FlatButton
                 label="Launch"
@@ -101,7 +101,7 @@ export default class ClusterDialog extends React.Component {
                 actions={clusterDialogActions}
                 modal={false}
                 open={openState}
-                onRequestClose={this.props.closeDialog}
+                onRequestClose={this.props.close}
             >
                 <Grid>
                     <Cell>
