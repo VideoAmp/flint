@@ -80,7 +80,7 @@ export default class App extends React.Component {
                         </div>
                         <ClusterDialog
                             openState={this.state.clusterDialogOpen}
-                            closeDialog={this.handleClusterDialogClose}
+                            close={this.handleClusterDialogClose}
                             socket={this.state.socket}
                         />
                         <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
