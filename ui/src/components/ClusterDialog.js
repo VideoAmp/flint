@@ -1,5 +1,6 @@
 import React from 'react';
 import R from 'ramda';
+import moment from 'moment';
 
 import UUID from 'uuid/v4';
 
@@ -14,8 +15,6 @@ import MenuItem from 'material-ui/MenuItem';
 import TextField from 'material-ui/TextField';
 import NumberInput from 'material-ui-number-input';
 
-const idleTimeoutMap = {};
-
 export default class ClusterDialog extends React.Component {
     state = {
         lifetimeHoursErrorText: '',
@@ -24,25 +23,35 @@ export default class ClusterDialog extends React.Component {
         masterInstanceType: "r3.large",
         workerInstanceType: "x1.32xlarge",
         numWorkers: 1,
+        lifetimeHours: 10,
+        idleTimeout: 15,
     };
 
     componentWillMount() {
         this.launchCluster = () => {
-            const { owner, idleTimeout, masterInstanceType, workerInstanceType, numWorkers } = this.state;
+            const {
+                owner,
+                lifetimeHours,
+                idleTimeout,
+                masterInstanceType,
+                workerInstanceType,
+                numWorkers,
+                tag="2.0.1-SNAPSHOT-2.6.0-cdh5.5.1-b49-9273bdd-92"
+            } = this.state;
+
             const clusterSpec = {
                 id: UUID(),
                 dockerImage: {
                     repo: "videoamp/spark",
-                    tag: "2.0.1-SNAPSHOT-2.6.0-cdh5.5.1-b49-9273bdd-92"
+                    tag
                 },
                 owner,
-                ttl: "PT10H",
-                idleTimeout: R.propOr("PT15M", idleTimeout, idleTimeoutMap),
+                ttl: moment.duration(lifetimeHours, "hours").toString(),
+                idleTimeout: moment.duration(idleTimeout, "minutes").toString(),
                 masterInstanceType,
                 workerInstanceType,
                 numWorkers
             };
-            console.log(clusterSpec);
 
             this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
             this.props.close();
@@ -56,6 +65,7 @@ export default class ClusterDialog extends React.Component {
 
         this.setState({ lifetimeHoursErrorText });
     };
+    onLifetimeHoursValid = (lifetimeHours) => this.setState({ lifetimeHours });
 
     onWorkerCountError = (error) => {
         var workerCountErrorText = (error === "none") ?
@@ -64,6 +74,7 @@ export default class ClusterDialog extends React.Component {
 
         this.setState({ workerCountErrorText });
     };
+    onWorkerCountValid = (numWorkers) => this.setState({ numWorkers });
 
     onIdleTimeoutCountError = (error) => {
         var idleTimeoutCountErrorText = (error === "none") ?
@@ -72,11 +83,10 @@ export default class ClusterDialog extends React.Component {
 
         this.setState({ idleTimeoutCountErrorText });
     };
+    onIdleTimeoutCountValid = (idleTimeout) => this.setState({ idleTimeout });
 
-    launchCluster() {}
-
-    handleChange = (stateName) =>
-        (event, index, value) => this.setState({ stateName: value });
+    handleFieldChange = (stateName) =>
+        (event, index, value) => this.setState(R.objOf(stateName, value))
 
     handleOwnerChange = (event) => this.setState({ owner: event.target.value });
 
@@ -105,7 +115,7 @@ export default class ClusterDialog extends React.Component {
             >
                 <Grid>
                     <Cell>
-                        <SelectField value={this.state.tag} onChange={this.handleChange("tag")} floatingLabelText="Build">
+                        <SelectField value={this.state.tag} onChange={this.handleFieldChange("tag")} floatingLabelText="Build">
                             <MenuItem value="2.1.1-SNAPSHOT" primaryText="2.1.1-SNAPSHOT" />
                             <MenuItem value="2.1.0-SNAPSHOT" primaryText="2.1.0-SNAPSHOT" />
                             <MenuItem value="2.0.3-SNAPSHOT" primaryText="2.0.3-SNAPSHOT" />
@@ -114,7 +124,6 @@ export default class ClusterDialog extends React.Component {
                     </Cell>
                     <Cell>
                         <TextField
-                            value={this.state.owner}
                             onChange={this.handleOwnerChange}
                             hintText="Enter your name here"
                             floatingLabelText="Owner"
@@ -123,24 +132,24 @@ export default class ClusterDialog extends React.Component {
                     <Cell>
                         <NumberInput
                             id="lifetime-hours-amount-input"
-                            value={this.state.ttl}
                             floatingLabelText="Lifetime Hours"
-                            defaultValue={1}
+                            defaultValue={this.state.lifetimeHours}
                             min={1}
                             max={12}
                             strategy="allow"
                             errorText={this.state.lifetimeHoursErrorText}
                             onError={this.onLifetimeHoursCountError}
+                            onValid={this.onLifetimeHoursValid}
                         />
                     </Cell>
                     <Cell>
-                        <SelectField value={this.state.masterInstanceType} onChange={this.handleChange("masterInstanceType")} floatingLabelText="Master Type">
+                        <SelectField value={this.state.masterInstanceType} onChange={this.handleFieldChange("masterInstanceType")} floatingLabelText="Master Type">
                             <MenuItem value="r3.large" primaryText="r3.large" />
                             <MenuItem value="t2.micro" primaryText="t2.micro" />
                         </SelectField>
                     </Cell>
                     <Cell>
-                        <SelectField value={this.state.workerInstanceType} onChange={this.handleChange("workerInstanceType")} floatingLabelText="Worker Type">
+                        <SelectField value={this.state.workerInstanceType} onChange={this.handleFieldChange("workerInstanceType")} floatingLabelText="Worker Type">
                             <MenuItem value="x1.32xlarge" primaryText="x1.32xlarge" />
                             <MenuItem value="c3.8xlarge" primaryText="c3.8xlarge" />
                         </SelectField>
@@ -148,27 +157,27 @@ export default class ClusterDialog extends React.Component {
                     <Cell>
                         <NumberInput
                             id="worker-count-amount-input"
-                            value={this.state.workers}
                             floatingLabelText="Worker Count"
-                            defaultValue={1}
+                            defaultValue={this.state.numWorkers}
                             min={1}
                             max={100}
                             strategy="allow"
                             errorText={this.state.workerCountErrorText}
                             onError={this.onWorkerCountError}
+                            onValid={this.onWorkerCountValid}
                         />
                     </Cell>
                     <Cell>
                         <NumberInput
                             id="worker-count-amount-input"
-                            value={this.state.idleTimeout}
                             floatingLabelText="Idle Timeout (mins)"
-                            defaultValue={1}
+                            defaultValue={this.state.idleTimeout}
                             min={1}
                             max={10000}
                             strategy="allow"
                             errorText={this.state.idleTimeoutCountErrorText}
                             onError={this.onIdleTimeoutCountError}
+                            onValid={this.onIdleTimeoutCountValid}
                         />
                     </Cell>
                 </Grid>
