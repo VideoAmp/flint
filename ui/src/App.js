@@ -41,6 +41,7 @@ export default class App extends React.Component {
         const socket = new WebSocket("ws://localhost:8080/api/version/1/messaging")
         socket.onmessage = ({ data }) => {
             var message = JSON.parse(data);
+            console.log(message);
             if(R.prop("$type", message) === "ClusterLaunchAttempt") {
                 this.setState({
                     clusters: addCluster(this.state.clusters, message.clusterSpec)
@@ -80,6 +81,7 @@ export default class App extends React.Component {
                         <ClusterDialog
                             openState={this.state.clusterDialogOpen}
                             closeDialog={this.handleClusterDialogClose}
+                            socket={this.state.socket}
                         />
                         <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
                             <ContentAdd />
