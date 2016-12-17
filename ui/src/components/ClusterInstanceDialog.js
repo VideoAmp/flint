@@ -10,6 +10,16 @@ export default class ClusterInstanceDialog extends React.Component {
         count: 1,
     };
 
+    componentWillMount() {
+        this.launchWorkers = () => {
+            const { count } = this.state;
+            const clusterId = this.props.cluster.id;
+            const payload = JSON.stringify({ clusterId, count, "$type": "AddWorkers" });
+            this.props.socket.send(payload);
+            this.props.close();
+        }
+    }
+
     onInstanceCountError = (error) => {
         var errorText = (error === "none") ?
             "" :
@@ -17,6 +27,8 @@ export default class ClusterInstanceDialog extends React.Component {
 
         this.setState({ errorText });
     };
+
+    onInstanceCountValid = (count) => this.setState({ count })
 
     render() {
         const { close, openState } = this.props;
@@ -29,7 +41,7 @@ export default class ClusterInstanceDialog extends React.Component {
             <FlatButton
                 label="Launch"
                 primary={true}
-                onTouchTap={close}
+                onTouchTap={this.launchWorkers}
             />,
         ];
 
@@ -48,6 +60,7 @@ export default class ClusterInstanceDialog extends React.Component {
                 strategy="allow"
                 errorText={this.state.errorText}
                 onError={this.onInstanceCountError}
+                onValid={this.onInstanceCountValid}
             />
         </Dialog>
     }

@@ -20,7 +20,10 @@ import AppBar from 'material-ui/AppBar';
 
 const getClusterId = cluster => cluster.id || cluster.instanceId;
 
-const addCluster = (clusters, cluster) => R.concat(clusters, [cluster]);
+const addCluster = (clusters, cluster) => R.concat(
+    clusters,
+    [R.merge({ id: getClusterId(cluster) }, cluster)]
+);
 
 export default class App extends React.Component {
     state = {
@@ -72,7 +75,7 @@ export default class App extends React.Component {
                                     this.state.clusters.map(cluster =>
                                         <div className="cluster"
                                              key={getClusterId(cluster)}>
-                                             <Cluster data={cluster} />
+                                             <Cluster data={cluster} socket={this.state.socket}/>
                                         </div>
                                     )
                                 }
