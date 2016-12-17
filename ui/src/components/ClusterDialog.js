@@ -81,7 +81,7 @@ export default class ClusterDialog extends React.Component {
     handleOwnerChange = (event) => this.setState({ owner: event.target.value });
 
     render() {
-        const { openState, close, socket } = this.props;
+        const { openState, close } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
