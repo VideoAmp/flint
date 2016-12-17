@@ -24,7 +24,8 @@ export default class Cluster extends React.Component {
     };
 
     render() {
-        const {owner, dockerImage, master, workers=[]} = this.props.data;
+        const cluster = this.props.data;
+        const {owner, dockerImage, master, workers=[]} = cluster;
 
         // TODO: return short-form image tag
         const clusterTitle =
@@ -50,7 +51,9 @@ export default class Cluster extends React.Component {
                 </Card>
                 <ClusterInstanceDialog
                     openState={this.state.clusterInstanceDialogOpen}
-                    close={this.handleClusterInstanceDialogClose}/>
+                    close={this.handleClusterInstanceDialogClose}
+                    socket={this.props.socket}
+                    cluster={cluster}/>
             </div>
         );
     }
