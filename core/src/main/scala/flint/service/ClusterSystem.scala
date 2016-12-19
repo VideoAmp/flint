@@ -12,5 +12,5 @@ trait ClusterSystem {
     clusters().filter(_._2.cluster.state() == Running)
   }
 
-  val newCluster: Rx[Option[ManagedCluster]]
+  val newClusters: Rx[Seq[ManagedCluster]]
 }

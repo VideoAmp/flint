@@ -47,6 +47,9 @@ private[messaging] final case class ClusterTerminationAttempt(
     error: Option[String])
     extends ServerMessage
 
+private[messaging] final case class ClustersAdded(clusters: List[ClusterSnapshot])
+    extends ServerMessage
+
 private[messaging] final case class DockerImageChangeAttempt(
     clusterId: ClusterId,
     dockerImage: DockerImage,
@@ -82,6 +85,11 @@ private[messaging] final case class WorkerTerminationAttempt(
     instanceId: String,
     reason: TerminationReason,
     error: Option[String])
+    extends ServerMessage
+
+private[messaging] final case class WorkersAdded(
+    clusterId: ClusterId,
+    workers: List[InstanceSnapshot])
     extends ServerMessage
 
 private[messaging] object MessageCodec {

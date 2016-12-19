@@ -76,8 +76,7 @@ private[aws] class AwsManagedCluster(
           workersNow.map(_.id).contains(workerId)
       }.map { case (_, workerInstance) => clusterService.flintInstance(workerInstance) }
 
-      newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
-
+      this.newWorkers.asVar() = newWorkers.toIndexedSeq
       cluster.workers.asVar() = retainedWorkers ++ newWorkers
     }
 }

@@ -9,7 +9,7 @@ import rx._
 trait ManagedCluster extends Killable {
   val cluster: Cluster
 
-  final val newWorker: Rx[Option[Instance]] = Var(Option.empty[Instance])
+  final val newWorkers: Rx[Seq[Instance]] = Var(Seq.empty[Instance])
 
   protected val managementService: ManagementService
 

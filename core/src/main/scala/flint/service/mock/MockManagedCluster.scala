@@ -23,7 +23,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
           _ =>
             clusterService
               .instance(Some(cluster.dockerImage.now), workerInstanceType, placementGroup))
-      newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
+      this.newWorkers.asVar() = newWorkers
       workers() = newWorkers
       newWorkers
     }

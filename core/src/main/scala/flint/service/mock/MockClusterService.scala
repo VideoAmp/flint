@@ -19,7 +19,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
 
     override val clusters = Var(Map.empty[ClusterId, ManagedCluster])
 
-    override val newCluster = Var(Option.empty[ManagedCluster])
+    override val newClusters = Var(Seq.empty[ManagedCluster])
   }
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
@@ -35,7 +35,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         workers,
         workerInstanceType,
         spec.placementGroup)
-    clusterSystem.newCluster() = Some(cluster)
+    clusterSystem.newClusters() = Seq(cluster)
     clusterSystem.clusters() = clusterSystem.clusters.now.updated(id, cluster)
     Future.successful(cluster)
   }

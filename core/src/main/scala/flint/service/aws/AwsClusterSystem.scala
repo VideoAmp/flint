@@ -23,7 +23,7 @@ private[aws] class AwsClusterSystem private[aws] (
     with LazyLogging {
   override val clusters = Var(Map.empty[ClusterId, AwsManagedCluster])
 
-  override val newCluster = Var(Option.empty[ManagedCluster])
+  override val newClusters = Var(Seq.empty[ManagedCluster])
 
   private val task = new Runnable {
     override def run(): Unit =
@@ -71,11 +71,7 @@ private[aws] class AwsClusterSystem private[aws] (
               case (clusterId, Some(managedCluster)) => clusterId -> managedCluster
             }.toMap
 
-            newClusters.foreach {
-              case (_, cluster) =>
-                newCluster() = Some(cluster)
-            }
-
+            AwsClusterSystem.this.newClusters() = newClusters.values.toIndexedSeq
             clusters() = retainedClusters ++ newClusters
           }
         case Failure(ex) =>
