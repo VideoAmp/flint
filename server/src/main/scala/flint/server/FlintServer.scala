@@ -3,6 +3,7 @@ package server
 
 import messaging.akka.AkkaServer
 import service.aws.AwsClusterService
+import service.docker.Token
 import service.mock.MockClusterService
 
 import com.typesafe.config.{ Config, ConfigFactory, ConfigParseOptions }
@@ -34,7 +35,12 @@ object FlintServer extends LazyLogging {
       }
     logger.info("Using " + clusterService.getClass.getSimpleName)
 
-    val server: Server with Killable = AkkaServer(clusterService)
+    val dockerConfig    = flintConfig.get[Config]("docker").value
+    val dockerImageRepo = dockerConfig.get[String]("image_repo").value
+    val dockerAuthToken = dockerConfig.get[String]("auth").value
+    val dockerCreds     = Token(dockerAuthToken)
+
+    val server: Server with Killable = AkkaServer(clusterService, dockerImageRepo, dockerCreds)
     val bindingFuture                = server.bindTo(bindInterface, bindPort, apiRoot)
 
     bindingFuture.map { binding =>

@@ -4,6 +4,7 @@ package messaging
 package akka
 
 import service.ClusterService
+import service.docker.{ Credentials, Tags }
 
 import java.net.URI
 
@@ -20,16 +21,25 @@ import com.typesafe.scalalogging.LazyLogging
 
 import io.sphere.json._
 
+import org.apache.http.impl.client.HttpClientBuilder
 import org.json4s._, jackson._
 
 import rx._
 
-class AkkaServer(clusterService: ClusterService)(
+import scalaz.{ Failure, Success }
+
+class AkkaServer(
+    clusterService: ClusterService,
+    dockerImageRepo: String,
+    dockerCreds: Credentials)(
     implicit ctx: Ctx.Owner,
     actorSystem: ActorSystem,
     materializer: Materializer)
     extends Server
     with LazyLogging {
+
+  private val httpClient = HttpClientBuilder.create.build
+  private val dockerTags = new Tags(httpClient)
 
   private val (messageSender, messageReceiver) = {
     val messageSource = Source.queue[TextMessage](0, OverflowStrategy.backpressure)
@@ -50,8 +60,9 @@ class AkkaServer(clusterService: ClusterService)(
   private val connectionFlowFactory = new ConnectionFlowFactory(messageSender, messageReceiver)
 
   override def bindTo(interface: String, port: Int, apiRoot: String): Future[Binding] = {
-    val messagingPath = apiRoot + "/messaging"
-    val clustersPath  = apiRoot + "/clusters"
+    val messagingPath    = apiRoot + "/messaging"
+    val clustersPath     = apiRoot + "/clusters"
+    val dockerImagesPath = apiRoot + "/dockerImages"
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
         logger.info("Received GET request for messaging websocket")
@@ -67,6 +78,16 @@ class AkkaServer(clusterService: ClusterService)(
         val clusterSnapshots = clusters.map(ClusterSnapshot(_)).toList
         val responseBody     = compactJson(toJValue(clusterSnapshots))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+      case req @ HttpRequest(GET, Uri.Path(`dockerImagesPath`), _, _, _) =>
+        logger.info("Received GET request for docker images")
+        dockerTags(dockerImageRepo, Some(dockerCreds)) match {
+          case Success(dockerImages) =>
+            val responseBody = compactJson(toJValue(dockerImages))
+            HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+          case Failure(errors) =>
+            val responseBody = compactJson(toJValue(errors))
+            HttpResponse(400, entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+        }
       case req =>
         req.discardEntityBytes()
         HttpResponse(404)
@@ -87,12 +108,13 @@ class AkkaServer(clusterService: ClusterService)(
 }
 
 object AkkaServer {
-  def apply(clusterService: ClusterService)(implicit ctx: Ctx.Owner): AkkaServer with Killable = {
+  def apply(clusterService: ClusterService, dockerImageRepo: String, dockerCreds: Credentials)(
+      implicit ctx: Ctx.Owner): AkkaServer with Killable = {
     implicit val actorSystem =
       ActorSystem("default", defaultExecutionContext = Some(flintExecutionContext))
     implicit val materializer = ActorMaterializer()
 
-    new AkkaServer(clusterService) with Killable {
+    new AkkaServer(clusterService, dockerImageRepo, dockerCreds) with Killable {
       override def terminate(): Future[Unit] = actorSystem.terminate.map(_ => ())
     }
   }

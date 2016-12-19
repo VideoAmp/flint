@@ -1,3 +1,4 @@
 aws_service.conf
 creds.conf
+docker.conf
 server.conf
