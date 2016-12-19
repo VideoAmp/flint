@@ -10,7 +10,7 @@ import scala.concurrent.Future
 import rx._
 
 class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
-  val managementService = MockManagementService
+  override val managementService = MockManagementService
 
   private lazy val instanceLifecycleManager = new InstanceLifecycleManager
 
@@ -21,6 +21,11 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
 
     override val newClusters = Var(Seq.empty[ManagedCluster])
   }
+
+  override val instanceSpecs = Seq(
+    InstanceSpecs("t2micro", 1, GiB(1), "0.013"),
+    InstanceSpecs("c3.8xlarge", 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
+    InstanceSpecs("r3.8xlarge", 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"))
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._

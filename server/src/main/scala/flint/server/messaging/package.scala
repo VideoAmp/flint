@@ -29,6 +29,20 @@ package object messaging {
     s"Failed to decode message ${messageText.replaceAll("\n", "")}: " +
       errs.toList.mkString(", ")
 
+  private[messaging] implicit val jsonBigDecimal: JSON[BigDecimal] = new JSON[BigDecimal] {
+    override def read(jval: JValue): JValidation[BigDecimal] = jval match {
+      case JDecimal(decimal) =>
+        try {
+          Success(decimal)
+        } catch {
+          case ex: Exception => fail("Failed to parse decimal: " + ex.getMessage)
+        }
+      case _ => fail("Number expected")
+    }
+
+    override def write(value: BigDecimal): JValue = JDecimal(value)
+  }
+
   private[messaging] implicit val jsonDuration: JSON[FiniteDuration] = new JSON[FiniteDuration] {
     import java.time.{ Duration => JDuration }
     override def read(jval: JValue): JValidation[FiniteDuration] = jval match {
@@ -43,6 +57,20 @@ package object messaging {
 
     override def write(value: FiniteDuration): JValue =
       JString(JDuration.ofMillis(value.toMillis).toString)
+  }
+
+  private[messaging] implicit val jsonSpace: JSON[Space] = new JSON[Space] {
+    override def read(jval: JValue): JValidation[Space] = jval match {
+      case JInt(bytes) =>
+        try {
+          Success(Space.fromBytes(bytes))
+        } catch {
+          case ex: Exception => fail("Failed to parse space: " + ex.getMessage)
+        }
+      case _ => fail("Integer expected")
+    }
+
+    override def write(value: Space): JValue = JInt(value.bytes)
   }
 
   private[messaging] implicit val dockerImageJson = deriveJSON[DockerImage]
@@ -70,6 +98,10 @@ package object messaging {
     createCaseObjectJson[TerminationReason]("Termination reason", TerminationReason.apply)
 
   private[messaging] implicit val clusterSpecJson = deriveJSON[ClusterSpec]
+
+  private[messaging] implicit val instanceStorageSpecJson = deriveJSON[InstanceStorageSpec]
+
+  private[messaging] implicit val instanceSpecsJson = deriveJSON[InstanceSpecs]
 
   private[messaging] implicit val instanceSnapshotJson = deriveJSON[InstanceSnapshot]
 

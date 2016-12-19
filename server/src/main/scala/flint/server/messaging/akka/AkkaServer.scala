@@ -60,9 +60,10 @@ class AkkaServer(
   private val connectionFlowFactory = new ConnectionFlowFactory(messageSender, messageReceiver)
 
   override def bindTo(interface: String, port: Int, apiRoot: String): Future[Binding] = {
-    val messagingPath    = apiRoot + "/messaging"
-    val clustersPath     = apiRoot + "/clusters"
-    val dockerImagesPath = apiRoot + "/dockerImages"
+    val messagingPath     = apiRoot + "/messaging"
+    val clustersPath      = apiRoot + "/clusters"
+    val dockerImagesPath  = apiRoot + "/dockerImages"
+    val instanceSpecsPath = apiRoot + "/instanceSpecs"
     val requestHandler: HttpRequest => HttpResponse = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
         logger.info("Received GET request for messaging websocket")
@@ -88,6 +89,9 @@ class AkkaServer(
             val responseBody = compactJson(toJValue(errors))
             HttpResponse(400, entity = HttpEntity(ContentTypes.`application/json`, responseBody))
         }
+      case req @ HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
+        val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
+        HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
       case req =>
         req.discardEntityBytes()
         HttpResponse(404)

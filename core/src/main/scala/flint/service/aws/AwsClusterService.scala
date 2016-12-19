@@ -36,6 +36,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   override lazy val clusterSystem =
     new AwsClusterSystem(this, awsConfig.get[Config]("clusters_refresh").value)
 
+  override val instanceSpecs = aws.instanceSpecs
+
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] =
     launchCluster(spec, workerBidPrice = None)
 
