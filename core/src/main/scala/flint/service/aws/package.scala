@@ -13,12 +13,7 @@ package object aws {
     InstanceSpecs(P216xlarge.toString, 64, GiB(716), "14.4"),
     InstanceSpecs(R3Large.toString, 2, GiB(13), InstanceStorageSpec(1, GiB(32)), "0.166"),
     InstanceSpecs(R38xlarge.toString, 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"),
-    InstanceSpecs(
-      X116xlarge.toString,
-      64,
-      GiB(960),
-      InstanceStorageSpec(1, GiB(1920)),
-      "6.669"),
+    InstanceSpecs(X116xlarge.toString, 64, GiB(960), InstanceStorageSpec(1, GiB(1920)), "6.669"),
     InstanceSpecs(
       X132xlarge.toString,
       128,
