@@ -1,5 +1,7 @@
 import React from 'react';
 import './App.css';
+
+import ReconnectingWebSocket from 'reconnecting-websocket';
 import R from 'ramda';
 
 import Cluster from './components/Cluster';
@@ -48,7 +50,7 @@ export default class App extends React.Component {
     componentDidMount() {
         this.getInstanceSpecs().then(this.getClusters);
 
-        const socket = new WebSocket("ws://localhost:8080/api/version/1/messaging")
+        const socket = new ReconnectingWebSocket("ws://localhost:8080/api/version/1/messaging")
         socket.onmessage = ({ data }) => {
             var message = JSON.parse(data);
             console.log(message);
