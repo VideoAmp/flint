@@ -29,17 +29,24 @@ export default class App extends React.Component {
     state = {
         clusterDialogOpen: false,
         clusters: [],
+        instanceSpecs: [],
         socket: null,
     };
 
     getClusters = () => {
-        fetch("http://localhost:8080/api/version/1/clusters")
+        return fetch("http://localhost:8080/api/version/1/clusters")
             .then((response) => response.json())
             .then((clusters) => this.setState({ clusters }));
     };
 
+    getInstanceSpecs = () => {
+        return fetch("http://localhost:8080/api/version/1/instanceSpecs")
+            .then((response) => response.json())
+            .then((instanceSpecs) => this.setState({ instanceSpecs }));
+    }
+
     componentDidMount() {
-        this.getClusters();
+        this.getInstanceSpecs().then(this.getClusters);
 
         const socket = new WebSocket("ws://localhost:8080/api/version/1/messaging")
         socket.onmessage = ({ data }) => {
@@ -85,6 +92,7 @@ export default class App extends React.Component {
                             openState={this.state.clusterDialogOpen}
                             close={this.handleClusterDialogClose}
                             socket={this.state.socket}
+                            instanceSpecs={this.state.instanceSpecs}
                         />
                         <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
                             <ContentAdd />
