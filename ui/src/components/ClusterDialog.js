@@ -21,14 +21,17 @@ const tagFloatingTextLabelStyle = {
     overflow: "hidden",
 };
 
+const generateInstanceSpec =
+    ({instanceType}, key) => <MenuItem key={key} value={instanceType} primaryText={instanceType} />
+
 export default class ClusterDialog extends React.Component {
     state = {
         tags: [],
         lifetimeHoursErrorText: '',
         workerCountErrorText: '',
         idleTimeoutCountErrorText: '',
-        masterInstanceType: "r3.large",
-        workerInstanceType: "x1.32xlarge",
+        masterInstanceType: "",
+        workerInstanceType: "",
         numWorkers: 1,
         lifetimeHours: 10,
         idleTimeout: 15,
@@ -75,6 +78,14 @@ export default class ClusterDialog extends React.Component {
 
     componentWillMount() {
         this.getDockerImageTags();
+    }
+
+    componentWillReceiveProps() {
+        const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], this.props);
+        this.setState({
+            masterInstanceType: defaultInstance,
+            workerInstanceType: defaultInstance,
+        })
     }
 
     onLifetimeHoursCountError = (error) => {
@@ -169,14 +180,12 @@ export default class ClusterDialog extends React.Component {
                     </Cell>
                     <Cell>
                         <SelectField value={this.state.masterInstanceType} onChange={this.handleFieldChange("masterInstanceType")} floatingLabelText="Master Type">
-                            <MenuItem value="r3.large" primaryText="r3.large" />
-                            <MenuItem value="t2.micro" primaryText="t2.micro" />
+                            {this.props.instanceSpecs.map(generateInstanceSpec)}
                         </SelectField>
                     </Cell>
                     <Cell>
                         <SelectField value={this.state.workerInstanceType} onChange={this.handleFieldChange("workerInstanceType")} floatingLabelText="Worker Type">
-                            <MenuItem value="x1.32xlarge" primaryText="x1.32xlarge" />
-                            <MenuItem value="c3.8xlarge" primaryText="c3.8xlarge" />
+                            {this.props.instanceSpecs.map(generateInstanceSpec)}
                         </SelectField>
                     </Cell>
                     <Cell>
