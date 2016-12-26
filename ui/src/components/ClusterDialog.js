@@ -15,8 +15,15 @@ import MenuItem from 'material-ui/MenuItem';
 import TextField from 'material-ui/TextField';
 import NumberInput from 'material-ui-number-input';
 
+const tagFloatingTextLabelStyle = {
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+};
+
 export default class ClusterDialog extends React.Component {
     state = {
+        tags: [],
         lifetimeHoursErrorText: '',
         workerCountErrorText: '',
         idleTimeoutCountErrorText: '',
@@ -27,35 +34,47 @@ export default class ClusterDialog extends React.Component {
         idleTimeout: 15,
     };
 
+    getDockerImageTags = () => {
+        return fetch("http://localhost:8080/api/version/1/dockerImages")
+            .then((response) => response.json())
+            .then((dockerImages) => {
+                const tags = R.map(R.prop("tag"), dockerImages);
+                this.setState({ tags, tag: tags[0] });
+                return tags;
+            });
+    }
+
+    launchCluster = () => {
+        const {
+            owner,
+            lifetimeHours,
+            idleTimeout,
+            masterInstanceType,
+            workerInstanceType,
+            numWorkers,
+            tag
+        } = this.state;
+
+        const clusterSpec = {
+            id: UUID(),
+            dockerImage: {
+                repo: "videoamp/spark",
+                tag
+            },
+            owner,
+            ttl: moment.duration(lifetimeHours, "hours").toString(),
+            idleTimeout: moment.duration(idleTimeout, "minutes").toString(),
+            masterInstanceType,
+            workerInstanceType,
+            numWorkers
+        };
+
+        this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
+        this.props.close();
+    }
+
     componentWillMount() {
-        this.launchCluster = () => {
-            const {
-                owner,
-                lifetimeHours,
-                idleTimeout,
-                masterInstanceType,
-                workerInstanceType,
-                numWorkers,
-                tag="2.0.1-SNAPSHOT-2.6.0-cdh5.5.1-b49-9273bdd-92"
-            } = this.state;
-
-            const clusterSpec = {
-                id: UUID(),
-                dockerImage: {
-                    repo: "videoamp/spark",
-                    tag
-                },
-                owner,
-                ttl: moment.duration(lifetimeHours, "hours").toString(),
-                idleTimeout: moment.duration(idleTimeout, "minutes").toString(),
-                masterInstanceType,
-                workerInstanceType,
-                numWorkers
-            };
-
-            this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
-            this.props.close();
-        }
+        this.getDockerImageTags();
     }
 
     onLifetimeHoursCountError = (error) => {
@@ -115,11 +134,17 @@ export default class ClusterDialog extends React.Component {
             >
                 <Grid>
                     <Cell>
-                        <SelectField value={this.state.tag} onChange={this.handleFieldChange("tag")} floatingLabelText="Build">
-                            <MenuItem value="2.1.1-SNAPSHOT" primaryText="2.1.1-SNAPSHOT" />
-                            <MenuItem value="2.1.0-SNAPSHOT" primaryText="2.1.0-SNAPSHOT" />
-                            <MenuItem value="2.0.3-SNAPSHOT" primaryText="2.0.3-SNAPSHOT" />
-                            <MenuItem value="2.0.1-SNAPSHOT" primaryText="2.0.1-SNAPSHOT" />
+                        <SelectField
+                            labelStyle={tagFloatingTextLabelStyle}
+                            autoWidth={true}
+                            value={this.state.tag}
+                            onChange={this.handleFieldChange("tag")}
+                            floatingLabelText="Build">
+                            {
+                                this.state.tags.map((tag, key) =>
+                                    <MenuItem key={key} value={tag} primaryText={tag} />
+                                )
+                            }
                         </SelectField>
                     </Cell>
                     <Cell>
