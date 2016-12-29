@@ -2,7 +2,7 @@ package flint
 package service
 package aws
 
-import java.util.concurrent.Executors
+import java.util.concurrent.{ Executors, ScheduledExecutorService }
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
@@ -25,10 +25,11 @@ private[aws] class AwsClusterSystem private[aws] (
 
   override val newClusters = Var(Seq.empty[ManagedCluster])
 
-  private val task = new Runnable {
+  private val clustersRebuildTask = new Runnable {
     override def run(): Unit =
       Await.ready(awsClusterService.describeFlintInstances, Duration.Inf).onComplete {
         case Success(reservations) =>
+          // A map from cluster id to all Flint cluster instances currently known to AWS
           val currentClusterInstances = reservations
             .flatMap(_.getInstances.asScala)
             .map { instance =>
@@ -44,46 +45,49 @@ private[aws] class AwsClusterSystem private[aws] (
             .groupBy(_._1)
             .mapValues(_.map(_._2))
 
-          clusters.synchronized {
-            val clustersNow = clusters.now
+          val clustersNow = clusters.now
 
-            // Update `clusters` from `currentClusterInstances` in three steps:
-            // 1. Retain clusters present in `currentClusterInstances`
-            val retainedClusters = clustersNow.filter {
-              case (clusterId, _) =>
-                currentClusterInstances.contains(clusterId)
-            }
-
-            // 2. Update retained clusters
-            retainedClusters.foreach {
-              case (clusterId, managedCluster) =>
-                managedCluster() = currentClusterInstances(clusterId)
-            }
-
-            // 3. Create new clusters not present in `clusters`
-            val newClusters = currentClusterInstances.filterNot {
-              case (clusterId, _) => clustersNow.contains(clusterId)
-            }.map {
-              case (clusterId, instances) =>
-                clusterId -> AwsManagedCluster
-                  .forInstances(clusterId, instances, awsClusterService)
-            }.collect {
-              case (clusterId, Some(managedCluster)) => clusterId -> managedCluster
-            }.toMap
-
-            AwsClusterSystem.this.newClusters() = newClusters.values.toIndexedSeq
-            clusters() = retainedClusters ++ newClusters
+          // Rebuild `clusters` from `currentClusterInstances` in three steps:
+          // 1. Retain clusters present in `currentClusterInstances`
+          val retainedClusters = clustersNow.filter {
+            case (clusterId, _) =>
+              currentClusterInstances.contains(clusterId)
           }
+
+          // 2. Update retained clusters
+          retainedClusters.foreach {
+            case (clusterId, managedCluster) =>
+              managedCluster() = currentClusterInstances(clusterId)
+          }
+
+          // 3. Create clusters not present in `clusters`
+          val newClusters = currentClusterInstances.filterNot {
+            case (clusterId, _) => clustersNow.contains(clusterId)
+          }.map {
+            case (clusterId, instances) =>
+              clusterId -> AwsManagedCluster.forInstances(clusterId, instances, awsClusterService)
+          }.collect {
+            case (clusterId, Some(managedCluster)) => clusterId -> managedCluster
+          }.toMap
+
+          AwsClusterSystem.this.newClusters() = newClusters.values.toIndexedSeq
+          clusters() = retainedClusters ++ newClusters
         case Failure(ex) =>
           logger.error("Received exception trying to describe instances", ex)
       }
   }
 
-  private val scheduler = Executors.newSingleThreadScheduledExecutor(flintThreadFactory)
+  private[flint] lazy val refreshExecutor: ScheduledExecutorService =
+    Executors.newSingleThreadScheduledExecutor(
+      flintThreadFactory("aws-cluster-system-refresh-thread"))
 
   {
     val pollingInterval = clustersRefreshConfig.get[FiniteDuration]("polling_interval").value
-    scheduler.scheduleWithFixedDelay(task, 0, pollingInterval.length, pollingInterval.unit)
+    refreshExecutor.scheduleWithFixedDelay(
+      clustersRebuildTask,
+      0,
+      pollingInterval.length,
+      pollingInterval.unit)
   }
 
   private[aws] def addCluster(managedCluster: AwsManagedCluster): Unit =

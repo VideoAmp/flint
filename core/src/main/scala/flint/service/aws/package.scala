@@ -1,6 +1,9 @@
 package flint
 package service
 
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
+
 import com.amazonaws.services.ec2.model.{ InstanceState, InstanceStateName, InstanceType },
 InstanceType._
 
@@ -48,4 +51,13 @@ package object aws {
   private[aws] implicit class InstanceTypeInstanceSpecs(instanceSpecs: InstanceSpecs) {
     def awsInstanceType(): InstanceType = InstanceType.fromValue(instanceSpecs.instanceType)
   }
+
+  private[aws] val MAX_CLIENT_CONNECTIONS = Runtime.getRuntime.availableProcessors * 2
+
+  /**
+    * We create our own fixed-thread-pool executor service for AWS clients to share. We use daemon
+    * threads in this executor service so that they don't block JVM exit
+    */
+  private[aws] lazy val awsExecutorService: ExecutorService =
+    Executors.newFixedThreadPool(MAX_CLIENT_CONNECTIONS, flintThreadFactory("aws"))
 }

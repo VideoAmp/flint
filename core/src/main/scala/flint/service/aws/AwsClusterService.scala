@@ -8,11 +8,15 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
+import com.amazonaws.{ ClientConfiguration, PredefinedClientConfigurations }
 import com.amazonaws.auth._
-import com.amazonaws.client.builder.ExecutorFactory
-import com.amazonaws.services.ec2._
+import com.amazonaws.client.builder.{ AwsAsyncClientBuilder, ExecutorFactory }
+import com.amazonaws.services.ec2.{ AmazonEC2Async, AmazonEC2AsyncClientBuilder }
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Storage => _, _ }
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementAsyncClientBuilder
+import com.amazonaws.services.simplesystemsmanagement.{
+  AWSSimpleSystemsManagementAsync,
+  AWSSimpleSystemsManagementAsyncClientBuilder
+}
 import com.amazonaws.util.Base64
 import com.typesafe.config.Config
 
@@ -50,7 +54,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       spec: ClusterSpec,
       workerBidPrice: Option[BigDecimal]): Future[ManagedCluster] =
     launchMaster(spec, workerBidPrice).flatMap { master =>
-      addWorkers(
+      launchWorkers(
         master,
         Some(s"${spec.id}-initial_workers"),
         spec.id,
@@ -60,23 +64,24 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         spec.idleTimeout,
         spec.numWorkers,
         spec.workerInstanceType,
-        workerBidPrice).map(_ => master)
-    }.map { master =>
-      val managedCluster =
-        new AwsManagedCluster(
-          Cluster(
-            spec.id,
-            spec.dockerImage,
-            spec.owner,
-            spec.ttl,
-            spec.idleTimeout,
-            master,
-            Seq.empty),
-          this,
-          spec.workerInstanceType,
-          workerBidPrice)
-      clusterSystem.addCluster(managedCluster)
-      managedCluster
+        workerBidPrice).map(workers => (master, workers))
+    }.map {
+      case (master, workers) =>
+        val managedCluster =
+          new AwsManagedCluster(
+            Cluster(
+              spec.id,
+              spec.dockerImage,
+              spec.owner,
+              spec.ttl,
+              spec.idleTimeout,
+              master,
+              workers),
+            this,
+            spec.workerInstanceType,
+            workerBidPrice)
+        clusterSystem.addCluster(managedCluster)
+        managedCluster
     }
 
   private def launchMaster(
@@ -118,7 +123,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       }
   }
 
-  private[aws] def addWorkers(
+  private[aws] def launchWorkers(
       master: Instance,
       clientToken: Option[String],
       clusterId: ClusterId,
@@ -132,7 +137,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     if (numWorkers > 0) {
       workerBidPrice
         .map(
-          addSpotProvisionedWorkers(
+          launchSpotProvisionedWorkers(
             master,
             clientToken,
             clusterId,
@@ -144,7 +149,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
             instanceType,
             _))
         .getOrElse(
-          addNormallyProvisionedWorkers(
+          launchNormallyProvisionedWorkers(
             master,
             clientToken,
             clusterId,
@@ -158,7 +163,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       Future.successful(Seq.empty)
     }
 
-  private def addNormallyProvisionedWorkers(
+  private def launchNormallyProvisionedWorkers(
       master: Instance,
       clientToken: Option[String],
       clusterId: ClusterId,
@@ -196,7 +201,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     }
   }
 
-  private def addSpotProvisionedWorkers(
+  private def launchSpotProvisionedWorkers(
       master: Instance,
       clientToken: Option[String],
       clusterId: ClusterId,
@@ -305,41 +310,44 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 }
 
 private[aws] object AwsClusterService {
-  private def createAwsEc2Client(awsConfig: Config): AmazonEC2Async = {
-    val accessKey           = awsConfig.get[String]("access_key").value
-    val secretAccessKey     = awsConfig.get[String]("secret_access_key").value
-    val credentials         = new BasicAWSCredentials(accessKey, secretAccessKey)
-    val credentialsProvider = new AWSStaticCredentialsProvider(credentials)
-
-    AmazonEC2AsyncClientBuilder.standard
-      .withRegion(awsConfig.get[String]("region").value)
-      .withCredentials(credentialsProvider)
-      .withExecutorFactory(new ExecutorFactory {
-        override def newExecutor() = flintExecutionContext
-      })
-      .build
-  }
-
   private def createEc2Client(awsConfig: Config): Ec2Client = {
-    val awsEc2Client = createAwsEc2Client(awsConfig)
-    new Ec2Client(awsEc2Client)
+    val clientBuilder = AmazonEC2AsyncClientBuilder.standard
+
+    new Ec2Client(
+      createAwsClient[AmazonEC2Async, AmazonEC2AsyncClientBuilder](awsConfig, clientBuilder))
   }
 
   private def createSsmClient(awsConfig: Config): SsmClient = {
+    val clientBuilder = AWSSimpleSystemsManagementAsyncClientBuilder.standard
+
+    // scalastyle:off
+    new SsmClient(
+      createAwsClient[
+        AWSSimpleSystemsManagementAsync,
+        AWSSimpleSystemsManagementAsyncClientBuilder](awsConfig, clientBuilder))
+    // scalastyle:on
+  }
+
+  private def createAwsClient[T, B <: AwsAsyncClientBuilder[B, T]](
+      awsConfig: Config,
+      clientBuilder: B): T = {
     val accessKey           = awsConfig.get[String]("access_key").value
     val secretAccessKey     = awsConfig.get[String]("secret_access_key").value
     val credentials         = new BasicAWSCredentials(accessKey, secretAccessKey)
     val credentialsProvider = new AWSStaticCredentialsProvider(credentials)
 
-    val awsSsmClient = AWSSimpleSystemsManagementAsyncClientBuilder.standard
+    val clientConfiguration =
+      new ClientConfiguration(PredefinedClientConfigurations.defaultConfig)
+        .withMaxConnections(MAX_CLIENT_CONNECTIONS)
+
+    clientBuilder
+      .withClientConfiguration(clientConfiguration)
       .withRegion(awsConfig.get[String]("region").value)
       .withCredentials(credentialsProvider)
       .withExecutorFactory(new ExecutorFactory {
-        override def newExecutor() = flintExecutionContext
+        override def newExecutor() = awsExecutorService
       })
       .build
-
-    new SsmClient(awsSsmClient)
   }
 
   private def createRunInstancesRequest(

@@ -20,17 +20,23 @@ private[aws] class AwsManagedCluster(
     clusterService.terminateCluster(cluster, isSpot = workerBidPrice.isDefined)
 
   override protected def addWorkers0(count: Int) =
-    clusterService.addWorkers(
-      cluster.master,
-      None,
-      cluster.id,
-      cluster.dockerImage.now,
-      cluster.owner,
-      cluster.ttl,
-      cluster.idleTimeout,
-      count,
-      workerInstanceType,
-      workerBidPrice)
+    clusterService
+      .launchWorkers(
+        cluster.master,
+        None,
+        cluster.id,
+        cluster.dockerImage.now,
+        cluster.owner,
+        cluster.ttl,
+        cluster.idleTimeout,
+        count,
+        workerInstanceType,
+        workerBidPrice)
+      .map { newWorkers =>
+        this.newWorkers.asVar() = newWorkers
+        cluster.workers.asVar() = cluster.workers.now ++ newWorkers
+        newWorkers
+      }
 
   override protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] =
     super.changeDockerImage0(dockerImage).flatMap { _ =>
@@ -41,7 +47,7 @@ private[aws] class AwsManagedCluster(
 
   private[aws] def update(instances: Seq[AwsInstance]): Unit =
     Tags.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
-      def updateInstance(instance: Instance, awsInstance: AwsInstance) {
+      def updateInstance(instance: Instance, awsInstance: AwsInstance) = {
         instance.dockerImage.asVar() = Tags.getDockerImage(awsInstance)
         instance.state.asVar() = awsInstance.getState
         Tags.getContainerState(awsInstance).foreach(instance.containerState.asVar() = _)
@@ -51,7 +57,7 @@ private[aws] class AwsManagedCluster(
 
       updateInstance(cluster.master, masterAwsInstance)
 
-      val workerInstances =
+      val workerAwsInstances =
         Tags
           .filterWorkers(cluster.id, instances)
           .map(workerInstance => workerInstance.getInstanceId -> workerInstance)
@@ -62,16 +68,16 @@ private[aws] class AwsManagedCluster(
       // Update `cluster.workers` from `workerInstances` in three steps:
       // 1. Retain workers present in `workerInstances`
       val retainedWorkers =
-        workersNow.filter(worker => workerInstances.contains(worker.id))
+        workersNow.filter(worker => workerAwsInstances.contains(worker.id))
 
       // 2. Update retained workers
       retainedWorkers.foreach { worker =>
-        val awsWorker = workerInstances(worker.id)
+        val awsWorker = workerAwsInstances(worker.id)
         updateInstance(worker, awsWorker)
       }
 
       // 3. Create new workers not present in `cluster.workers`
-      val newWorkers = workerInstances.filterNot {
+      val newWorkers = workerAwsInstances.filterNot {
         case (workerId, _) =>
           workersNow.map(_.id).contains(workerId)
       }.map { case (_, workerInstance) => clusterService.flintInstance(workerInstance) }

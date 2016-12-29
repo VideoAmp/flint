@@ -3,7 +3,7 @@ package service
 package aws
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }, ExecutionContext.Implicits.global
 
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementAsync
 import com.amazonaws.services.simplesystemsmanagement.model._

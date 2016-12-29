@@ -113,13 +113,10 @@ class AkkaServer(
 
 object AkkaServer {
   def apply(clusterService: ClusterService, dockerImageRepo: String, dockerCreds: Credentials)(
-      implicit ctx: Ctx.Owner): AkkaServer with Killable = {
-    implicit val actorSystem =
-      ActorSystem("default", defaultExecutionContext = Some(flintExecutionContext))
-    implicit val materializer = ActorMaterializer()
-
+      implicit ctx: Ctx.Owner,
+      actorSystem: ActorSystem,
+      materializer: Materializer): AkkaServer with Killable =
     new AkkaServer(clusterService, dockerImageRepo, dockerCreds) with Killable {
       override def terminate(): Future[Unit] = actorSystem.terminate.map(_ => ())
     }
-  }
 }
