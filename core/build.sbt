@@ -1,6 +1,6 @@
 name := "flint"
 
-val awsSdkVersion = "1.11.73"
+val awsSdkVersion = "1.11.74"
 
 resolvers += Resolver.bintrayRepo("commercetools", "maven")
 

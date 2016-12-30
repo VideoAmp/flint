@@ -10,12 +10,10 @@ javaOptions ++= Seq(
 
 connectInput := true
 
-val akkaVersion  = "2.4.11"
 val log4jVersion = "2.7"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"        %% "akka-http-core"    % akkaVersion,
-  "com.typesafe.akka"        %% "akka-http-testkit" % akkaVersion,
+  "com.typesafe.akka"        %% "akka-http-core"    % "10.0.1",
   "org.apache.logging.log4j" % "log4j-api"          % log4jVersion % "runtime",
   "org.apache.logging.log4j" % "log4j-core"         % log4jVersion % "runtime",
   "org.apache.logging.log4j" % "log4j-1.2-api"      % log4jVersion % "runtime",
