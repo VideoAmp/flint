@@ -45,15 +45,7 @@ object Cluster {
       master: Instance,
       workers: Seq[Instance],
       launchedAt: Instant)(implicit ctx: Ctx.Owner): Cluster =
-    new Cluster(
-      id,
-      Var(dockerImage),
-      owner,
-      ttl,
-      idleTimeout,
-      master,
-      Var(workers),
-      Instant.now())
+    new Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, Var(workers), launchedAt)
 
   def mergeInstanceStates(state1: LifecycleState, state2: LifecycleState): LifecycleState =
     (state1, state2) match {

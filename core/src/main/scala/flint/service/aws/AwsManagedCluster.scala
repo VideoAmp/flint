@@ -2,8 +2,6 @@ package flint
 package service
 package aws
 
-import java.time.Instant
-
 import scala.concurrent.Future
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance }
@@ -113,7 +111,7 @@ private[aws] object AwsManagedCluster {
                 idleTimeout,
                 master,
                 workers,
-                Instant.now())
+                masterAwsInstance.getLaunchTime.toInstant)
 
             new AwsManagedCluster(cluster, clusterService, workerInstanceType)
           }

@@ -30,7 +30,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         .toSeq)
     val cluster =
       MockManagedCluster(
-        Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, workers, Instant.now()))(
+        Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, workers, Instant.now))(
         this,
         workers,
         workerInstanceType,

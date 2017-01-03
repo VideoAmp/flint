@@ -2,7 +2,7 @@ package flint
 package service
 
 import java.io.IOException
-import java.net.{ HttpURLConnection, URL }
+import java.net.URL
 import java.time.Instant
 import java.util.concurrent.Executors
 
@@ -19,20 +19,21 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
         managedCluster.cluster.ttl foreach { ttl =>
           val clusterLaunchedAt = managedCluster.cluster.launchedAt
           if (Instant.now.isAfter(clusterLaunchedAt plus ttl)
-              && clusterIsKillable(managedCluster.cluster)) {
+              && hasRunningApps(managedCluster.cluster)) {
             managedCluster.terminate()
           }
         }
       }
   }
 
-  private def clusterIsKillable(cluster: Cluster): Boolean = {
-    val masterIp          = cluster.master.ipAddress
+  private def hasRunningApps(cluster: Cluster): Boolean = {
+    val masterUIHost      = cluster.master.ipAddress
     val masterUIPort      = 8080
+    val masterUrl         = new URL(s"http://$masterUIHost:$masterUIPort")
     val applicationsRegex = """Applications:</strong>((?s).*)<a href="#running-app">Running""".r
 
     try {
-      val response                 = get(s"http://$masterIp:$masterUIPort")
+      val response                 = getContent(masterUrl)
       val matches                  = applicationsRegex.findAllIn(response)
       val runningApplicationsCount = matches.group(1).trim().toInt
       runningApplicationsCount == 0
@@ -42,15 +43,24 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
     }
   }
 
-  private def get(url: String, connectTimeout: Int = 5000, readTimeout: Int = 5000): String = {
-    val connection = new URL(url).openConnection.asInstanceOf[HttpURLConnection]
+  private def isIdle(cluster: Cluster): Boolean =
+    ???
+
+  private def getContent(
+      url: URL,
+      connectTimeout: Int = 5000,
+      readTimeout: Int = 5000
+  ): String = {
+    val connection = url.openConnection
     connection.setConnectTimeout(connectTimeout)
     connection.setReadTimeout(readTimeout)
-    connection.setRequestMethod("GET")
     val inputStream = connection.getInputStream
-    val content     = fromInputStream(inputStream).mkString
-    if (inputStream != null) inputStream.close()
-    content
+
+    try {
+      fromInputStream(inputStream).mkString
+    } finally {
+      inputStream.close()
+    }
   }
 
   private val scheduler = Executors.newSingleThreadScheduledExecutor(flintThreadFactory)
