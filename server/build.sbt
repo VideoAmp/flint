@@ -13,11 +13,14 @@ connectInput := true
 val log4jVersion = "2.7"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"        %% "akka-http-core"  % "10.0.1",
-  "org.apache.logging.log4j" % "log4j-api"        % log4jVersion % "runtime",
-  "org.apache.logging.log4j" % "log4j-core"       % log4jVersion % "runtime",
-  "org.apache.logging.log4j" % "log4j-1.2-api"    % log4jVersion % "runtime",
-  "org.apache.logging.log4j" % "log4j-slf4j-impl" % log4jVersion % "runtime"
+  "com.typesafe.akka"         %% "akka-http-core"  % "10.0.1",
+  "org.apache.logging.log4j"  % "log4j-api"        % log4jVersion % "runtime",
+  "org.apache.logging.log4j"  % "log4j-core"       % log4jVersion % "runtime",
+  "org.apache.logging.log4j"  % "log4j-1.2-api"    % log4jVersion % "runtime",
+  "org.apache.logging.log4j"  % "log4j-slf4j-impl" % log4jVersion % "runtime",
+  "org.apache.httpcomponents" % "httpclient"       % "4.5.2",
+  "com.github.pathikrit"      %% "better-files"    % "2.16.0",
+  "io.sphere"                 %% "sphere-json"     % "0.6.8"
 )
 
 lazy val Schema = config("schema").extend(Compile).hide
