@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused-import"),
   scalacOptions in (Compile, console) := Seq("-language:_"),
   publishTo := {
-    val vamp = "https://videoamp.artifactoryonline.com/videoamp/"
+    val vamp = "https://videoamp.jfrog.io/videoamp/"
 
     if (isSnapshot.value)
       Some("snapshots" at vamp + "snapshot")
