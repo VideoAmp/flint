@@ -3,8 +3,8 @@ package server
 package messaging
 package akka
 
+import docker.{ Credentials, Tags }
 import service.ClusterService
-import service.docker.{ Credentials, Tags }
 
 import java.net.URI
 

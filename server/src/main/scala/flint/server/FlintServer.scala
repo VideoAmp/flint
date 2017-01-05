@@ -1,9 +1,9 @@
 package flint
 package server
 
+import docker.Token
 import messaging.akka.AkkaServer
 import service.aws.AwsClusterService
-import service.docker.Token
 import service.mock.MockClusterService
 
 import _root_.akka.actor.ActorSystem
