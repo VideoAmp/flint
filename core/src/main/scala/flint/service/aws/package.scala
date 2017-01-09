@@ -1,38 +1,31 @@
 package flint
 package service
 
+import java.util.concurrent.Executors
+import java.util.concurrent.ExecutorService
+
 import com.amazonaws.services.ec2.model.{ InstanceState, InstanceStateName, InstanceType },
 InstanceType._
 
 package object aws {
-  private val instanceSpecSeq = Seq(
-    instanceSpecs(T2Micro, 1, GiB(1), "0.013"),
-    instanceSpecs(C38xlarge, 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
-    instanceSpecs(M4Large, 2, GiB(6), "0.12"),
-    instanceSpecs(P28xlarge, 32, GiB(460), "7.2"),
-    instanceSpecs(P216xlarge, 64, GiB(716), "14.4"),
-    instanceSpecs(R3Large, 2, GiB(13), InstanceStorageSpec(1, GiB(32)), "0.166"),
-    instanceSpecs(R38xlarge, 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"),
-    instanceSpecs(X116xlarge, 128, GiB(1940), InstanceStorageSpec(1, GiB(1920)), "13.338"),
-    instanceSpecs(X132xlarge, 128, GiB(1940), InstanceStorageSpec(2, GiB(1920)), "13.338"))
-
-  private def instanceSpecs(
-      instanceType: InstanceType,
-      cores: Int,
-      memory: Space,
-      hourlyPrice: String): InstanceSpecs =
-    instanceSpecs(instanceType, cores, memory, InstanceStorageSpec(0, GiB(0)), hourlyPrice)
-
-  private def instanceSpecs(
-      instanceType: InstanceType,
-      cores: Int,
-      memory: Space,
-      storage: InstanceStorageSpec,
-      hourlyPrice: String): InstanceSpecs =
-    InstanceSpecs(instanceType.toString, cores, memory, storage, BigDecimal(hourlyPrice))
+  private[aws] val instanceSpecs = Seq(
+    InstanceSpecs(T2Micro.toString, 1, GiB(1), "0.013"),
+    InstanceSpecs(C38xlarge.toString, 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
+    InstanceSpecs(M4Large.toString, 2, GiB(6), "0.12"),
+    InstanceSpecs(P28xlarge.toString, 32, GiB(460), "7.2"),
+    InstanceSpecs(P216xlarge.toString, 64, GiB(716), "14.4"),
+    InstanceSpecs(R3Large.toString, 2, GiB(13), InstanceStorageSpec(1, GiB(32)), "0.166"),
+    InstanceSpecs(R38xlarge.toString, 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"),
+    InstanceSpecs(X116xlarge.toString, 64, GiB(960), InstanceStorageSpec(1, GiB(1920)), "6.669"),
+    InstanceSpecs(
+      X132xlarge.toString,
+      128,
+      GiB(1940),
+      InstanceStorageSpec(2, GiB(1920)),
+      "13.338"))
 
   private[aws] val instanceSpecsMap =
-    instanceSpecSeq.map(specs => specs.instanceType -> specs).toMap
+    instanceSpecs.map(specs => specs.instanceType -> specs).toMap
 
   private[aws] implicit def instanceState2LifecycleState(
       instanceState: InstanceState): LifecycleState = {
@@ -58,4 +51,13 @@ package object aws {
   private[aws] implicit class InstanceTypeInstanceSpecs(instanceSpecs: InstanceSpecs) {
     def awsInstanceType(): InstanceType = InstanceType.fromValue(instanceSpecs.instanceType)
   }
+
+  private[aws] val MAX_CLIENT_CONNECTIONS = Runtime.getRuntime.availableProcessors * 2
+
+  /**
+    * We create our own fixed-thread-pool executor service for AWS clients to share. We use daemon
+    * threads in this executor service so that they don't block JVM exit
+    */
+  private[aws] lazy val awsExecutorService: ExecutorService =
+    Executors.newFixedThreadPool(MAX_CLIENT_CONNECTIONS, flintThreadFactory("aws"))
 }

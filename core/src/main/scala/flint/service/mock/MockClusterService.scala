@@ -11,15 +11,22 @@ import scala.concurrent.Future
 import rx._
 
 class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
-  val managementService = MockManagementService
+  override val managementService = MockManagementService
 
   private lazy val instanceLifecycleManager = new InstanceLifecycleManager
 
   override val clusterSystem = new ClusterSystem {
+    override protected implicit val ctx = MockClusterService.this.ctx
+
     override val clusters = Var(Map.empty[ClusterId, ManagedCluster])
 
-    override val newCluster = Var(Option.empty[ManagedCluster])
+    override val newClusters = Var(Seq.empty[ManagedCluster])
   }
+
+  override val instanceSpecs = Seq(
+    InstanceSpecs("t2micro", 1, GiB(1), "0.013"),
+    InstanceSpecs("c3.8xlarge", 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
+    InstanceSpecs("r3.8xlarge", 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"))
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._
@@ -35,10 +42,16 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         workers,
         workerInstanceType,
         spec.placementGroup)
-    clusterSystem.newCluster() = Some(cluster)
+    clusterSystem.newClusters() = Seq(cluster)
     clusterSystem.clusters() = clusterSystem.clusters.now.updated(id, cluster)
     Future.successful(cluster)
   }
+
+  override def launchSpotCluster(
+      spec: ClusterSpec,
+      workerBidPrice: BigDecimal): Future[ManagedCluster] =
+    throw new RuntimeException(
+      "Spot clusters are unsupported by the mock cluster service. Use launchCluster() instead")
 
   private[mock] def instance(
       dockerImage: Option[DockerImage],

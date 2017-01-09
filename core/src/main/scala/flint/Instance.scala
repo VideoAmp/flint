@@ -12,7 +12,7 @@ case class Instance(
     ipAddress: InetAddress,
     placementGroup: Option[String],
     dockerImage: Rx[Option[DockerImage]],
-    instanceState: Rx[LifecycleState],
+    state: Rx[LifecycleState],
     containerState: Rx[ContainerState],
     specs: InstanceSpecs)(terminator: () => Future[Unit])
     extends Killable {
@@ -36,7 +36,7 @@ object Instance {
       ipAddress: InetAddress,
       placementGroup: Option[String],
       dockerImage: Option[DockerImage],
-      instanceState: LifecycleState,
+      state: LifecycleState,
       containerState: ContainerState,
       specs: InstanceSpecs)(terminator: () => Future[Unit]): Instance =
     new Instance(
@@ -44,7 +44,7 @@ object Instance {
       ipAddress,
       placementGroup,
       Var(dockerImage),
-      Var(instanceState),
+      Var(state),
       Var(containerState),
       specs)(terminator)
 }

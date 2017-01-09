@@ -47,6 +47,9 @@ private[messaging] final case class ClusterTerminationAttempt(
     error: Option[String])
     extends ServerMessage
 
+private[messaging] final case class ClustersAdded(clusters: List[ClusterSnapshot])
+    extends ServerMessage
+
 private[messaging] final case class DockerImageChangeAttempt(
     clusterId: ClusterId,
     dockerImage: DockerImage,
@@ -84,49 +87,14 @@ private[messaging] final case class WorkerTerminationAttempt(
     error: Option[String])
     extends ServerMessage
 
+private[messaging] final case class WorkersAdded(
+    clusterId: ClusterId,
+    workers: List[InstanceSnapshot])
+    extends ServerMessage
+
 private[messaging] object MessageCodec {
-  import java.time.Duration
   import io.sphere.json._, generic._
   import org.json4s._, jackson._
-  import scalaz.Success
-
-  private implicit val jsonDuration: JSON[Duration] = new JSON[Duration] {
-    override def read(jval: JValue): JValidation[Duration] = jval match {
-      case JString(s) =>
-        try {
-          Success(Duration.parse(s))
-        } catch {
-          case ex: Exception => fail("Failed to parse duration: " + ex.getMessage)
-        }
-      case _ => fail("String expected")
-    }
-
-    override def write(value: Duration): JValue = JString(value.toString)
-  }
-
-  private implicit val dockerImageJson = deriveJSON[DockerImage]
-
-  private def createCaseObjectJson[T](typeDescription: String, fromString: String => T): JSON[T] =
-    new JSON[T] {
-      override def read(jval: JValue): JValidation[T] = jval match {
-        case JString(state) => Success(fromString(state))
-        case _ =>
-          fail(typeDescription + " must be a string")
-      }
-
-      override def write(value: T): JValue = JString(value.toString)
-    }
-
-  private implicit val lifecycleStateJson =
-    createCaseObjectJson[LifecycleState]("Lifecycle state", LifecycleState.apply)
-
-  private implicit val containerStateJson =
-    createCaseObjectJson[ContainerState]("Container state", ContainerState.apply)
-
-  private implicit val terminationReasonJson =
-    createCaseObjectJson[TerminationReason]("Termination reason", TerminationReason.apply)
-
-  private implicit val clusterSpecJson = deriveJSON[ClusterSpec]
 
   private implicit val messageJson = new JSON[Message] {
     private val json = deriveJSON[Message]

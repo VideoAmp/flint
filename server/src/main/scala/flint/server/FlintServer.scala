@@ -1,9 +1,13 @@
 package flint
 package server
 
+import docker.Token
 import messaging.akka.AkkaServer
 import service.aws.AwsClusterService
 import service.mock.MockClusterService
+
+import _root_.akka.actor.ActorSystem
+import _root_.akka.stream.ActorMaterializer
 
 import com.typesafe.config.{ Config, ConfigFactory, ConfigParseOptions }
 import com.typesafe.scalalogging.LazyLogging
@@ -25,7 +29,7 @@ object FlintServer extends LazyLogging {
     val bindInterface = bindAddress.takeWhile(_ != ':')
     val bindPort      = bindAddress.dropWhile(_ != ':').drop(1).toInt
 
-    val serviceRoute = "/api/version/1/messaging"
+    val apiRoot = "/api/version/1"
 
     val clusterService =
       serverConfig.get[String]("cluster_service").value match {
@@ -34,11 +38,20 @@ object FlintServer extends LazyLogging {
       }
     logger.info("Using " + clusterService.getClass.getSimpleName)
 
-    val server: Server with Killable = AkkaServer(clusterService)
-    val bindingFuture                = server.bindTo(bindInterface, bindPort, serviceRoute)
+    val dockerConfig    = flintConfig.get[Config]("docker").value
+    val dockerImageRepo = dockerConfig.get[String]("image_repo").value
+    val dockerAuthToken = dockerConfig.get[String]("auth").value
+    val dockerCreds     = Token(dockerAuthToken)
+
+    implicit val actorSystem  = ActorSystem()
+    implicit val materializer = ActorMaterializer()
+
+    val server: Server with Killable = AkkaServer(clusterService, dockerImageRepo, dockerCreds)
+    val bindingFuture                = server.bindTo(bindInterface, bindPort, apiRoot)
 
     bindingFuture.map { binding =>
-      logger.info(s"Flint messaging server online at ws://$bindAddress$serviceRoute")
+      logger.info(s"Flint messaging server online at ${binding.messagingUrl}")
+      logger.info(s"Flint service online at ${binding.serviceUrl}")
       // scalastyle:off println
       println("Press RETURN to shut down")
       // scalastyle:on println

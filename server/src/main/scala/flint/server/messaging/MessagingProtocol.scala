@@ -20,12 +20,23 @@ private[messaging] final class MessagingProtocol(
   Rx {
     val clusterSystem = clusterService.clusterSystem
     clusterSystem.clusters.now.map(_._2).foreach(addClusterObservers)
-    clusterSystem.newCluster.foreach(_.foreach(addClusterObservers))
+    clusterSystem.newClusters.foreach { managedClusters =>
+      val clustersAdded =
+        ClustersAdded(managedClusters.map(_.cluster).map(ClusterSnapshot(_)).toList)
+      sendMessage(clustersAdded).foreach { _ =>
+        managedClusters.foreach(addClusterObservers)
+      }
+    }
   }
 
   private def addClusterObservers(cluster: ManagedCluster) = {
     cluster.cluster.instances.now.foreach(addInstanceObservers)
-    cluster.newWorker.foreach(_.foreach(addInstanceObservers))
+    cluster.newWorkers.foreach { workers =>
+      val workersAdded = WorkersAdded(cluster.cluster.id, workers.map(InstanceSnapshot(_)).toList)
+      sendMessage(workersAdded).foreach { _ =>
+        workers.foreach(addInstanceObservers)
+      }
+    }
   }
 
   private def addInstanceObservers(instance: Instance) = {
@@ -40,7 +51,7 @@ private[messaging] final class MessagingProtocol(
           s"docker image ${dockerImage}")
     }
 
-    instance.instanceState.foreach { state =>
+    instance.state.foreach { state =>
       sendMessage(InstanceState(instance.id, state))
       logger.trace(
         s"Instance state change. " +

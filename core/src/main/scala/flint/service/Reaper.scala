@@ -4,6 +4,7 @@ package service
 import java.io.IOException
 import java.net.URL
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executors
 
 import scala.concurrent.duration.FiniteDuration
@@ -18,8 +19,8 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
       clusters.now.values.foreach { managedCluster =>
         managedCluster.cluster.ttl foreach { ttl =>
           val clusterLaunchedAt = managedCluster.cluster.launchedAt
-          if (Instant.now.isAfter(clusterLaunchedAt plus ttl)
-              && hasRunningApps(managedCluster.cluster)) {
+          if (Instant.now.isAfter(clusterLaunchedAt plus (ttl.toSeconds, ChronoUnit.SECONDS))
+              && !hasRunningApps(managedCluster.cluster)) {
             managedCluster.terminate()
           }
         }
@@ -36,15 +37,12 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
       val response                 = getContent(masterUrl)
       val matches                  = applicationsRegex.findAllIn(response)
       val runningApplicationsCount = matches.group(1).trim().toInt
-      runningApplicationsCount == 0
+      runningApplicationsCount != 0
     } catch {
       case e: IOException => true
       case _: Throwable   => false
     }
   }
-
-  private def isIdle(cluster: Cluster): Boolean =
-    ???
 
   private def getContent(
       url: URL,
@@ -63,7 +61,9 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
     }
   }
 
-  private val scheduler = Executors.newSingleThreadScheduledExecutor(flintThreadFactory)
+  private val scheduler = Executors.newSingleThreadScheduledExecutor(
+    flintThreadFactory("reaper-interval-thread")
+  )
 
   Try(reap.run())
   val reapInterval = new FiniteDuration(5, java.util.concurrent.TimeUnit.MINUTES)

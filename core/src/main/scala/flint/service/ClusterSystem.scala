@@ -4,7 +4,13 @@ package service
 import rx._
 
 trait ClusterSystem {
+  protected implicit val ctx: Ctx.Owner
+
   val clusters: Rx[Map[ClusterId, ManagedCluster]]
 
-  val newCluster: Rx[Option[ManagedCluster]]
+  final lazy val runningClusters: Rx[Map[ClusterId, ManagedCluster]] = Rx {
+    clusters().filter(_._2.cluster.state() == Running)
+  }
+
+  val newClusters: Rx[Seq[ManagedCluster]]
 }

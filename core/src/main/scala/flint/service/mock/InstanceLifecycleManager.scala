@@ -2,7 +2,7 @@ package flint
 package service
 package mock
 
-import java.util.concurrent.{ Executors, ScheduledFuture, TimeUnit }
+import java.util.concurrent.{ Executors, ScheduledExecutorService, ScheduledFuture, TimeUnit }
 
 import scala.collection.concurrent.TrieMap
 
@@ -11,8 +11,6 @@ import rx._
 private[mock] class InstanceLifecycleManager {
   private val instanceLifecycleStateMap =
     new TrieMap[String, (LifecycleSimulator, ScheduledFuture[_])]
-
-  private val scheduler = Executors.newSingleThreadScheduledExecutor(flintThreadFactory)
 
   private class LifecycleSimulator(instanceId: String, val lifecycleState: Var[LifecycleState])
       extends Runnable {
@@ -29,11 +27,15 @@ private[mock] class InstanceLifecycleManager {
       }
   }
 
+  private[flint] lazy val refreshExecutor: ScheduledExecutorService =
+    Executors.newSingleThreadScheduledExecutor(
+      flintThreadFactory("mock-cluster-system-refresh-thread"))
+
   private[mock] def createInstance(instanceId: String): Rx[LifecycleState] = {
     val lifecycleState     = Var[LifecycleState](Pending)
     val lifecycleSimulator = new LifecycleSimulator(instanceId, lifecycleState)
     val future =
-      scheduler.scheduleAtFixedRate(lifecycleSimulator, 3, 3, TimeUnit.SECONDS)
+      refreshExecutor.scheduleAtFixedRate(lifecycleSimulator, 3, 3, TimeUnit.SECONDS)
     instanceLifecycleStateMap(instanceId) = (lifecycleSimulator, future)
     lifecycleState
   }

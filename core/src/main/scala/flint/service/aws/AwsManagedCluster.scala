@@ -5,32 +5,38 @@ package aws
 import scala.concurrent.Future
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance }
-import com.typesafe.scalalogging.LazyLogging
 
 import rx._
 
 private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
     clusterService: AwsClusterService,
-    workerInstanceType: String)
-    extends ManagedCluster
-    with LazyLogging {
+    workerInstanceType: String,
+    workerBidPrice: Option[BigDecimal])
+    extends ManagedCluster {
   override protected val managementService = clusterService.managementService
 
   override def terminate(): Future[Unit] =
-    terminateClusterInstances(cluster.master, cluster.workers)
+    clusterService.terminateCluster(cluster, isSpot = workerBidPrice.isDefined)
 
   override protected def addWorkers0(count: Int) =
-    clusterService.addWorkers(
-      cluster.master,
-      None,
-      cluster.id,
-      cluster.dockerImage.now,
-      cluster.owner,
-      cluster.ttl,
-      cluster.idleTimeout,
-      count,
-      workerInstanceType)
+    clusterService
+      .launchWorkers(
+        cluster.master,
+        None,
+        cluster.id,
+        cluster.dockerImage.now,
+        cluster.owner,
+        cluster.ttl,
+        cluster.idleTimeout,
+        count,
+        workerInstanceType,
+        workerBidPrice)
+      .map { newWorkers =>
+        this.newWorkers.asVar() = newWorkers
+        cluster.workers.asVar() = cluster.workers.now ++ newWorkers
+        newWorkers
+      }
 
   override protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] =
     super.changeDockerImage0(dockerImage).flatMap { _ =>
@@ -41,9 +47,9 @@ private[aws] class AwsManagedCluster(
 
   private[aws] def update(instances: Seq[AwsInstance]): Unit =
     Tags.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
-      def updateInstance(instance: Instance, awsInstance: AwsInstance) {
+      def updateInstance(instance: Instance, awsInstance: AwsInstance) = {
         instance.dockerImage.asVar() = Tags.getDockerImage(awsInstance)
-        instance.instanceState.asVar() = awsInstance.getState
+        instance.state.asVar() = awsInstance.getState
         Tags.getContainerState(awsInstance).foreach(instance.containerState.asVar() = _)
       }
 
@@ -51,7 +57,7 @@ private[aws] class AwsManagedCluster(
 
       updateInstance(cluster.master, masterAwsInstance)
 
-      val workerInstances =
+      val workerAwsInstances =
         Tags
           .filterWorkers(cluster.id, instances)
           .map(workerInstance => workerInstance.getInstanceId -> workerInstance)
@@ -62,29 +68,23 @@ private[aws] class AwsManagedCluster(
       // Update `cluster.workers` from `workerInstances` in three steps:
       // 1. Retain workers present in `workerInstances`
       val retainedWorkers =
-        workersNow.filter(worker => workerInstances.contains(worker.id))
+        workersNow.filter(worker => workerAwsInstances.contains(worker.id))
 
       // 2. Update retained workers
       retainedWorkers.foreach { worker =>
-        val awsWorker = workerInstances(worker.id)
+        val awsWorker = workerAwsInstances(worker.id)
         updateInstance(worker, awsWorker)
       }
 
       // 3. Create new workers not present in `cluster.workers`
-      val newWorkers = workerInstances.filterNot {
+      val newWorkers = workerAwsInstances.filterNot {
         case (workerId, _) =>
           workersNow.map(_.id).contains(workerId)
       }.map { case (_, workerInstance) => clusterService.flintInstance(workerInstance) }
 
-      newWorkers.map(Some(_)).foreach(newWorker.asVar() = _)
-
+      this.newWorkers.asVar() = newWorkers.toIndexedSeq
       cluster.workers.asVar() = retainedWorkers ++ newWorkers
     }
-
-  private def terminateClusterInstances(
-      master: Instance,
-      workers: Rx[Seq[Instance]]): Future[Unit] =
-    clusterService.terminateInstances((master +: workers.now).map(_.id): _*)
 }
 
 private[aws] object AwsManagedCluster {
@@ -96,9 +96,10 @@ private[aws] object AwsManagedCluster {
       Tags.getClusterDockerImage(masterAwsInstance).flatMap { clusterDockerImage =>
         Tags.getOwner(masterAwsInstance).flatMap { owner =>
           Tags.getWorkerInstanceType(masterAwsInstance).map { workerInstanceType =>
-            val ttl         = Tags.getClusterTTL(masterAwsInstance)
-            val idleTimeout = Tags.getClusterIdleTimeout(masterAwsInstance)
-            val master      = clusterService.flintInstance(masterAwsInstance)
+            val ttl            = Tags.getClusterTTL(masterAwsInstance)
+            val idleTimeout    = Tags.getClusterIdleTimeout(masterAwsInstance)
+            val workerBidPrice = Tags.getWorkerBidPrice(masterAwsInstance)
+            val master         = clusterService.flintInstance(masterAwsInstance)
             val workers =
               Tags.filterWorkers(clusterId, instances).map(clusterService.flintInstance)
 
@@ -113,7 +114,7 @@ private[aws] object AwsManagedCluster {
                 workers,
                 masterAwsInstance.getLaunchTime.toInstant)
 
-            new AwsManagedCluster(cluster, clusterService, workerInstanceType)
+            new AwsManagedCluster(cluster, clusterService, workerInstanceType, workerBidPrice)
           }
         }
       }

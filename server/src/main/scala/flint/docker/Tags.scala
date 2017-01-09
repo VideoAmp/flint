@@ -1,5 +1,4 @@
 package flint
-package service
 package docker
 
 import io.sphere.json.{ fromJSON, JSON }
