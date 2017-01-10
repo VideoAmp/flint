@@ -7,21 +7,27 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executors
 
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.io.Source.fromInputStream
 import scala.util.Try
 
+import com.typesafe.scalalogging.LazyLogging
+
 import rx.{ Ctx, Rx }
 
-class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ctx.Owner) {
+class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ctx.Owner)
+  extends LazyLogging {
   private val reap = new Runnable {
     override def run(): Unit =
-      clusters.now.values.foreach { managedCluster =>
-        managedCluster.cluster.ttl foreach { ttl =>
-          val clusterLaunchedAt = managedCluster.cluster.launchedAt
-          if (Instant.now.isAfter(clusterLaunchedAt plus (ttl.toSeconds, ChronoUnit.SECONDS))
+      Future {
+        clusters.now.values.foreach { managedCluster =>
+          managedCluster.cluster.ttl foreach { ttl =>
+            val clusterLaunchedAt = managedCluster.cluster.launchedAt
+            if (Instant.now.isAfter(clusterLaunchedAt plus(ttl.toSeconds, ChronoUnit.SECONDS))
               && !hasRunningApps(managedCluster.cluster)) {
-            managedCluster.terminate()
+              managedCluster.terminate()
+            }
           }
         }
       }
@@ -39,8 +45,9 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
       val runningApplicationsCount = matches.group(1).trim().toInt
       runningApplicationsCount != 0
     } catch {
-      case e: IOException => true
-      case _: Throwable   => false
+      case e: IOException =>
+        logger.error(s"Failed to fetch Master UI at $masterUrl", e)
+        false
     }
   }
 
@@ -66,6 +73,6 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
   )
 
   Try(reap.run())
-  val reapInterval = new FiniteDuration(5, java.util.concurrent.TimeUnit.MINUTES)
+  val reapInterval = new FiniteDuration(1, java.util.concurrent.TimeUnit.MINUTES)
   scheduler.scheduleWithFixedDelay(reap, 0, reapInterval.length, reapInterval.unit)
 }
