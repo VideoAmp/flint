@@ -1,3 +1,15 @@
+cat << EOF > /etc/modprobe.d/netfilter.conf
+alias ip_tables off
+alias iptable off
+alias iptable_nat off
+alias iptable_filter off
+alias x_tables off
+alias nf_nat off
+alias nf_conntrack_ipv4 off
+alias nf_conntrack off
+alias xt_conntrack off
+EOF
+
 hostname $(hostname).ec2.internal
 
 mkdir /root/.aws
@@ -18,6 +30,8 @@ aws ec2 create-tags --resources $(curl -s http://169.254.169.254/latest/meta-dat
 
 curl https://amazon-ssm-us-east-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o /tmp/amazon-ssm-agent.rpm
 yum install -y /tmp/amazon-ssm-agent.rpm
+
+echo 'OPTIONS="${OPTIONS} --iptables=false"' >> /etc/sysconfig/docker
 
 curl -fsSL https://get.docker.com/ | sh
 
