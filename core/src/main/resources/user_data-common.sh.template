@@ -73,6 +73,12 @@ sysctl -p
 
 service docker start
 
+docker run -d --net=host \
+  --cap-add SYS_PTRACE \
+  -v /proc:/host/proc:ro -v /sys:/host/sys:ro \
+  -p 19999:19999 \
+  titpetric/netdata
+
 start_script=/sbin/start-spark-container.sh
 
 cat << EOF > $start_script
