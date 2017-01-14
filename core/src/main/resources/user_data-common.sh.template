@@ -28,21 +28,7 @@ aws ec2 create-tags --resources $(curl -s http://169.254.169.254/latest/meta-dat
 
 /usr/bin/time yum -y update 2> /tmp/yum_update_time.txt
 
-curl https://amazon-ssm-us-east-1.s3.amazonaws.com/latest/linux_amd64/amazon-ssm-agent.rpm -o /tmp/amazon-ssm-agent.rpm
-yum install -y /tmp/amazon-ssm-agent.rpm
-
-echo 'OPTIONS="${OPTIONS} --iptables=false"' >> /etc/sysconfig/docker
-
-curl -fsSL https://get.docker.com/ | sh
-
-cat << EOF > /root/.dockercfg
-{
-  "https://index.docker.io/v1/": {
-    "auth": "%DOCKER_AUTH%",
-    "email": "%DOCKER_EMAIL%"
-  }
-}
-EOF
+yum -y install amazon-ssm-agent && start amazon-ssm-agent
 
 stop_script=/sbin/stop-spark-container.sh
 
@@ -70,6 +56,19 @@ chmod 755 $stop_script
 
 echo "fs.file-max = 100000" >> /etc/sysctl.conf
 sysctl -p
+
+curl -fsSL https://get.docker.com/ | sh
+
+cat << EOF > /root/.dockercfg
+{
+  "https://index.docker.io/v1/": {
+    "auth": "%DOCKER_AUTH%",
+    "email": "%DOCKER_EMAIL%"
+  }
+}
+EOF
+
+echo 'OPTIONS="${OPTIONS} --iptables=false"' >> /etc/sysconfig/docker
 
 service docker start
 
