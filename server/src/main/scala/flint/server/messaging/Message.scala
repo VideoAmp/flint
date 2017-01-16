@@ -71,6 +71,11 @@ private[messaging] final case class InstanceState(instanceId: String, state: Lif
 
 private[messaging] final case class LaunchCluster(clusterSpec: ClusterSpec) extends ClientMessage
 
+private[messaging] final case class LaunchSpotCluster(
+    clusterSpec: ClusterSpec,
+    bidPrice: BigDecimal)
+    extends ClientMessage
+
 private[messaging] final case class TerminateCluster(clusterId: ClusterId) extends ClientMessage
 
 private[messaging] final case class TerminateWorker(instanceId: String) extends ClientMessage
