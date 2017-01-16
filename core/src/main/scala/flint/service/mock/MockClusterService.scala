@@ -23,9 +23,13 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   }
 
   override val instanceSpecs = Seq(
-    InstanceSpecs("t2micro", 1, GiB(1), "0.013"),
+    InstanceSpecs("t2.micro", 1, GiB(1), "0.013"),
     InstanceSpecs("c3.8xlarge", 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
+    InstanceSpecs("r3.large", 2, GiB(13), InstanceStorageSpec(1, GiB(32)), "0.166"),
     InstanceSpecs("r3.8xlarge", 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"))
+
+  private val instanceSpecsMap: Map[String, InstanceSpecs] =
+    instanceSpecs.map(specs => specs.instanceType -> specs).toMap
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._
@@ -57,7 +61,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
       placementGroup: Option[String]): Instance = {
     val id             = UUID.randomUUID.toString
     val lifecycleState = instanceLifecycleManager.createInstance(id.toString)
-    val specs          = instanceSpecs(instanceType)
+    val specs          = instanceSpecsMap(instanceType)
 
     Instance(
       id,
@@ -67,14 +71,6 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
       lifecycleState,
       Var(ContainerRunning),
       specs)(() => terminateInstances(id))
-  }
-
-  private def instanceSpecs(instanceType: String): InstanceSpecs = {
-    val cores       = 4
-    val memory      = GiB(8)
-    val hourlyPrice = BigDecimal("1.25")
-
-    InstanceSpecs(instanceType, cores, memory, InstanceStorageSpec(1, GiB(32)), hourlyPrice)
   }
 
   private[mock] def terminateClusterInstances(
