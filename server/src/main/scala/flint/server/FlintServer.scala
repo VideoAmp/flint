@@ -45,6 +45,7 @@ object FlintServer extends LazyLogging {
 
     implicit val actorSystem  = ActorSystem()
     implicit val materializer = ActorMaterializer()
+    import actorSystem.dispatcher
 
     val server: Server with Killable = AkkaServer(clusterService, dockerImageRepo, dockerCreds)
     val bindingFuture                = server.bindTo(bindInterface, bindPort, apiRoot)

@@ -37,6 +37,7 @@ class AkkaServer(
     materializer: Materializer)
     extends Server
     with LazyLogging {
+  import actorSystem.dispatcher
 
   private val httpClient = HttpClientBuilder.create.build
   private val dockerTags = new Tags(httpClient)
@@ -117,6 +118,7 @@ object AkkaServer {
       actorSystem: ActorSystem,
       materializer: Materializer): AkkaServer with Killable =
     new AkkaServer(clusterService, dockerImageRepo, dockerCreds) with Killable {
-      override def terminate(): Future[Unit] = actorSystem.terminate.map(_ => ())
+      override def terminate(): Future[Unit] =
+        actorSystem.terminate.map(_ => ())(actorSystem.dispatcher)
     }
 }

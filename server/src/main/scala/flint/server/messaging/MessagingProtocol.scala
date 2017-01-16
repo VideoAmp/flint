@@ -21,10 +21,12 @@ private[messaging] final class MessagingProtocol(
     val clusterSystem = clusterService.clusterSystem
     clusterSystem.clusters.now.map(_._2).foreach(addClusterObservers)
     clusterSystem.newClusters.foreach { managedClusters =>
-      val clustersAdded =
-        ClustersAdded(managedClusters.map(_.cluster).map(ClusterSnapshot(_)).toList)
-      sendMessage(clustersAdded).foreach { _ =>
-        managedClusters.foreach(addClusterObservers)
+      if (managedClusters.nonEmpty) {
+        val clustersAdded =
+          ClustersAdded(managedClusters.map(_.cluster).map(ClusterSnapshot(_)).toList)
+        sendMessage(clustersAdded).foreach { _ =>
+          managedClusters.foreach(addClusterObservers)
+        }
       }
     }
   }

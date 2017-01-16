@@ -21,6 +21,8 @@ private[akka] class AkkaWebSocketMessageReceiver(
     materializer: Materializer)
     extends MessageReceiver
     with LazyLogging {
+  import actorSystem.dispatcher
+
   override val receivedMessage = Var(Option.empty[Message])
 
   loop(messageSinkQueue.pull) {
