@@ -43,7 +43,8 @@ object FlintServer extends LazyLogging {
     val dockerAuthToken = dockerConfig.get[String]("auth").value
     val dockerCreds     = Token(dockerAuthToken)
 
-    implicit val actorSystem  = ActorSystem()
+    implicit val actorSystem =
+      ActorSystem("flint", defaultExecutionContext = Some(ioExecutionContext))
     implicit val materializer = ActorMaterializer()
     import actorSystem.dispatcher
 
