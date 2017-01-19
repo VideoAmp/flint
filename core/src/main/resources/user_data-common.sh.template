@@ -57,7 +57,7 @@ chmod 755 $stop_script
 echo "fs.file-max = 100000" >> /etc/sysctl.conf
 sysctl -p
 
-curl -fsSL https://get.docker.com/ | sh
+yum -y install docker
 
 cat << EOF > /root/.dockercfg
 {
