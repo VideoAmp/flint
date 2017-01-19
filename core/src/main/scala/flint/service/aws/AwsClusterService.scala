@@ -282,9 +282,13 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
        val clusterIdFilter = new Filter(s"tag:${Tags.ClusterId}").withValues(cluster.id.toString)
        val request         = new DescribeSpotInstanceRequestsRequest().withFilters(clusterIdFilter)
        ec2Client.describeSpotInstanceRequests(request).flatMap { spotInstanceRequests =>
-         val request = new CancelSpotInstanceRequestsRequest()
-           .withSpotInstanceRequestIds(spotInstanceRequests.map(_.getSpotInstanceRequestId): _*)
-         ec2Client.cancelSpotInstanceRequests(request)
+         if (spotInstanceRequests.nonEmpty) {
+           val request = new CancelSpotInstanceRequestsRequest()
+             .withSpotInstanceRequestIds(spotInstanceRequests.map(_.getSpotInstanceRequestId): _*)
+           ec2Client.cancelSpotInstanceRequests(request)
+         } else {
+           Future.successful(())
+         }
        }
      } else { Future.successful(Seq.empty) }).flatMap { _ =>
       terminateInstances((cluster.master +: cluster.workers.now).map(_.id): _*)
