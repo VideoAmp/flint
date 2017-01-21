@@ -8,7 +8,8 @@ private[messaging] case class InstanceSnapshot(
     placementGroup: Option[String],
     dockerImage: Option[DockerImage],
     state: LifecycleState,
-    containerState: ContainerState)
+    containerState: ContainerState,
+    instanceType: String)
 
 private[messaging] object InstanceSnapshot {
   def apply(instance: Instance): InstanceSnapshot = {
@@ -20,6 +21,7 @@ private[messaging] object InstanceSnapshot {
       placementGroup,
       dockerImage.now,
       state.now,
-      containerState.now)
+      containerState.now,
+      specs.instanceType)
   }
 }
