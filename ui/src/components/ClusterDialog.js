@@ -4,6 +4,8 @@ import moment from 'moment';
 
 import UUID from 'uuid/v4';
 
+import ClusterTotals from './ClusterTotals'
+
 import { Grid, Cell } from 'react-flexr';
 import 'react-flexr/styles.css'
 
@@ -121,7 +123,7 @@ export default class ClusterDialog extends React.Component {
     handleOwnerChange = (event) => this.setState({ owner: event.target.value });
 
     render() {
-        const { openState, close } = this.props;
+        const { instanceSpecs, openState, close } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
@@ -143,6 +145,12 @@ export default class ClusterDialog extends React.Component {
                 open={openState}
                 onRequestClose={this.props.close}
             >
+                <ClusterTotals
+                    instanceSpecs={instanceSpecs}
+                    masterInstanceType={this.state.masterInstanceType}
+                    workerInstanceType={this.state.workerInstanceType}
+                    numWorkers={this.state.numWorkers}
+                />
                 <Grid>
                     <Cell>
                         <SelectField
