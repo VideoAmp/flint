@@ -28,6 +28,7 @@ ivyConfigurations += Schema
 inConfig(Schema)(Defaults.configSettings)
 
 resolvers += "vamp repo" at "https://videoamp.artifactoryonline.com/videoamp/repo/"
+resolvers += Resolver.bintrayRepo("commercetools", "maven")
 libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.3" % Schema
 
 inConfig(Schema)(ScalaFmtPlugin.configScalafmtSettings)

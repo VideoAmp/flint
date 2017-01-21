@@ -2,8 +2,6 @@ name := "flint"
 
 val awsSdkVersion = "1.11.74"
 
-resolvers += Resolver.bintrayRepo("commercetools", "maven")
-
 libraryDependencies ++= Seq(
   "com.lihaoyi"                %% "scalarx"         % "0.3.2",
   "com.github.kxbmap"          %% "configs"         % "0.4.4",
