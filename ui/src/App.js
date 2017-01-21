@@ -20,17 +20,23 @@ const muiTheme = getMuiTheme({
 
 import AppBar from 'material-ui/AppBar';
 
+const mapAndReturnObjectValues = R.compose(R.values, R.map);
+
 const getClusterId = cluster => cluster.id || cluster.instanceId;
 
-const addCluster = (clusters, cluster) => R.concat(
-    clusters,
-    [R.merge({ id: getClusterId(cluster) }, cluster)]
-);
+const addCluster = (clusters, cluster) => {
+    const newCluster = R.merge({
+        id: getClusterId(cluster),
+        workers: [],
+    }, cluster);
+
+    return R.merge(clusters, R.objOf(newCluster.id, newCluster));
+}
 
 export default class App extends React.Component {
     state = {
         clusterDialogOpen: false,
-        clusters: [],
+        clusters: {},
         instanceSpecs: [],
         socket: null,
     };
@@ -38,7 +44,7 @@ export default class App extends React.Component {
     getClusters = () => {
         return fetch("http://localhost:8080/api/version/1/clusters")
             .then((response) => response.json())
-            .then((clusters) => this.setState({ clusters }));
+            .then((clusters) => this.setState({ clusters: R.indexBy(R.prop("id"), clusters) }));
     };
 
     getInstanceSpecs = () => {
@@ -81,11 +87,12 @@ export default class App extends React.Component {
                         <div className="cluster-container">
                             <div className="clusters">
                                 {
-                                    this.state.clusters.map(cluster =>
+                                    mapAndReturnObjectValues(cluster =>
                                         <div className="cluster"
                                              key={getClusterId(cluster)}>
                                              <Cluster data={cluster} socket={this.state.socket}/>
-                                        </div>
+                                        </div>,
+                                        this.state.clusters
                                     )
                                 }
                             </div>
