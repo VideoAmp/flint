@@ -9,6 +9,7 @@ import service.ClusterService
 import java.net.URI
 
 import scala.concurrent.Future
+import scala.util.Random
 
 import _root_.akka.actor.ActorSystem
 import _root_.akka.http.scaladsl.Http
@@ -39,6 +40,8 @@ class AkkaServer(
     with LazyLogging {
   import actorSystem.dispatcher
 
+  private val serverId = "%8h".format(Random.nextInt)
+
   private val httpClient = HttpClientBuilder.create.build
   private val dockerTags = new Tags(httpClient)
 
@@ -56,7 +59,7 @@ class AkkaServer(
   }
 
   private val protocol =
-    new MessagingProtocol(clusterService, messageSender, messageReceiver)
+    new MessagingProtocol(serverId, clusterService, messageSender, messageReceiver)
 
   private val connectionFlowFactory = new ConnectionFlowFactory(messageSender, messageReceiver)
 
