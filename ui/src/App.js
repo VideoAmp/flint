@@ -51,12 +51,12 @@ export default class App extends React.Component {
             console.log(message);
 
             const { clusters } = this.state;
-            if(R.prop("$type", message) === "ClustersAdded") {
+            if(R.propEq("$type", "ClustersAdded", message)) {
                 const { clusters: newClusters } = message;
                 const updatedClusterState = R.merge(clusters, R.indexBy(R.prop("id"), newClusters))
                 this.setState({ clusters: updatedClusterState });
                 console.log("Launched new cluster");
-            } else if (R.prop("$type", message) === "WorkersAdded") {
+            } else if (R.propEq("$type", "WorkersAdded", message)) {
                 const { clusterId, workers } = message;
                 const clusterToUpdate = R.prop(clusterId, clusters);
                 const updatedCluster = R.assoc(
