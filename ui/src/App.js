@@ -22,17 +22,6 @@ import AppBar from 'material-ui/AppBar';
 
 const mapAndReturnObjectValues = R.compose(R.values, R.map);
 
-const getClusterId = cluster => cluster.id || cluster.instanceId;
-
-const addCluster = (clusters, cluster) => {
-    const newCluster = R.merge({
-        id: getClusterId(cluster),
-        workers: [],
-    }, cluster);
-
-    return R.merge(clusters, R.objOf(newCluster.id, newCluster));
-}
-
 export default class App extends React.Component {
     state = {
         clusterDialogOpen: false,
@@ -60,11 +49,25 @@ export default class App extends React.Component {
         socket.onmessage = ({ data }) => {
             var message = JSON.parse(data);
             console.log(message);
-            if(R.prop("$type", message) === "ClusterLaunchAttempt") {
-                this.setState({
-                    clusters: addCluster(this.state.clusters, message.clusterSpec)
-                });
+
+            const { clusters } = this.state;
+            if(R.prop("$type", message) === "ClustersAdded") {
+                const { clusters: newClusters } = message;
+                const updatedClusterState = R.merge(clusters, R.indexBy(R.prop("id"), newClusters))
+                this.setState({ clusters: updatedClusterState });
                 console.log("Launched new cluster");
+            } else if (R.prop("$type", message) === "WorkersAdded") {
+                const { clusterId, workers } = message;
+                const clusterToUpdate = R.prop(clusterId, clusters);
+                const updatedCluster = R.assoc(
+                    "workers",
+                    R.concat(R.prop("workers", clusterToUpdate), workers),
+                    clusterToUpdate
+                );
+
+                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters)
+                this.setState({ clusters: updatedClusters });
+                console.log("Workers Added");
             }
         }
         this.setState({ socket });
@@ -89,7 +92,7 @@ export default class App extends React.Component {
                                 {
                                     mapAndReturnObjectValues(cluster =>
                                         <div className="cluster"
-                                             key={getClusterId(cluster)}>
+                                             key={cluster.id}>
                                              <Cluster data={cluster} socket={this.state.socket}/>
                                         </div>,
                                         this.state.clusters
