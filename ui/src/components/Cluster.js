@@ -1,6 +1,8 @@
 import React from 'react';
 
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
+import Divider from 'material-ui/Divider';
+import IconButton from 'material-ui/IconButton';
 import Trash from 'material-ui/svg-icons/action/delete';
 import Add from 'material-ui/svg-icons/content/add';
 
@@ -8,12 +10,15 @@ import ClusterInstanceDialog from './ClusterInstanceDialog'
 import Instance from './Instance';
 
 const getInstanceMapper = (socket, master) =>
-    instance =>
-        <Instance
-            key={instance.id}
-            data={instance}
-            master={master}
-            socket={socket}/>
+    (instance) => (
+        <div key={instance.id}>
+            <Instance
+                data={instance}
+                master={master}
+                socket={socket}/>
+            <Divider />
+        </div>
+    )
 
 export default class Cluster extends React.Component {
     state = {
@@ -41,12 +46,21 @@ export default class Cluster extends React.Component {
                 <Card>
                     <CardHeader
                         title={clusterTitle}
-                        titleStyle={{ "fontSize": "125%"}}
+                        titleStyle={{ "fontSize": "24px"}}
+                        textStyle={{ paddingRight: "0px" }}
+                        style={{ paddingRight: "0px" }}
                     >
-                        <Trash/>
-                        <Add onTouchTap={this.handleClusterInstanceDialogOpen}/>
+                        <div style={{float: 'right', marginTop: "-11px"}}>
+                            <IconButton>
+                                <Trash/>
+                            </IconButton>
+                            <IconButton style={{ marginRight: "4px" }} onTouchTap={this.handleClusterInstanceDialogOpen}>
+                                <Add />
+                            </IconButton>
+                        </div>
                     </CardHeader>
-                    <CardText>
+                    <CardText style={{ padding: "0px" }}>
+                        <Divider />
                         { getInstanceMapper(socket, true)(master) }
                         { workers.map(getInstanceMapper(socket, false)) }
                     </CardText>
