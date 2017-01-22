@@ -50,7 +50,7 @@ export default class Instance extends React.Component {
 
         return (
             <ListItem
-                primaryText={`${data.ipAddress} ${master ? "Master" : "Worker"}`}
+                primaryText={`${data.instanceType} ${data.ipAddress} ${master ? "Master" : "Worker"}`}
                 leftAvatar={this.getInstanceStateElement(data.containerState)}
                 rightIconButton={this.isTerminatable(data, master) ? rightIconButton : null}
                 disabled={true}
