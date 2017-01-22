@@ -143,7 +143,10 @@ export default class App extends React.Component {
                                     mapAndReturnObjectValues(cluster =>
                                         <div className="cluster"
                                              key={cluster.id}>
-                                             <Cluster data={cluster} socket={this.state.socket}/>
+                                             <Cluster
+                                                data={cluster}
+                                                instanceSpecs={this.state.instanceSpecs}
+                                                socket={this.state.socket} />
                                         </div>,
                                         this.state.clusters
                                     )

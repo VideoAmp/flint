@@ -10,8 +10,8 @@ export default class ClusterTotals extends React.Component {
         totalCostPerHour: 0.03
     };
 
-    getInstanceInfo = (instanceType) => {
-        return R.find(R.propEq('instanceType', instanceType), this.props.instanceSpecs);
+    getInstanceInfo = (instanceSpecs, instanceType) => {
+        return R.find(R.propEq('instanceType', instanceType), instanceSpecs);
     }
 
     calculateNumberOfCores = (workerInstanceTypeInfo, numWorkers) => {
@@ -34,13 +34,11 @@ export default class ClusterTotals extends React.Component {
             masterInstanceTypeCostPerHour + (workerInstanceTypeCostPerHour * numWorkers);
 
         return totalCost.toFixed(2);
-
     }
 
-    componentWillReceiveProps(nextProps) {
-        const { masterInstanceType, workerInstanceType, numWorkers } = nextProps;
-        const masterInstanceTypeInfo = this.getInstanceInfo(masterInstanceType);
-        const workerInstanceTypeInfo = this.getInstanceInfo(workerInstanceType);
+    updateClusterTotals = ({ instanceSpecs, masterInstanceType, workerInstanceType, numWorkers }) => {
+        const masterInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, masterInstanceType);
+        const workerInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, workerInstanceType);
 
         this.setState({
             numberOfCores: this.calculateNumberOfCores(
@@ -59,14 +57,37 @@ export default class ClusterTotals extends React.Component {
         });
     }
 
+    componentDidMount() {
+        this.updateClusterTotals(this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        const { instanceSpecs, masterInstanceType, workerInstanceType, numWorkers } = this.props;
+        const equalsOldProps = R.where({
+            instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
+            masterInstanceType: R.equals(masterInstanceType),
+            workerInstanceType: R.equals(workerInstanceType),
+            numWorkers: R.equals(numWorkers),
+        });
+
+        if (!equalsOldProps(nextProps)) {
+            this.updateClusterTotals(nextProps);
+        }
+    }
+
     render() {
         return (
             <Toolbar>
-                <ToolbarGroup firstChild={true}>
-                    <h5>{this.state.numberOfCores} cores, {this.state.ramAmount}GiB RAM</h5>
+                <ToolbarGroup style={{ paddingLeft: "5px" }} firstChild={true}>
+                    <p>
+                        {this.state.numberOfCores} cores, {this.state.ramAmount}GiB RAM
+                        {this.props.active ? `, $${this.state.totalCostPerHour}/hour` : "" }
+                    </p>
                 </ToolbarGroup>
-                <ToolbarGroup lastChild={true}>
-                    <h5>${this.state.totalCostPerHour}/hour</h5>
+                <ToolbarGroup style={{ paddingRight: "5px" }} lastChild={true}>
+                    {
+                        this.props.active ? <p> 2 hours remaining </p> : <p>${this.state.totalCostPerHour}/hour</p>
+                    }
                 </ToolbarGroup>
             </Toolbar>
         )

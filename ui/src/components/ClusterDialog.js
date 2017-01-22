@@ -150,6 +150,7 @@ export default class ClusterDialog extends React.Component {
                     masterInstanceType={this.state.masterInstanceType}
                     workerInstanceType={this.state.workerInstanceType}
                     numWorkers={this.state.numWorkers}
+                    active={false}
                 />
                 <Grid>
                     <Cell>
