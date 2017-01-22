@@ -8,6 +8,7 @@ import Add from 'material-ui/svg-icons/content/add';
 
 import ClusterTotals from './ClusterTotals'
 import ClusterInstanceDialog from './ClusterInstanceDialog'
+import ClusterTerminateDialog from './ClusterTerminateDialog'
 import Instance from './Instance';
 
 const getInstanceMapper = (socket, master) =>
@@ -24,6 +25,7 @@ const getInstanceMapper = (socket, master) =>
 export default class Cluster extends React.Component {
     state = {
         clusterInstanceDialogOpen: false,
+        clusterTerminateDialogOpen: false,
     };
 
     handleClusterInstanceDialogOpen = () => {
@@ -32,6 +34,14 @@ export default class Cluster extends React.Component {
 
     handleClusterInstanceDialogClose = () => {
         this.setState({ clusterInstanceDialogOpen: false });
+    };
+
+    handleClusterTerminateDialogOpen = () => {
+        this.setState({ clusterTerminateDialogOpen: true });
+    };
+
+    handleClusterTerminateDialogClose = () => {
+        this.setState({ clusterTerminateDialogOpen: false });
     };
 
     render() {
@@ -52,8 +62,8 @@ export default class Cluster extends React.Component {
                         style={{ paddingRight: "0px" }}
                     >
                         <div style={{float: 'right', marginTop: "-11px"}}>
-                            <IconButton>
-                                <Trash/>
+                            <IconButton onTouchTap={this.handleClusterTerminateDialogOpen}>
+                                <Trash />
                             </IconButton>
                             <IconButton style={{ marginRight: "4px" }} onTouchTap={this.handleClusterInstanceDialogOpen}>
                                 <Add />
@@ -78,6 +88,11 @@ export default class Cluster extends React.Component {
                 <ClusterInstanceDialog
                     openState={this.state.clusterInstanceDialogOpen}
                     close={this.handleClusterInstanceDialogClose}
+                    socket={this.props.socket}
+                    cluster={cluster}/>
+                <ClusterTerminateDialog
+                    openState={this.state.clusterTerminateDialogOpen}
+                    close={this.handleClusterTerminateDialogClose}
                     socket={this.props.socket}
                     cluster={cluster}/>
             </div>
