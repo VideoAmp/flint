@@ -22,7 +22,7 @@ import AppBar from 'material-ui/AppBar';
 
 const mapAndReturnObjectValues = R.compose(R.values, R.map);
 
-const instanceClusterIdPairs = ([clusterId, cluster]) => {
+const getInstanceClusterIdPairs = ([clusterId, cluster]) => {
   const { master, workers } = cluster;
   const masterPair = [master.id, clusterId];
   const workerPairs = R.map(({id: instanceId}) => [instanceId, clusterId], workers);
@@ -31,9 +31,10 @@ const instanceClusterIdPairs = ([clusterId, cluster]) => {
 
 const getInstanceIdClusterIdMap = R.pipe(
   R.toPairs,
-  R.map(instanceClusterIdPairs),
+  R.map(getInstanceClusterIdPairs),
   R.unnest,
-  R.fromPairs)
+  R.fromPairs
+);
 
 const updateInstanceStateInCluster = (cluster, instanceId, state) => {
     const masterInstanceId = R.path(["master", "id"], cluster);
