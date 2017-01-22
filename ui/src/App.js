@@ -36,12 +36,12 @@ const getInstanceIdClusterIdMap = R.pipe(
   R.fromPairs
 );
 
-const updateInstanceStateInCluster = (cluster, instanceId, state) => {
+const updateInstanceContainerStateInCluster = (cluster, instanceId, containerState) => {
     const masterInstanceId = R.path(["master", "id"], cluster);
     if (R.equals(masterInstanceId, instanceId)) {
         return R.assoc(
             "master",
-            R.merge(R.prop("master", cluster), { state }),
+            R.merge(R.prop("master", cluster), { containerState }),
             cluster
         );
     }
@@ -53,7 +53,7 @@ const updateInstanceStateInCluster = (cluster, instanceId, state) => {
         "workers",
         R.update(
             workerToUpdateIndex,
-            R.merge(workerToUpdate, { state }),
+            R.merge(workerToUpdate, { containerState }),
             workers
         ),
         cluster
@@ -106,15 +106,15 @@ export default class App extends React.Component {
                 const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters)
                 this.setState({ clusters: updatedClusters });
                 console.log("Workers Added");
-            } else if (R.propEq("$type", "InstanceState", message)) {
-                const { instanceId, state } = message;
+            } else if (R.propEq("$type", "InstanceContainerState", message)) {
+                const { instanceId, containerState } = message;
                 const instanceClusterMap = getInstanceIdClusterIdMap(clusters);
                 const clusterIdToUpdate = R.prop(instanceId, instanceClusterMap);
                 const clusterToUpdate = R.prop(clusterIdToUpdate, clusters);
                 if (!clusterToUpdate) {
                     return;
                 }
-                const updatedCluster = updateInstanceStateInCluster(clusterToUpdate, instanceId, state);
+                const updatedCluster = updateInstanceContainerStateInCluster(clusterToUpdate, instanceId, containerState);
 
                 const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters)
                 this.setState({ clusters: updatedClusters });
