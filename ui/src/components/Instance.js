@@ -10,12 +10,11 @@ import CircularProgress from 'material-ui/CircularProgress';
 
 import 'react-flexr/styles.css'
 
-const stateColorMap = {
-    "Pending": cyan300,
-    "Starting": yellow300,
-    "Running": green300,
-    // "Terminating":
-    "Terminated": red300,
+const containerStateColorMap = {
+    "ContainerPending": cyan300,
+    "ContainerStarting": yellow300,
+    "ContainerRunning": green300,
+    "ContainerStopped": red300,
 };
 
 const leftAvatarStyles = { margin: 12.5 };
@@ -35,10 +34,8 @@ export default class Instance extends React.Component {
         return data.state !== "Terminated" && !master && !this.state.isBeingTerminated;
     }
 
-    getStatusIndicatorColor = (state) => stateColorMap[state];
-
-    getInstanceStateElement = (state) => R.has(state, stateColorMap) ?
-         <Avatar backgroundColor={stateColorMap[state]} size={15} style={leftAvatarStyles} /> :
+    getInstanceStateElement = (containerState) => R.has(containerState, containerStateColorMap) ?
+         <Avatar backgroundColor={containerStateColorMap[containerState]} size={15} style={leftAvatarStyles} /> :
          <CircularProgress size={15} style={leftAvatarStyles}/>;
 
     render() {
@@ -54,7 +51,7 @@ export default class Instance extends React.Component {
         return (
             <ListItem
                 primaryText={`${data.ipAddress} ${master ? "Master" : "Worker"}`}
-                leftAvatar={this.getInstanceStateElement(data.state)}
+                leftAvatar={this.getInstanceStateElement(data.containerState)}
                 rightIconButton={this.isTerminatable(data, master) ? rightIconButton : null}
                 disabled={true}
             />
