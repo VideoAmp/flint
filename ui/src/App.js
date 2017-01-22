@@ -99,7 +99,7 @@ export default class App extends React.Component {
                 const clusterToUpdate = R.prop(clusterId, clusters);
                 const updatedCluster = R.assoc(
                     "workers",
-                    R.concat(R.prop("workers", clusterToUpdate), workers),
+                    R.unionWith(R.eqBy(R.prop("id")), R.prop("workers", clusterToUpdate), workers),
                     clusterToUpdate
                 );
 
