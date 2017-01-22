@@ -6,6 +6,7 @@ import IconButton from 'material-ui/IconButton';
 import Trash from 'material-ui/svg-icons/action/delete';
 import Add from 'material-ui/svg-icons/content/add';
 
+import ClusterTotals from './ClusterTotals'
 import ClusterInstanceDialog from './ClusterInstanceDialog'
 import Instance from './Instance';
 
@@ -34,7 +35,7 @@ export default class Cluster extends React.Component {
     };
 
     render() {
-        const {socket, data: cluster} = this.props;
+        const {socket, instanceSpecs, data: cluster} = this.props;
         const {owner, dockerImage, master, workers=[]} = cluster;
 
         // TODO: return short-form image tag
@@ -64,8 +65,14 @@ export default class Cluster extends React.Component {
                         { getInstanceMapper(socket, true)(master) }
                         { workers.map(getInstanceMapper(socket, false)) }
                     </CardText>
-                    <CardActions style={{ "backgroundColor": "#ccc"}}>
-                        <p>2 cores, 2GB RAM, $0.039/hr</p>
+                    <CardActions style={{ padding: "0px" }}>
+                        <ClusterTotals
+                            instanceSpecs={instanceSpecs}
+                            masterInstanceType={master.instanceType}
+                            workerInstanceType={workers[0].instanceType}
+                            numWorkers={workers.length}
+                            active={true}
+                        />
                     </CardActions>
                 </Card>
                 <ClusterInstanceDialog
