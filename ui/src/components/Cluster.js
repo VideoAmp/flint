@@ -7,8 +7,13 @@ import Add from 'material-ui/svg-icons/content/add';
 import ClusterInstanceDialog from './ClusterInstanceDialog'
 import Instance from './Instance';
 
-const generateInstance =
-    (instance, master = false) => <Instance key={instance.id} data={instance} master={master} />
+const getInstanceMapper = (socket, master) =>
+    instance =>
+        <Instance
+            key={instance.id}
+            data={instance}
+            master={master}
+            socket={socket}/>
 
 export default class Cluster extends React.Component {
     state = {
@@ -24,7 +29,7 @@ export default class Cluster extends React.Component {
     };
 
     render() {
-        const cluster = this.props.data;
+        const {socket, data: cluster} = this.props;
         const {owner, dockerImage, master, workers=[]} = cluster;
 
         // TODO: return short-form image tag
@@ -42,8 +47,8 @@ export default class Cluster extends React.Component {
                         <Add onTouchTap={this.handleClusterInstanceDialogOpen}/>
                     </CardHeader>
                     <CardText>
-                        { master ? generateInstance(master, true) : null }
-                        { workers.map(generateInstance) }
+                        { getInstanceMapper(socket, true)(master) }
+                        { workers.map(getInstanceMapper(socket, false)) }
                     </CardText>
                     <CardActions style={{ "backgroundColor": "#ccc"}}>
                         <p>2 cores, 2GB RAM, $0.039/hr</p>
