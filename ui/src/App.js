@@ -136,7 +136,7 @@ export default class App extends React.Component {
             <div>
                 <MuiThemeProvider muiTheme={muiTheme}>
                     <div>
-                        <AppBar title="Flint"/>
+                        <AppBar title="Flint" showMenuIconButton={false}/>
                         <div className="cluster-container">
                             <div className="clusters">
                                 {
