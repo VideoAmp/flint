@@ -96,6 +96,9 @@ export default class App extends React.Component {
                 console.log("Launched new cluster");
             } else if (R.propEq("$type", "WorkersAdded", message)) {
                 const { clusterId, workers } = message;
+                if (!R.has(clusterId, clusters)) {
+                    return console.log(`Cluster with id ${clusterId} not found`);
+                }
                 const clusterToUpdate = R.prop(clusterId, clusters);
                 const updatedCluster = R.assoc(
                     "workers",
