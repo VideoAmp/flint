@@ -10,6 +10,7 @@ import { Grid, Cell } from 'react-flexr';
 import 'react-flexr/styles.css'
 
 import Dialog from 'material-ui/Dialog';
+import Divider from 'material-ui/Divider';
 import FlatButton from 'material-ui/FlatButton';
 
 import SelectField from 'material-ui/SelectField';
@@ -138,6 +139,7 @@ export default class ClusterDialog extends React.Component {
         ];
 
         const fieldStyles = { width: '100%' };
+        const gridStyles = { marginBottom: "0px" }
 
         return (
             <Dialog
@@ -146,7 +148,9 @@ export default class ClusterDialog extends React.Component {
                 modal={false}
                 open={openState}
                 onRequestClose={this.props.close}
+                bodyStyle={{ padding: '0px' }}
             >
+                <Divider />
                 <ClusterTotals
                     instanceSpecs={instanceSpecs}
                     masterInstanceType={this.state.masterInstanceType}
@@ -154,97 +158,100 @@ export default class ClusterDialog extends React.Component {
                     numWorkers={this.state.numWorkers}
                     active={false}
                 />
-                <Grid>
-                    <Cell>
-                        <SelectField
-                            labelStyle={tagFloatingTextLabelStyle}
-                            autoWidth={true}
-                            fullWidth={true}
-                            value={this.state.tag}
-                            onChange={this.handleFieldChange("tag")}
-                            floatingLabelText="Build">
-                            {
-                                this.state.tags.map((tag, key) =>
-                                    <MenuItem key={key} value={tag} primaryText={tag} />
-                                )
-                            }
-                        </SelectField>
-                    </Cell>
-                </Grid>
-                <Grid>
-                    <Cell>
-                        <TextField
-                            onChange={this.handleOwnerChange}
-                            style={fieldStyles}
-                            hintText="Enter your name here"
-                            floatingLabelText="Owner"
-                        />
-                    </Cell>
-                    <Cell>
-                        <NumberInput
-                            id="lifetime-hours-amount-input"
-                            floatingLabelText="Lifetime Hours"
-                            defaultValue={this.state.lifetimeHours}
-                            min={1}
-                            max={12}
-                            strategy="allow"
-                            errorText={this.state.lifetimeHoursErrorText}
-                            onError={this.onLifetimeHoursCountError}
-                            onValid={this.onLifetimeHoursValid}
-                            style={fieldStyles}
-                        />
-                    </Cell>
-                </Grid>
-                <Grid>
-                    <Cell>
-                        <SelectField
-                            value={this.state.masterInstanceType}
-                            onChange={this.handleFieldChange("masterInstanceType")}
-                            floatingLabelText="Master Type"
-                            fullWidth={true}>
-                            {this.props.instanceSpecs.map(generateInstanceSpec)}
-                        </SelectField>
-                    </Cell>
-                    <Cell>
-                        <SelectField
-                            value={this.state.workerInstanceType}
-                            onChange={this.handleFieldChange("workerInstanceType")}
-                            floatingLabelText="Worker Type"
-                            fullWidth={true}>
-                            {this.props.instanceSpecs.map(generateInstanceSpec)}
-                        </SelectField>
-                    </Cell>
-                </Grid>
-                <Grid>
-                    <Cell>
-                        <NumberInput
-                            id="worker-count-amount-input"
-                            floatingLabelText="Worker Count"
-                            defaultValue={this.state.numWorkers}
-                            min={1}
-                            max={100}
-                            strategy="allow"
-                            errorText={this.state.workerCountErrorText}
-                            onError={this.onWorkerCountError}
-                            onValid={this.onWorkerCountValid}
-                            style={fieldStyles}
-                        />
-                    </Cell>
-                    <Cell>
-                        <NumberInput
-                            id="worker-count-amount-input"
-                            floatingLabelText="Idle Timeout (mins)"
-                            defaultValue={this.state.idleTimeout}
-                            min={1}
-                            max={10000}
-                            strategy="allow"
-                            errorText={this.state.idleTimeoutCountErrorText}
-                            onError={this.onIdleTimeoutCountError}
-                            onValid={this.onIdleTimeoutCountValid}
-                            style={fieldStyles}
-                        />
-                    </Cell>
-                </Grid>
+                <Divider />
+                <div style={{ padding: "24px" }}>
+                    <Grid style={gridStyles}>
+                        <Cell>
+                            <SelectField
+                                labelStyle={tagFloatingTextLabelStyle}
+                                autoWidth={true}
+                                fullWidth={true}
+                                value={this.state.tag}
+                                onChange={this.handleFieldChange("tag")}
+                                floatingLabelText="Build">
+                                {
+                                    this.state.tags.map((tag, key) =>
+                                        <MenuItem key={key} value={tag} primaryText={tag} />
+                                    )
+                                }
+                            </SelectField>
+                        </Cell>
+                    </Grid>
+                    <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>
+                        <Cell>
+                            <TextField
+                                onChange={this.handleOwnerChange}
+                                style={fieldStyles}
+                                hintText="Enter your name here"
+                                floatingLabelText="Owner"
+                            />
+                        </Cell>
+                        <Cell>
+                            <NumberInput
+                                id="lifetime-hours-amount-input"
+                                floatingLabelText="Lifetime Hours"
+                                defaultValue={this.state.lifetimeHours}
+                                min={1}
+                                max={12}
+                                strategy="allow"
+                                errorText={this.state.lifetimeHoursErrorText}
+                                onError={this.onLifetimeHoursCountError}
+                                onValid={this.onLifetimeHoursValid}
+                                style={fieldStyles}
+                            />
+                        </Cell>
+                    </Grid>
+                    <Grid style={gridStyles}>
+                        <Cell>
+                            <SelectField
+                                value={this.state.masterInstanceType}
+                                onChange={this.handleFieldChange("masterInstanceType")}
+                                floatingLabelText="Master Type"
+                                fullWidth={true}>
+                                {this.props.instanceSpecs.map(generateInstanceSpec)}
+                            </SelectField>
+                        </Cell>
+                        <Cell>
+                            <SelectField
+                                value={this.state.workerInstanceType}
+                                onChange={this.handleFieldChange("workerInstanceType")}
+                                floatingLabelText="Worker Type"
+                                fullWidth={true}>
+                                {this.props.instanceSpecs.map(generateInstanceSpec)}
+                            </SelectField>
+                        </Cell>
+                    </Grid>
+                    <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>
+                        <Cell>
+                            <NumberInput
+                                id="worker-count-amount-input"
+                                floatingLabelText="Worker Count"
+                                defaultValue={this.state.numWorkers}
+                                min={1}
+                                max={100}
+                                strategy="allow"
+                                errorText={this.state.workerCountErrorText}
+                                onError={this.onWorkerCountError}
+                                onValid={this.onWorkerCountValid}
+                                style={fieldStyles}
+                            />
+                        </Cell>
+                        <Cell>
+                            <NumberInput
+                                id="worker-count-amount-input"
+                                floatingLabelText="Idle Timeout (mins)"
+                                defaultValue={this.state.idleTimeout}
+                                min={1}
+                                max={10000}
+                                strategy="allow"
+                                errorText={this.state.idleTimeoutCountErrorText}
+                                onError={this.onIdleTimeoutCountError}
+                                onValid={this.onIdleTimeoutCountValid}
+                                style={fieldStyles}
+                            />
+                        </Cell>
+                    </Grid>
+                </div>
             </Dialog>
         );
     }
