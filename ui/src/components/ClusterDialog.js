@@ -1,22 +1,20 @@
-import React from 'react';
-import R from 'ramda';
-import moment from 'moment';
+import React from "react";
+import R from "ramda";
+import moment from "moment";
+import uuid from "uuid/v4";
 
-import UUID from 'uuid/v4';
+import { Grid, Cell } from "react-flexr";
+import "react-flexr/styles.css";
 
-import ClusterTotals from './ClusterTotals'
+import Dialog from "material-ui/Dialog";
+import Divider from "material-ui/Divider";
+import FlatButton from "material-ui/FlatButton";
+import SelectField from "material-ui/SelectField";
+import MenuItem from "material-ui/MenuItem";
+import TextField from "material-ui/TextField";
+import NumberInput from "material-ui-number-input";
 
-import { Grid, Cell } from 'react-flexr';
-import 'react-flexr/styles.css'
-
-import Dialog from 'material-ui/Dialog';
-import Divider from 'material-ui/Divider';
-import FlatButton from 'material-ui/FlatButton';
-
-import SelectField from 'material-ui/SelectField';
-import MenuItem from 'material-ui/MenuItem';
-import TextField from 'material-ui/TextField';
-import NumberInput from 'material-ui-number-input';
+import ClusterTotals from "./ClusterTotals";
 
 const tagFloatingTextLabelStyle = {
     textOverflow: "ellipsis",
@@ -25,14 +23,14 @@ const tagFloatingTextLabelStyle = {
 };
 
 const generateInstanceSpec =
-    ({instanceType}, key) => <MenuItem key={key} value={instanceType} primaryText={instanceType} />
+    ({ instanceType }, key) => <MenuItem key={key} value={instanceType} primaryText={instanceType} />;
 
 export default class ClusterDialog extends React.Component {
     state = {
         tags: [],
-        lifetimeHoursErrorText: '',
-        workerCountErrorText: '',
-        idleTimeoutCountErrorText: '',
+        lifetimeHoursErrorText: "",
+        workerCountErrorText: "",
+        idleTimeoutCountErrorText: "",
         masterInstanceType: "",
         workerInstanceType: "",
         numWorkers: 1,
@@ -40,15 +38,13 @@ export default class ClusterDialog extends React.Component {
         idleTimeout: 15,
     };
 
-    getDockerImageTags = () => {
-        return fetch("http://localhost:8080/api/version/1/dockerImages")
-            .then((response) => response.json())
+    getDockerImageTags = () => fetch("http://localhost:8080/api/version/1/dockerImages")
+            .then(response => response.json())
             .then((dockerImages) => {
                 const tags = R.map(R.prop("tag"), dockerImages);
                 this.setState({ tags, tag: tags[0] });
                 return tags;
-            });
-    }
+            })
 
     launchCluster = () => {
         const {
@@ -58,21 +54,21 @@ export default class ClusterDialog extends React.Component {
             masterInstanceType,
             workerInstanceType,
             numWorkers,
-            tag
+            tag,
         } = this.state;
 
         const clusterSpec = {
-            id: UUID(),
+            id: uuid(),
             dockerImage: {
                 repo: "videoamp/spark",
-                tag
+                tag,
             },
             owner,
             ttl: moment.duration(lifetimeHours, "hours").toString(),
             idleTimeout: moment.duration(idleTimeout, "minutes").toString(),
             masterInstanceType,
             workerInstanceType,
-            numWorkers
+            numWorkers,
         };
 
         this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
@@ -88,40 +84,40 @@ export default class ClusterDialog extends React.Component {
         this.setState({
             masterInstanceType: defaultInstance,
             workerInstanceType: defaultInstance,
-        })
+        });
     }
 
     onLifetimeHoursCountError = (error) => {
-        var lifetimeHoursErrorText = (error === "none") ?
+        const lifetimeHoursErrorText = (error === "none") ?
             "" :
             "Please enter a valid lifetime hours amount";
 
         this.setState({ lifetimeHoursErrorText });
     };
-    onLifetimeHoursValid = (lifetimeHours) => this.setState({ lifetimeHours });
+    onLifetimeHoursValid = lifetimeHours => this.setState({ lifetimeHours });
 
     onWorkerCountError = (error) => {
-        var workerCountErrorText = (error === "none") ?
+        const workerCountErrorText = (error === "none") ?
             "" :
             "Please enter a valid instance count (less than 100)";
 
         this.setState({ workerCountErrorText });
     };
-    onWorkerCountValid = (numWorkers) => this.setState({ numWorkers });
+    onWorkerCountValid = numWorkers => this.setState({ numWorkers });
 
     onIdleTimeoutCountError = (error) => {
-        var idleTimeoutCountErrorText = (error === "none") ?
+        const idleTimeoutCountErrorText = (error === "none") ?
             "" :
             "Please enter a valid idle timeout amount";
 
         this.setState({ idleTimeoutCountErrorText });
     };
-    onIdleTimeoutCountValid = (idleTimeout) => this.setState({ idleTimeout });
+    onIdleTimeoutCountValid = idleTimeout => this.setState({ idleTimeout });
 
-    handleFieldChange = (stateName) =>
+    handleFieldChange = stateName =>
         (event, index, value) => this.setState(R.objOf(stateName, value))
 
-    handleOwnerChange = (event) => this.setState({ owner: event.target.value });
+    handleOwnerChange = event => this.setState({ owner: event.target.value });
 
     render() {
         const { instanceSpecs, openState, close } = this.props;
@@ -138,8 +134,8 @@ export default class ClusterDialog extends React.Component {
             />,
         ];
 
-        const fieldStyles = { width: '100%' };
-        const gridStyles = { marginBottom: "0px" }
+        const fieldStyles = { width: "100%" };
+        const gridStyles = { marginBottom: "0px" };
 
         return (
             <Dialog
@@ -148,7 +144,7 @@ export default class ClusterDialog extends React.Component {
                 modal={false}
                 open={openState}
                 onRequestClose={this.props.close}
-                bodyStyle={{ padding: '0px' }}
+                bodyStyle={{ padding: "0px" }}
             >
                 <Divider />
                 <ClusterTotals

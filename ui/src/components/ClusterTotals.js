@@ -1,34 +1,33 @@
-import React from 'react';
-import R from 'ramda';
+import React from "react";
+import R from "ramda";
 
-import {Toolbar, ToolbarGroup} from 'material-ui/Toolbar';
+import { Toolbar, ToolbarGroup } from "material-ui/Toolbar";
 
 export default class ClusterTotals extends React.Component {
     state = {
         numberOfCores: 1,
         ramAmount: 1,
-        totalCostPerHour: 0.03
+        totalCostPerHour: 0.03,
     };
 
-    getInstanceInfo = (instanceSpecs, instanceType) => {
-        return R.find(R.propEq('instanceType', instanceType), instanceSpecs);
-    }
+    getInstanceInfo = (instanceSpecs, instanceType) =>
+        R.find(R.propEq("instanceType", instanceType), instanceSpecs)
 
     calculateNumberOfCores = (workerInstanceTypeInfo, numWorkers) => {
-        const {cores: workerInstanceTypeCores} = workerInstanceTypeInfo;
+        const { cores: workerInstanceTypeCores } = workerInstanceTypeInfo;
         return workerInstanceTypeCores * numWorkers;
     }
 
     calculateRamAmount = (workerInstanceTypeInfo, numWorkers) => {
-        const {memory: workerInstanceTypeRam} = workerInstanceTypeInfo;
+        const { memory: workerInstanceTypeRam } = workerInstanceTypeInfo;
 
-        const totalRamBytes = (workerInstanceTypeRam * numWorkers)
+        const totalRamBytes = (workerInstanceTypeRam * numWorkers);
         return totalRamBytes / (2 ** 30);
     }
 
     calculateTotalCostPerHour = (masterInstanceTypeInfo, workerInstanceTypeInfo, numWorkers) => {
-        const {hourlyPrice: masterInstanceTypeCostPerHour} = masterInstanceTypeInfo;
-        const {hourlyPrice: workerInstanceTypeCostPerHour} = workerInstanceTypeInfo;
+        const { hourlyPrice: masterInstanceTypeCostPerHour } = masterInstanceTypeInfo;
+        const { hourlyPrice: workerInstanceTypeCostPerHour } = workerInstanceTypeInfo;
 
         const totalCost =
             masterInstanceTypeCostPerHour + (workerInstanceTypeCostPerHour * numWorkers);
@@ -53,7 +52,7 @@ export default class ClusterTotals extends React.Component {
                 masterInstanceTypeInfo,
                 workerInstanceTypeInfo,
                 numWorkers,
-            )
+            ),
         });
     }
 
@@ -90,6 +89,6 @@ export default class ClusterTotals extends React.Component {
                     }
                 </ToolbarGroup>
             </Toolbar>
-        )
+        );
     }
 }

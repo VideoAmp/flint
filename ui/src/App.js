@@ -1,33 +1,34 @@
-import React from 'react';
-import './App.css';
+import React from "react";
+import R from "ramda";
+import ReconnectingWebSocket from "reconnecting-websocket";
 
-import ReconnectingWebSocket from 'reconnecting-websocket';
-import R from 'ramda';
+import AppBar from "material-ui/AppBar";
+import FloatingActionButton from "material-ui/FloatingActionButton";
+import ContentAdd from "material-ui/svg-icons/content/add";
+import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
+import { yellow700 } from "material-ui/styles/colors";
+import getMuiTheme from "material-ui/styles/getMuiTheme";
 
-import Cluster from './components/Cluster';
-import ClusterDialog from './components/ClusterDialog'
+import "./App.css";
 
-import FloatingActionButton from 'material-ui/FloatingActionButton';
-import ContentAdd from 'material-ui/svg-icons/content/add';
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import {yellow700} from 'material-ui/styles/colors';
-import getMuiTheme from 'material-ui/styles/getMuiTheme';
+import Cluster from "./components/Cluster";
+import ClusterDialog from "./components/ClusterDialog";
+
 const muiTheme = getMuiTheme({
     palette: {
         primary1Color: yellow700,
-    }
+    },
 });
 
-import AppBar from 'material-ui/AppBar';
 
 const mapAndReturnObjectValues = R.compose(R.values, R.map);
 
 const getInstanceClusterIdPairs = ([clusterId, cluster]) => {
-  const { master, workers } = cluster;
-  const masterPair = [master.id, clusterId];
-  const workerPairs = R.map(({id: instanceId}) => [instanceId, clusterId], workers);
-  return R.prepend(masterPair, workerPairs);
-}
+    const { master, workers } = cluster;
+    const masterPair = [master.id, clusterId];
+    const workerPairs = R.map(({ id: instanceId }) => [instanceId, clusterId], workers);
+    return R.prepend(masterPair, workerPairs);
+};
 
 const getInstanceIdClusterIdMap = R.pipe(
   R.toPairs,
@@ -58,7 +59,7 @@ const updateInstanceContainerStateInCluster = (cluster, instanceId, containerSta
         ),
         cluster
     );
-}
+};
 
 export default class App extends React.Component {
     state = {
@@ -68,30 +69,26 @@ export default class App extends React.Component {
         socket: null,
     };
 
-    getClusters = () => {
-        return fetch("http://localhost:8080/api/version/1/clusters")
-            .then((response) => response.json())
-            .then((clusters) => this.setState({ clusters: R.indexBy(R.prop("id"), clusters) }));
-    };
+    getClusters = () => fetch("http://localhost:8080/api/version/1/clusters")
+            .then(response => response.json())
+            .then(clusters => this.setState({ clusters: R.indexBy(R.prop("id"), clusters) }));
 
-    getInstanceSpecs = () => {
-        return fetch("http://localhost:8080/api/version/1/instanceSpecs")
-            .then((response) => response.json())
-            .then((instanceSpecs) => this.setState({ instanceSpecs }));
-    }
+    getInstanceSpecs = () => fetch("http://localhost:8080/api/version/1/instanceSpecs")
+            .then(response => response.json())
+            .then(instanceSpecs => this.setState({ instanceSpecs }))
 
     componentDidMount() {
         this.getInstanceSpecs().then(this.getClusters);
 
-        const socket = new ReconnectingWebSocket("ws://localhost:8080/api/version/1/messaging")
+        const socket = new ReconnectingWebSocket("ws://localhost:8080/api/version/1/messaging");
         socket.onmessage = ({ data }) => {
-            var message = JSON.parse(data);
+            const message = JSON.parse(data);
             console.log(message);
 
             const { clusters } = this.state;
-            if(R.propEq("$type", "ClustersAdded", message)) {
+            if (R.propEq("$type", "ClustersAdded", message)) {
                 const { clusters: newClusters } = message;
-                const updatedClusterState = R.merge(clusters, R.indexBy(R.prop("id"), newClusters))
+                const updatedClusterState = R.merge(clusters, R.indexBy(R.prop("id"), newClusters));
                 this.setState({ clusters: updatedClusterState });
                 console.log("Launched new cluster");
             } else if (R.propEq("$type", "WorkersAdded", message)) {
@@ -106,25 +103,30 @@ export default class App extends React.Component {
                     clusterToUpdate
                 );
 
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters)
+                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
                 this.setState({ clusters: updatedClusters });
                 console.log("Workers Added");
             } else if (R.propEq("$type", "InstanceContainerState", message)) {
                 const { instanceId, containerState } = message;
                 const instanceClusterMap = getInstanceIdClusterIdMap(clusters);
+                if (!R.has(instanceId, instanceClusterMap)) {
+                    return console.log(`Instance with id ${instanceId} not found`);
+                }
                 const clusterIdToUpdate = R.prop(instanceId, instanceClusterMap);
                 const clusterToUpdate = R.prop(clusterIdToUpdate, clusters);
-                if (!clusterToUpdate) {
-                    return;
-                }
-                const updatedCluster = updateInstanceContainerStateInCluster(clusterToUpdate, instanceId, containerState);
+                const updatedCluster = updateInstanceContainerStateInCluster(
+                    clusterToUpdate,
+                    instanceId,
+                    containerState
+                );
 
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters)
+                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
                 this.setState({ clusters: updatedClusters });
             }
-        }
+            return undefined;
+        };
         this.setState({ socket });
-    };
+    }
 
     handleClusterDialogOpen = () => {
         this.setState({ clusterDialogOpen: true });
