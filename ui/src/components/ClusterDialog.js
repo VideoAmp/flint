@@ -137,6 +137,8 @@ export default class ClusterDialog extends React.Component {
             />,
         ];
 
+        const fieldStyles = { width: '100%' };
+
         return (
             <Dialog
                 title="New Cluster"
@@ -157,6 +159,7 @@ export default class ClusterDialog extends React.Component {
                         <SelectField
                             labelStyle={tagFloatingTextLabelStyle}
                             autoWidth={true}
+                            fullWidth={true}
                             value={this.state.tag}
                             onChange={this.handleFieldChange("tag")}
                             floatingLabelText="Build">
@@ -167,9 +170,12 @@ export default class ClusterDialog extends React.Component {
                             }
                         </SelectField>
                     </Cell>
+                </Grid>
+                <Grid>
                     <Cell>
                         <TextField
                             onChange={this.handleOwnerChange}
+                            style={fieldStyles}
                             hintText="Enter your name here"
                             floatingLabelText="Owner"
                         />
@@ -185,18 +191,31 @@ export default class ClusterDialog extends React.Component {
                             errorText={this.state.lifetimeHoursErrorText}
                             onError={this.onLifetimeHoursCountError}
                             onValid={this.onLifetimeHoursValid}
+                            style={fieldStyles}
                         />
                     </Cell>
+                </Grid>
+                <Grid>
                     <Cell>
-                        <SelectField value={this.state.masterInstanceType} onChange={this.handleFieldChange("masterInstanceType")} floatingLabelText="Master Type">
+                        <SelectField
+                            value={this.state.masterInstanceType}
+                            onChange={this.handleFieldChange("masterInstanceType")}
+                            floatingLabelText="Master Type"
+                            fullWidth={true}>
                             {this.props.instanceSpecs.map(generateInstanceSpec)}
                         </SelectField>
                     </Cell>
                     <Cell>
-                        <SelectField value={this.state.workerInstanceType} onChange={this.handleFieldChange("workerInstanceType")} floatingLabelText="Worker Type">
+                        <SelectField
+                            value={this.state.workerInstanceType}
+                            onChange={this.handleFieldChange("workerInstanceType")}
+                            floatingLabelText="Worker Type"
+                            fullWidth={true}>
                             {this.props.instanceSpecs.map(generateInstanceSpec)}
                         </SelectField>
                     </Cell>
+                </Grid>
+                <Grid>
                     <Cell>
                         <NumberInput
                             id="worker-count-amount-input"
@@ -208,6 +227,7 @@ export default class ClusterDialog extends React.Component {
                             errorText={this.state.workerCountErrorText}
                             onError={this.onWorkerCountError}
                             onValid={this.onWorkerCountValid}
+                            style={fieldStyles}
                         />
                     </Cell>
                     <Cell>
@@ -221,6 +241,7 @@ export default class ClusterDialog extends React.Component {
                             errorText={this.state.idleTimeoutCountErrorText}
                             onError={this.onIdleTimeoutCountError}
                             onValid={this.onIdleTimeoutCountValid}
+                            style={fieldStyles}
                         />
                     </Cell>
                 </Grid>
