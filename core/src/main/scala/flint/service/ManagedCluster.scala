@@ -14,14 +14,19 @@ trait ManagedCluster extends Killable {
   protected val managementService: ManagementService
 
   final def addWorkers(count: Int): Future[Seq[Instance]] = {
+    require(cluster.master.state.now == Running, "Cluster master must be running to add workers")
     require(count > 0, "Worker count must be positive")
     addWorkers0(count)
   }
 
   protected def addWorkers0(count: Int): Future[Seq[Instance]]
 
-  final def changeDockerImage(dockerImage: DockerImage): Future[Unit] =
+  final def changeDockerImage(dockerImage: DockerImage): Future[Unit] = {
+    require(
+      cluster.master.state.now == Running,
+      "Cluster master must be running to change docker image")
     changeDockerImage0(dockerImage)
+  }
 
   protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] = {
     val instances = cluster.master +: cluster.workers.now
