@@ -1,7 +1,7 @@
-import React from 'react';
+import React from "react";
 
-import Dialog from 'material-ui/Dialog';
-import FlatButton from 'material-ui/FlatButton';
+import Dialog from "material-ui/Dialog";
+import FlatButton from "material-ui/FlatButton";
 
 export default class ClusterInstanceDialog extends React.Component {
     terminateCluster = () => {
@@ -26,12 +26,14 @@ export default class ClusterInstanceDialog extends React.Component {
             />,
         ];
 
-        return <Dialog
-            actions={instanceDialogActions}
-            modal={false}
-            open={openState}
-            onRequestClose={close}>
-            <p> Are you sure you want to kill this cluster? </p>
-        </Dialog>
+        return (
+            <Dialog
+                actions={instanceDialogActions}
+                modal={false}
+                open={openState}
+                onRequestClose={close}>
+                <p> Are you sure you want to kill this cluster? </p>
+            </Dialog>
+        );
     }
 }

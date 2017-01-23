@@ -1,15 +1,15 @@
-import React from 'react';
-import R from 'ramda';
-import {ListItem} from 'material-ui/List';
-import IconButton from 'material-ui/IconButton';
-import Avatar from 'material-ui/Avatar';
-import Trash from 'material-ui/svg-icons/action/delete';
-import Link from 'material-ui/svg-icons/content/link';
+import React from "react";
+import R from "ramda";
+import { ListItem } from "material-ui/List";
+import IconButton from "material-ui/IconButton";
+import Avatar from "material-ui/Avatar";
+import Trash from "material-ui/svg-icons/action/delete";
+import Link from "material-ui/svg-icons/content/link";
 
-import { green300, yellow300, red300, cyan300 } from 'material-ui/styles/colors';
-import CircularProgress from 'material-ui/CircularProgress';
+import { green300, yellow300, red300, cyan300 } from "material-ui/styles/colors";
+import CircularProgress from "material-ui/CircularProgress";
 
-import 'react-flexr/styles.css'
+import "react-flexr/styles.css";
 
 const containerStateColorMap = {
     "ContainerPending": cyan300,
@@ -26,18 +26,25 @@ export default class Instance extends React.Component {
     }
 
     terminateWorker = (socket, { id }) => {
-        const payload = JSON.stringify({ instanceId: id, "$type": "TerminateWorker" });
+        const payload = JSON.stringify({ "instanceId": id, "$type": "TerminateWorker" });
         socket.send(payload);
         this.setState({ isBeingTerminated: true });
     }
 
-    isTerminatable = (data, master) => {
-        return data.state !== "Terminated" && !master && !this.state.isBeingTerminated;
-    }
+    isTerminatable = (data, master) => data.state !== "Terminated" && !master && !this.state.isBeingTerminated
 
-    getInstanceStateElement = (containerState) => R.has(containerState, containerStateColorMap) ?
-         <Avatar backgroundColor={containerStateColorMap[containerState]} size={15} style={leftAvatarStyles} /> :
-         <CircularProgress size={15} style={leftAvatarStyles}/>;
+    getInstanceStateElement = (containerState) => {
+        if (R.has(containerState, containerStateColorMap)) {
+            return (
+                <Avatar
+                    backgroundColor={containerStateColorMap[containerState]}
+                    size={15}
+                    style={leftAvatarStyles} />
+            );
+        }
+
+        return <CircularProgress size={15} style={leftAvatarStyles}/>;
+    }
 
     onRightIconButtonClick = () => this.terminateWorker(this.props.socket, this.props.data);
 
@@ -47,7 +54,7 @@ export default class Instance extends React.Component {
                 <IconButton onTouchTap={this.onRightIconButtonClick} touch={true}>
                     <Trash />
                 </IconButton>
-            )
+            );
         }
 
         if (master) {
@@ -58,14 +65,14 @@ export default class Instance extends React.Component {
                     touch={true}>
                     <Link />
                 </IconButton>
-            )
+            );
         }
 
         return null;
     }
 
     render() {
-        const {data, master} = this.props;
+        const { data, master } = this.props;
 
         return (
             <ListItem
