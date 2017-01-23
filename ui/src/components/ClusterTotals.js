@@ -78,13 +78,13 @@ export default class ClusterTotals extends React.Component {
     render() {
         return (
             <Toolbar>
-                <ToolbarGroup style={{ paddingLeft: "5px" }} firstChild={true}>
+                <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
                     <p>
                         {this.state.numberOfCores} cores, {this.state.ramAmount}GiB RAM
                         {this.props.active ? `, $${this.state.totalCostPerHour}/hour` : "" }
                     </p>
                 </ToolbarGroup>
-                <ToolbarGroup style={{ paddingRight: "5px" }} lastChild={true}>
+                <ToolbarGroup style={{ paddingRight: "24px" }} lastChild={true}>
                     {
                         this.props.active ? <p> 2 hours remaining </p> : <p>${this.state.totalCostPerHour}/hour</p>
                     }
