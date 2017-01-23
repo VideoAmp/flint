@@ -4,6 +4,7 @@ import {ListItem} from 'material-ui/List';
 import IconButton from 'material-ui/IconButton';
 import Avatar from 'material-ui/Avatar';
 import Trash from 'material-ui/svg-icons/action/delete';
+import Link from 'material-ui/svg-icons/content/link';
 
 import { green300, yellow300, red300, cyan300 } from 'material-ui/styles/colors';
 import CircularProgress from 'material-ui/CircularProgress';
@@ -38,21 +39,39 @@ export default class Instance extends React.Component {
          <Avatar backgroundColor={containerStateColorMap[containerState]} size={15} style={leftAvatarStyles} /> :
          <CircularProgress size={15} style={leftAvatarStyles}/>;
 
-    render() {
-        const {data, master, socket} = this.props;
+    onRightIconButtonClick = () => this.terminateWorker(this.props.socket, this.props.data);
 
-        const onRightIconButtonClick = () => this.terminateWorker(socket, data);
-        const rightIconButton = (
-            <IconButton onTouchTap={onRightIconButtonClick} touch={true}>
-                <Trash />
-            </IconButton>
-        );
+    getRightIconButton = (data, master) => {
+        if (this.isTerminatable(data, master)) {
+            return (
+                <IconButton onTouchTap={this.onRightIconButtonClick} touch={true}>
+                    <Trash />
+                </IconButton>
+            )
+        }
+
+        if (master) {
+            return (
+                <IconButton
+                    href={`http://${data.ipAddress}:8080`}
+                    target="_blank"
+                    touch={true}>
+                    <Link />
+                </IconButton>
+            )
+        }
+
+        return null;
+    }
+
+    render() {
+        const {data, master} = this.props;
 
         return (
             <ListItem
                 primaryText={`${data.instanceType} ${data.ipAddress} ${master ? "Master" : "Worker"}`}
                 leftAvatar={this.getInstanceStateElement(data.containerState)}
-                rightIconButton={this.isTerminatable(data, master) ? rightIconButton : null}
+                rightIconButton={this.getRightIconButton(data, master)}
                 disabled={true}
             />
         );
