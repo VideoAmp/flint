@@ -88,28 +88,19 @@ export default class ClusterDialog extends React.Component {
     }
 
     onLifetimeHoursCountError = (error) => {
-        const lifetimeHoursErrorText = (error === "none") ?
-            "" :
-            "Please enter a valid lifetime hours amount";
-
+        const lifetimeHoursErrorText = (error === "none") ? "" : "Please enter a valid lifetime hours amount";
         this.setState({ lifetimeHoursErrorText });
     };
     onLifetimeHoursValid = lifetimeHours => this.setState({ lifetimeHours });
 
     onWorkerCountError = (error) => {
-        const workerCountErrorText = (error === "none") ?
-            "" :
-            "Please enter a valid instance count (less than 100)";
-
+        const workerCountErrorText = (error === "none") ? "" : "Please enter a valid instance count (less than 100)";
         this.setState({ workerCountErrorText });
     };
     onWorkerCountValid = numWorkers => this.setState({ numWorkers });
 
     onIdleTimeoutCountError = (error) => {
-        const idleTimeoutCountErrorText = (error === "none") ?
-            "" :
-            "Please enter a valid idle timeout amount";
-
+        const idleTimeoutCountErrorText = (error === "none") ? "" : "Please enter a valid idle timeout amount";
         this.setState({ idleTimeoutCountErrorText });
     };
     onIdleTimeoutCountValid = idleTimeout => this.setState({ idleTimeout });

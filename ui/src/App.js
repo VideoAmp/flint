@@ -146,8 +146,7 @@ export default class App extends React.Component {
                             <div className="clusters">
                                 {
                                     mapAndReturnObjectValues(cluster =>
-                                        <div className="cluster"
-                                             key={cluster.id}>
+                                        <div className="cluster" key={cluster.id}>
                                              <Cluster
                                                 data={cluster}
                                                 instanceSpecs={this.state.instanceSpecs}

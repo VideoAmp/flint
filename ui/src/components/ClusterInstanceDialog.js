@@ -10,21 +10,16 @@ export default class ClusterInstanceDialog extends React.Component {
         count: 1,
     };
 
-    componentWillMount() {
-        this.launchWorkers = () => {
-            const { count } = this.state;
-            const clusterId = this.props.cluster.id;
-            const payload = JSON.stringify({ clusterId, count, "$type": "AddWorkers" });
-            this.props.socket.send(payload);
-            this.props.close();
-        };
-    }
+    launchWorkers = () => {
+        const { count } = this.state;
+        const clusterId = this.props.cluster.id;
+        const payload = JSON.stringify({ clusterId, count, "$type": "AddWorkers" });
+        this.props.socket.send(payload);
+        this.props.close();
+    };
 
     onInstanceCountError = (error) => {
-        const errorText = (error === "none") ?
-            "" :
-            "Please enter a valid instance count (less than 100)";
-
+        const errorText = (error === "none") ? "" : "Please enter a valid instance count (less than 100)";
         this.setState({ errorText });
     };
 
