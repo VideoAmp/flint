@@ -1,6 +1,7 @@
 import React from "react";
 import R from "ramda";
 import ReconnectingWebSocket from "reconnecting-websocket";
+import Store from "store";
 
 import AppBar from "material-ui/AppBar";
 import FloatingActionButton from "material-ui/FloatingActionButton";
@@ -132,8 +133,18 @@ export default class App extends React.Component {
         this.setState({ clusterDialogOpen: true });
     };
 
-    handleClusterDialogClose = () => {
-        this.setState({ clusterDialogOpen: false });
+    handleClusterDialogClose = (owner) => {
+        const updatedState = { clusterDialogOpen: false };
+
+        const isOwner = !R.isNil(owner) && R.is(String, owner);
+        if (isOwner) {
+            const { ownerDataSource } = this.state;
+            const updatedOwnerDataSource = R.union([owner], ownerDataSource);
+            Store.set("ownerDataSource", updatedOwnerDataSource);
+            this.setState(R.merge({ ownerDataSource: updatedOwnerDataSource }, updatedState));
+        } else {
+            this.setState(updatedState);
+        }
     };
 
     render() {
@@ -162,6 +173,7 @@ export default class App extends React.Component {
                             close={this.handleClusterDialogClose}
                             socket={this.state.socket}
                             instanceSpecs={this.state.instanceSpecs}
+                            ownerDataSource={this.state.ownerDataSource}
                         />
                         <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
                             <ContentAdd />

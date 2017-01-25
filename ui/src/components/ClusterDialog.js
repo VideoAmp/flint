@@ -11,7 +11,7 @@ import Divider from "material-ui/Divider";
 import FlatButton from "material-ui/FlatButton";
 import SelectField from "material-ui/SelectField";
 import MenuItem from "material-ui/MenuItem";
-import TextField from "material-ui/TextField";
+import AutoComplete from "material-ui/AutoComplete";
 import NumberInput from "material-ui-number-input";
 
 import ClusterTotals from "./ClusterTotals";
@@ -72,7 +72,7 @@ export default class ClusterDialog extends React.Component {
         };
 
         this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
-        this.props.close();
+        this.props.close(owner);
     }
 
     componentWillMount() {
@@ -108,10 +108,10 @@ export default class ClusterDialog extends React.Component {
     handleFieldChange = stateName =>
         (event, index, value) => this.setState(R.objOf(stateName, value))
 
-    handleOwnerChange = event => this.setState({ owner: event.target.value });
+    handleOwnerChange = owner => this.setState({ owner });
 
     render() {
-        const { instanceSpecs, openState, close } = this.props;
+        const { instanceSpecs, ownerDataSource = [], openState, close } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
@@ -166,8 +166,10 @@ export default class ClusterDialog extends React.Component {
                     </Grid>
                     <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>
                         <Cell>
-                            <TextField
-                                onChange={this.handleOwnerChange}
+                            <AutoComplete
+                                dataSource={ownerDataSource}
+                                onNewRequest={this.handleOwnerChange}
+                                onUpdateInput={this.handleOwnerChange}
                                 style={fieldStyles}
                                 hintText="Enter your name here"
                                 floatingLabelText="Owner"
