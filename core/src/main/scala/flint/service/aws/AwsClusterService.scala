@@ -3,6 +3,9 @@ package service
 package aws
 
 import java.net.InetAddress
+import java.time.Instant
+import java.time.temporal.ChronoUnit.HOURS
+import java.util.Date
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -12,7 +15,12 @@ import com.amazonaws.{ ClientConfiguration, PredefinedClientConfigurations }
 import com.amazonaws.auth._
 import com.amazonaws.client.builder.{ AwsAsyncClientBuilder, ExecutorFactory }
 import com.amazonaws.services.ec2.{ AmazonEC2Async, AmazonEC2AsyncClientBuilder }
-import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Storage => _, _ }
+import com.amazonaws.services.ec2.model.{
+  Instance => AwsInstance,
+  SpotPrice => _,
+  Storage => _,
+  _
+}
 import com.amazonaws.services.simplesystemsmanagement.{
   AWSSimpleSystemsManagementAsync,
   AWSSimpleSystemsManagementAsyncClientBuilder
@@ -41,6 +49,25 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     new AwsClusterSystem(this, awsConfig.get[Config]("clusters_refresh").value)
 
   override val instanceSpecs = aws.instanceSpecs
+
+  override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] = {
+    val oneHourAgo = Instant.now.minus(1, HOURS)
+    val describeSpotPriceHistoryRequest =
+      new DescribeSpotPriceHistoryRequest()
+        .withInstanceTypes(instanceTypes: _*)
+        .withProductDescriptions(RIProductDescription.LinuxUNIX.toString)
+        .withAvailabilityZone(awsConfig.get[String]("availability_zone").value)
+        .withStartTime(new Date(oneHourAgo.toEpochMilli))
+    ec2Client
+      .describeSpotPriceHistory(describeSpotPriceHistoryRequest)
+      .map(
+        _.map(
+          awsSpotPrice =>
+            SpotPrice(
+              awsSpotPrice.getInstanceType,
+              BigDecimal(awsSpotPrice.getSpotPrice),
+              awsSpotPrice.getTimestamp.toInstant)))
+  }
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] =
     launchCluster(spec, workerBidPrice = None)

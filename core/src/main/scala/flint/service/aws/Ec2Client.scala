@@ -46,6 +46,15 @@ private[aws] class Ec2Client(awsEc2Client: AmazonEC2Async) {
     handler.future.map(_.getSpotInstanceRequests.asScala.toIndexedSeq)
   }
 
+  def describeSpotPriceHistory(
+      request: DescribeSpotPriceHistoryRequest,
+      retries: Int = 3): Future[Seq[SpotPrice]] = retryFuture(retries) {
+    val handler =
+      new AwsRequestHandler[DescribeSpotPriceHistoryRequest, DescribeSpotPriceHistoryResult]
+    awsEc2Client.describeSpotPriceHistoryAsync(request, handler)
+    handler.future.map(_.getSpotPriceHistory.asScala.toIndexedSeq)
+  }
+
   def requestSpotInstances(
       request: RequestSpotInstancesRequest,
       retries: Int = 3): Future[Seq[SpotInstanceRequest]] = retryFuture(retries) {

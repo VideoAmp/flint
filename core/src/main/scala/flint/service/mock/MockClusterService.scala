@@ -31,6 +31,8 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   private val instanceSpecsMap: Map[String, InstanceSpecs] =
     instanceSpecs.map(specs => specs.instanceType -> specs).toMap
 
+  override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] = ???
+
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._
     val master = instance(Some(spec.dockerImage), masterInstanceType, spec.placementGroup)
