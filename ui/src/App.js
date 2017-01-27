@@ -68,6 +68,7 @@ export default class App extends React.Component {
         clusters: {},
         instanceSpecs: [],
         socket: null,
+        ownerDataSource: Store.get("ownerDataSource"),
     };
 
     getClusters = () => fetch("http://localhost:8080/api/version/1/clusters")
