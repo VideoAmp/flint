@@ -63,6 +63,9 @@ const updateInstanceContainerStateInCluster = (cluster, instanceId, containerSta
 };
 
 export default class App extends React.Component {
+    baseUrl = process.env.REACT_APP_FLINT_SERVER_URL;
+    baseWebsocketUrl = process.env.REACT_APP_FLINT_WEBSOCKET_URL;
+
     state = {
         clusterDialogOpen: false,
         clusters: {},
@@ -71,18 +74,18 @@ export default class App extends React.Component {
         ownerDataSource: Store.get("ownerDataSource"),
     };
 
-    getClusters = () => fetch("http://localhost:8080/api/version/1/clusters")
+    getClusters = () => fetch(`${this.baseUrl}/clusters`)
             .then(response => response.json())
             .then(clusters => this.setState({ clusters: R.indexBy(R.prop("id"), clusters) }));
 
-    getInstanceSpecs = () => fetch("http://localhost:8080/api/version/1/instanceSpecs")
+    getInstanceSpecs = () => fetch(`${this.baseUrl}/instanceSpecs`)
             .then(response => response.json())
             .then(instanceSpecs => this.setState({ instanceSpecs }))
 
     componentDidMount() {
         this.getInstanceSpecs().then(this.getClusters);
 
-        const socket = new ReconnectingWebSocket("ws://localhost:8080/api/version/1/messaging");
+        const socket = new ReconnectingWebSocket(`${this.baseWebsocketUrl}/messaging`);
         socket.onmessage = ({ data }) => {
             const message = JSON.parse(data);
             console.log(message);
