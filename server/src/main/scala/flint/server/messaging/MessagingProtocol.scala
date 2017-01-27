@@ -11,20 +11,36 @@ import com.typesafe.scalalogging.LazyLogging
 import rx._
 
 private[messaging] final class MessagingProtocol(
+    serverId: String,
     clusterService: ClusterService,
     messageSender: MessageSender[ServerMessage],
     messageReceiver: MessageReceiver)(implicit ctx: Ctx.Owner)
     extends LazyLogging {
   import messageSender.sendMessage
 
+  // Even though messageNo will only be accessed by a single thread (from the update executor)
+  // concurrently, that thread might change. Therefore, we mark it @volatile
+  @volatile
+  private var messageNo: Int = 0
+
+  private def nextMessageNo(): Int = {
+    messageNo += 1
+    messageNo
+  }
+
   Rx {
     val clusterSystem = clusterService.clusterSystem
     clusterSystem.clusters.now.map(_._2).foreach(addClusterObservers)
     clusterSystem.newClusters.foreach { managedClusters =>
-      val clustersAdded =
-        ClustersAdded(managedClusters.map(_.cluster).map(ClusterSnapshot(_)).toList)
-      sendMessage(clustersAdded).foreach { _ =>
-        managedClusters.foreach(addClusterObservers)
+      if (managedClusters.nonEmpty) {
+        val clustersAdded =
+          ClustersAdded(
+            serverId,
+            nextMessageNo,
+            managedClusters.map(_.cluster).map(ClusterSnapshot(_)).toList)
+        sendMessage(clustersAdded).foreach { _ =>
+          managedClusters.foreach(addClusterObservers)
+        }
       }
     }
   }
@@ -32,7 +48,12 @@ private[messaging] final class MessagingProtocol(
   private def addClusterObservers(cluster: ManagedCluster) = {
     cluster.cluster.instances.now.foreach(addInstanceObservers)
     cluster.newWorkers.foreach { workers =>
-      val workersAdded = WorkersAdded(cluster.cluster.id, workers.map(InstanceSnapshot(_)).toList)
+      val workersAdded =
+        WorkersAdded(
+          serverId,
+          nextMessageNo,
+          cluster.cluster.id,
+          workers.map(InstanceSnapshot(_)).toList)
       sendMessage(workersAdded).foreach { _ =>
         workers.foreach(addInstanceObservers)
       }
@@ -44,7 +65,7 @@ private[messaging] final class MessagingProtocol(
     val instanceName             = instanceIdentityHashCode + ":" + instance.id
 
     instance.dockerImage.foreach { dockerImage =>
-      sendMessage(InstanceDockerImage(instance.id, dockerImage))
+      sendMessage(InstanceDockerImage(serverId, nextMessageNo, instance.id, dockerImage))
       logger.trace(
         s"Instance docker image change. " +
           s"Instance $instanceName, " +
@@ -52,7 +73,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.state.foreach { state =>
-      sendMessage(InstanceState(instance.id, state))
+      sendMessage(InstanceState(serverId, nextMessageNo, instance.id, state))
       logger.trace(
         s"Instance state change. " +
           s"Instance $instanceName, " +
@@ -60,7 +81,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.containerState.foreach { state =>
-      sendMessage(InstanceContainerState(instance.id, state))
+      sendMessage(InstanceContainerState(serverId, nextMessageNo, instance.id, state))
       logger.trace(
         s"Container state change. " +
           s"Instance $instanceName, " +
@@ -93,7 +114,8 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error => sendMessage(WorkerAdditionAttempt(clusterId, count, error)))
+          .flatMap(error =>
+            sendMessage(WorkerAdditionAttempt(serverId, nextMessageNo, clusterId, count, error)))
           .map(Some(_))
       case Some(ChangeDockerImage(clusterId, dockerImage)) =>
         clusterService.clusterSystem.clusters.now
@@ -112,7 +134,9 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error => sendMessage(DockerImageChangeAttempt(clusterId, dockerImage, error)))
+          .flatMap(error =>
+            sendMessage(
+              DockerImageChangeAttempt(serverId, nextMessageNo, clusterId, dockerImage, error)))
           .map(Some(_))
       case Some(LaunchCluster(clusterSpec)) =>
         clusterService
@@ -124,7 +148,8 @@ private[messaging] final class MessagingProtocol(
               logger.error(error, ex)
               Some(error)
           }
-          .flatMap(error => sendMessage(ClusterLaunchAttempt(clusterSpec, error)))
+          .flatMap(error =>
+            sendMessage(ClusterLaunchAttempt(serverId, nextMessageNo, clusterSpec, error)))
           .map(Some(_))
       case Some(TerminateCluster(clusterId)) =>
         clusterService.clusterSystem.clusters.now
@@ -143,8 +168,15 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error =>
-            sendMessage(ClusterTerminationAttempt(clusterId, ClientRequested, error)))
+          .flatMap(
+            error =>
+              sendMessage(
+                ClusterTerminationAttempt(
+                  serverId,
+                  nextMessageNo,
+                  clusterId,
+                  ClientRequested,
+                  error)))
           .map(Some(_))
       case Some(TerminateWorker(instanceId)) =>
         clusterService.clusterSystem.clusters.now.values
@@ -164,8 +196,15 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error =>
-            sendMessage(WorkerTerminationAttempt(instanceId, ClientRequested, error)))
+          .flatMap(
+            error =>
+              sendMessage(
+                WorkerTerminationAttempt(
+                  serverId,
+                  nextMessageNo,
+                  instanceId,
+                  ClientRequested,
+                  error)))
           .map(Some(_))
       case Some(clientMessage: ClientMessage) =>
         logger.error(s"Don't know how to handle client message: $clientMessage")

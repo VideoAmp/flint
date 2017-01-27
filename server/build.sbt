@@ -10,16 +10,16 @@ javaOptions ++= Seq(
 
 connectInput := true
 
-val log4jVersion = "2.7"
+val log4jVersion = "2.8"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"         %% "akka-http-core"  % "10.0.1",
+  "com.typesafe.akka"         %% "akka-http-core"  % "10.0.2",
   "org.apache.logging.log4j"  % "log4j-api"        % log4jVersion % "runtime",
   "org.apache.logging.log4j"  % "log4j-core"       % log4jVersion % "runtime",
   "org.apache.logging.log4j"  % "log4j-1.2-api"    % log4jVersion % "runtime",
   "org.apache.logging.log4j"  % "log4j-slf4j-impl" % log4jVersion % "runtime",
-  "org.apache.httpcomponents" % "httpclient"       % "4.5.2",
-  "com.github.pathikrit"      %% "better-files"    % "2.16.0",
+  "org.apache.httpcomponents" % "httpclient"       % "4.5.3",
+  "com.github.pathikrit"      %% "better-files"    % "2.17.1",
   "io.sphere"                 %% "sphere-json"     % "0.6.8"
 )
 
@@ -28,6 +28,7 @@ ivyConfigurations += Schema
 inConfig(Schema)(Defaults.configSettings)
 
 resolvers += "vamp repo" at "https://videoamp.artifactoryonline.com/videoamp/repo/"
+resolvers += Resolver.bintrayRepo("commercetools", "maven")
 libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.3" % Schema
 
 inConfig(Schema)(ScalaFmtPlugin.configScalafmtSettings)

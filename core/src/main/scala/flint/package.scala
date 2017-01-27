@@ -1,5 +1,5 @@
 import java.util.UUID
-import java.util.concurrent.{ Executors, ThreadFactory }
+import java.util.concurrent.{ Executors, ScheduledExecutorService, ThreadFactory }
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutorService, Future, Promise }
@@ -66,6 +66,20 @@ package object flint extends Collections {
     }
 
   /**
+    * The common Flint thread pool for IO operations
+    */
+  lazy val ioExecutorService: ScheduledExecutorService =
+    Executors.newScheduledThreadPool(
+      Runtime.getRuntime.availableProcessors * 2,
+      flintThreadFactory("io-thread"))
+
+  /**
+    * An [[ExecutionContextExecutorService]] that wraps [[ioExecutorService]]
+    */
+  lazy val ioExecutionContext: ExecutionContextExecutorService =
+    ExecutionContext.fromExecutorService(ioExecutorService)
+
+  /**
     * The single-threaded Flint update execution context. Perform any Flint model updates within
     * this context. DO NOT BLOCK IN THIS CONTEXT!
     */
@@ -80,12 +94,6 @@ package object flint extends Collections {
     */
   private[flint] final implicit lazy val implicitExecutionContext: ExecutionContext =
     updateExecutionContext
-
-  private[flint] def loop[T, U](future: => Future[T])(f: Try[T] => U)(
-      implicit executor: ExecutionContext): Unit =
-    future
-      .andThen(PartialFunction(f))(executor)
-      .onComplete(_ => loop(future)(f)(executor))(executor)
 
   private[flint] def readTextResource(resourceName: String): String =
     Source
