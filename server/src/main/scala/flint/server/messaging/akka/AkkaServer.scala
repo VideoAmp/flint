@@ -14,6 +14,7 @@ import scala.util.Random
 import _root_.akka.actor.ActorSystem
 import _root_.akka.http.scaladsl.Http
 import _root_.akka.http.scaladsl.model._, HttpMethods.GET
+import _root_.akka.http.scaladsl.model.headers.`Access-Control-Allow-Origin`
 import _root_.akka.http.scaladsl.model.ws.{ Message => _, _ }
 import _root_.akka.stream.{ Server => _, _ }
 import _root_.akka.stream.scaladsl._
@@ -83,22 +84,26 @@ class AkkaServer(
         val clusterSnapshots = clusters.map(ClusterSnapshot(_)).toList
         val responseBody     = compactJson(toJValue(clusterSnapshots))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+            .withHeaders(`Access-Control-Allow-Origin`.*)
       case req @ HttpRequest(GET, Uri.Path(`dockerImagesPath`), _, _, _) =>
         logger.info("Received GET request for docker images")
         dockerTags(dockerImageRepo, Some(dockerCreds)) match {
           case Success(dockerImages) =>
             val responseBody = compactJson(toJValue(dockerImages))
             HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+                .withHeaders(`Access-Control-Allow-Origin`.*)
           case Failure(errors) =>
             val responseBody = compactJson(toJValue(errors))
             HttpResponse(400, entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+                .withHeaders(`Access-Control-Allow-Origin`.*)
         }
       case req @ HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
         val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+            .withHeaders(`Access-Control-Allow-Origin`.*)
       case req =>
         req.discardEntityBytes()
-        HttpResponse(404)
+        HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*)
     }
 
     Http().bindAndHandleSync(requestHandler, interface, port).map { serverBinding =>
