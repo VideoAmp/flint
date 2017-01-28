@@ -10,46 +10,49 @@ import java.util.concurrent.Executors
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.io.Source.fromInputStream
-import scala.util.Try
 
 import com.typesafe.scalalogging.LazyLogging
 
 import rx.{ Ctx, Rx }
 
 class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ctx.Owner)
-  extends LazyLogging {
+    extends LazyLogging {
   private val reap = new Runnable {
     override def run(): Unit =
       Future {
         clusters.now.values.foreach { managedCluster =>
           managedCluster.cluster.ttl foreach { ttl =>
             val clusterLaunchedAt = managedCluster.cluster.launchedAt
-            if (Instant.now.isAfter(clusterLaunchedAt plus(ttl.toSeconds, ChronoUnit.SECONDS))
-              && !hasRunningApps(managedCluster.cluster)) {
-              managedCluster.terminate()
+            if (Instant.now.isAfter(clusterLaunchedAt plus (ttl.toSeconds, ChronoUnit.SECONDS))) {
+              hasRunningApps(managedCluster.cluster).filter(_ == false).foreach { _ =>
+                managedCluster.terminate()
+              }
             }
           }
         }
       }
   }
 
-  private def hasRunningApps(cluster: Cluster): Boolean = {
-    val masterUIHost      = cluster.master.ipAddress
-    val masterUIPort      = 8080
-    val masterUrl         = new URL(s"http://$masterUIHost:$masterUIPort")
-    val applicationsRegex = """Applications:</strong>((?s).*)<a href="#running-app">Running""".r
+  private def hasRunningApps(cluster: Cluster): Option[Boolean] =
+    if (cluster.master.containerState.now == ContainerRunning) {
+      val masterUIHost      = cluster.master.ipAddress
+      val masterUIPort      = 8080
+      val masterUrl         = new URL(s"http://${masterUIHost.getHostAddress}:$masterUIPort")
+      val applicationsRegex = """Applications:</strong>((?s).*)<a href="#running-app">Running""".r
 
-    try {
-      val response                 = getContent(masterUrl)
-      val matches                  = applicationsRegex.findAllIn(response)
-      val runningApplicationsCount = matches.group(1).trim().toInt
-      runningApplicationsCount != 0
-    } catch {
-      case e: IOException =>
-        logger.error(s"Failed to fetch Master UI at $masterUrl", e)
-        false
+      try {
+        val response                 = getContent(masterUrl)
+        val matches                  = applicationsRegex.findAllIn(response)
+        val runningApplicationsCount = matches.group(1).trim().toInt
+        Some(runningApplicationsCount != 0)
+      } catch {
+        case e: IOException =>
+          logger.error(s"Failed to fetch Master UI at $masterUrl", e)
+          None
+      }
+    } else {
+      None
     }
-  }
 
   private def getContent(
       url: URL,
@@ -60,7 +63,6 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
     connection.setConnectTimeout(connectTimeout)
     connection.setReadTimeout(readTimeout)
     val inputStream = connection.getInputStream
-
     try {
       fromInputStream(inputStream).mkString
     } finally {
@@ -72,7 +74,6 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
     flintThreadFactory("reaper-interval-thread")
   )
 
-  Try(reap.run())
-  val reapInterval = new FiniteDuration(1, java.util.concurrent.TimeUnit.MINUTES)
+  val reapInterval = new FiniteDuration(20, java.util.concurrent.TimeUnit.SECONDS)
   scheduler.scheduleWithFixedDelay(reap, 0, reapInterval.length, reapInterval.unit)
 }
