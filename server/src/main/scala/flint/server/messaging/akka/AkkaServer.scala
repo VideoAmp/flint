@@ -84,23 +84,23 @@ class AkkaServer(
         val clusterSnapshots = clusters.map(ClusterSnapshot(_)).toList
         val responseBody     = compactJson(toJValue(clusterSnapshots))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
-            .withHeaders(`Access-Control-Allow-Origin`.*)
+          .withHeaders(`Access-Control-Allow-Origin`.*)
       case req @ HttpRequest(GET, Uri.Path(`dockerImagesPath`), _, _, _) =>
         logger.info("Received GET request for docker images")
         dockerTags(dockerImageRepo, Some(dockerCreds)) match {
           case Success(dockerImages) =>
             val responseBody = compactJson(toJValue(dockerImages))
             HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
-                .withHeaders(`Access-Control-Allow-Origin`.*)
+              .withHeaders(`Access-Control-Allow-Origin`.*)
           case Failure(errors) =>
             val responseBody = compactJson(toJValue(errors))
             HttpResponse(400, entity = HttpEntity(ContentTypes.`application/json`, responseBody))
-                .withHeaders(`Access-Control-Allow-Origin`.*)
+              .withHeaders(`Access-Control-Allow-Origin`.*)
         }
       case req @ HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
         val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
-            .withHeaders(`Access-Control-Allow-Origin`.*)
+          .withHeaders(`Access-Control-Allow-Origin`.*)
       case req =>
         req.discardEntityBytes()
         HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*)
