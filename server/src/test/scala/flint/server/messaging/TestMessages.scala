@@ -5,8 +5,10 @@ package messaging
 import service.ClusterSpec
 
 import scala.concurrent.duration._
+import scala.util.Random
 
 object TestMessages {
+  private val serverId    = "%8h".format(Random.nextInt)
   private val clusterId   = ClusterId()
   private val dockerImage = DockerImage("test", "me")
   private val owner       = "Sam"
@@ -30,17 +32,17 @@ object TestMessages {
     Seq(
       AddWorkers(clusterId, 2),
       ChangeDockerImage(clusterId, dockerImage),
-      ClusterLaunchAttempt(clusterSpec, error),
-      ClusterTerminationAttempt(clusterId, ClientRequested, error),
-      DockerImageChangeAttempt(clusterId, dockerImage, error),
-      InstanceContainerState(instanceId, ContainerRunning),
-      InstanceDockerImage(instanceId, Some(dockerImage)),
-      InstanceState(instanceId, Running),
+      ClusterLaunchAttempt(serverId, 0, clusterSpec, error),
+      ClusterTerminationAttempt(serverId, 0, clusterId, ClientRequested, error),
+      DockerImageChangeAttempt(serverId, 0, clusterId, dockerImage, error),
+      InstanceContainerState(serverId, 0, instanceId, ContainerRunning),
+      InstanceDockerImage(serverId, 0, instanceId, Some(dockerImage)),
+      InstanceState(serverId, 0, instanceId, Running),
       LaunchCluster(clusterSpec),
       TerminateCluster(clusterId),
       TerminateWorker(instanceId),
-      WorkerAdditionAttempt(clusterId, 3, error),
-      WorkerTerminationAttempt(instanceId, IdleTimeout, error)
+      WorkerAdditionAttempt(serverId, 0, clusterId, 3, error),
+      WorkerTerminationAttempt(serverId, 0, instanceId, IdleTimeout, error)
     )
 
   def main(args: Array[String]): Unit = {
