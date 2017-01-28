@@ -74,6 +74,6 @@ class Reaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ct
     flintThreadFactory("reaper-interval-thread")
   )
 
-  val reapInterval = new FiniteDuration(20, java.util.concurrent.TimeUnit.SECONDS)
+  val reapInterval = new FiniteDuration(1, java.util.concurrent.TimeUnit.MINUTES)
   scheduler.scheduleWithFixedDelay(reap, 0, reapInterval.length, reapInterval.unit)
 }
