@@ -1,5 +1,7 @@
 package flint
 
+import java.time.Instant
+
 import scala.concurrent.duration.FiniteDuration
 
 import rx._
@@ -11,7 +13,8 @@ case class Cluster(
     ttl: Option[FiniteDuration],
     idleTimeout: Option[FiniteDuration],
     master: Instance,
-    workers: Rx[Seq[Instance]])(implicit ctx: Ctx.Owner) {
+    workers: Rx[Seq[Instance]],
+    launchedAt: Instant)(implicit ctx: Ctx.Owner) {
   import Cluster.{ mergeContainerStates, mergeInstanceStates }
 
   val instances: Rx[Seq[Instance]]      = Rx { master +: workers() }
@@ -43,8 +46,9 @@ object Cluster {
       ttl: Option[FiniteDuration],
       idleTimeout: Option[FiniteDuration],
       master: Instance,
-      workers: Seq[Instance])(implicit ctx: Ctx.Owner): Cluster =
-    new Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, Var(workers))
+      workers: Seq[Instance],
+      launchedAt: Instant)(implicit ctx: Ctx.Owner): Cluster =
+    new Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, Var(workers), launchedAt)
 
   def mergeContainerStates(state1: ContainerState, state2: ContainerState): ContainerState =
     (state1, state2) match {

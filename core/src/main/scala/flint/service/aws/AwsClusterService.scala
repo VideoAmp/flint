@@ -47,6 +47,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 
   override lazy val clusterSystem =
     new AwsClusterSystem(this, awsConfig.get[Config]("clusters_refresh").value)
+  private val reaper = new Reaper(clusterSystem.runningClusters)
 
   override val instanceSpecs = aws.instanceSpecs
 
@@ -103,7 +104,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
               spec.ttl,
               spec.idleTimeout,
               master,
-              workers),
+              workers,
+              Instant.now),
             this,
             spec.workerInstanceType,
             workerBidPrice)

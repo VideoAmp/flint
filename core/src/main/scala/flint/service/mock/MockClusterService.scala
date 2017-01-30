@@ -3,6 +3,7 @@ package service
 package mock
 
 import java.net.InetAddress
+import java.time.Instant
 import java.util.UUID
 
 import scala.concurrent.Future
@@ -41,7 +42,8 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         .map(_ => instance(Some(spec.dockerImage), workerInstanceType, spec.placementGroup))
         .toSeq)
     val cluster =
-      MockManagedCluster(Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, workers))(
+      MockManagedCluster(
+        Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, workers, Instant.now))(
         this,
         workers,
         workerInstanceType,

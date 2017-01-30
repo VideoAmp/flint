@@ -9,7 +9,7 @@ trait ClusterSystem {
   val clusters: Rx[Map[ClusterId, ManagedCluster]]
 
   final lazy val runningClusters: Rx[Map[ClusterId, ManagedCluster]] = Rx {
-    clusters().filter(_._2.cluster.state() == Running)
+    clusters().filter(_._2.cluster.master.containerState() == ContainerRunning)
   }
 
   val newClusters: Rx[Seq[ManagedCluster]]

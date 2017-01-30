@@ -104,7 +104,15 @@ private[aws] object AwsManagedCluster {
               Tags.filterWorkers(clusterId, instances).map(clusterService.flintInstance)
 
             val cluster =
-              Cluster(clusterId, clusterDockerImage, owner, ttl, idleTimeout, master, workers)
+              Cluster(
+                clusterId,
+                clusterDockerImage,
+                owner,
+                ttl,
+                idleTimeout,
+                master,
+                workers,
+                masterAwsInstance.getLaunchTime.toInstant)
 
             new AwsManagedCluster(cluster, clusterService, workerInstanceType, workerBidPrice)
           }
