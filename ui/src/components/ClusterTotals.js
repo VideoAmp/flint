@@ -81,7 +81,7 @@ export default class ClusterTotals extends React.Component {
             <Toolbar>
                 <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
                     <p>
-                        {numberOfCores} cores, {ramAmount}GiB RAM
+                        {numberOfCores} cores, {ramAmount} GiB RAM
                         {active ? `, $${totalCostPerHour}/hour` : "" }
                     </p>
                 </ToolbarGroup>
