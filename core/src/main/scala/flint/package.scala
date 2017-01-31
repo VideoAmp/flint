@@ -80,13 +80,18 @@ package object flint extends Collections {
     ExecutionContext.fromExecutorService(ioExecutorService)
 
   /**
-    * The single-threaded Flint update execution context. Perform any Flint model updates within
-    * this context. DO NOT BLOCK IN THIS CONTEXT!
+    * The single-threaded Flint update executor service. DO NOT BLOCK ON THIS EXECUTOR!
     */
-  lazy val updateExecutionContext: ExecutionContextExecutorService = {
-    val executorService = Executors.newSingleThreadExecutor(flintThreadFactory("update-thread"))
-    ExecutionContext.fromExecutorService(executorService)
-  }
+  lazy val updateExecutorService: ScheduledExecutorService =
+    Executors.newSingleThreadScheduledExecutor(flintThreadFactory("update-thread"))
+
+  /**
+    * The single-threaded Flint update execution context. This simply wraps
+    * [[updateExecutorService]]. Perform any Flint model updates within this context. DO NOT BLOCK
+    * IN THIS CONTEXT!
+    */
+  lazy val updateExecutionContext: ExecutionContextExecutorService =
+    ExecutionContext.fromExecutorService(updateExecutorService)
 
   /**
     * We make this private[flint] to ensure that library users do not accidentally and unwittingly

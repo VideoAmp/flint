@@ -6,6 +6,7 @@ import java.net.InetAddress
 import java.time.Instant
 import java.time.temporal.ChronoUnit.HOURS
 import java.util.Date
+import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -45,9 +46,11 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 
   private lazy val ec2Client = createEc2Client(awsConfig)
 
-  override lazy val clusterSystem =
+  override val clusterSystem =
     new AwsClusterSystem(this, awsConfig.get[Config]("clusters_refresh").value)
-  private val reaper = new Reaper(clusterSystem.runningClusters)
+
+  private val clusterReaper = new ClusterReaper(clusterSystem.runningClusters)
+  updateExecutorService.scheduleWithFixedDelay(clusterReaper, 0, 1, TimeUnit.MINUTES)
 
   override val instanceSpecs = aws.instanceSpecs
 
