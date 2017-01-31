@@ -46,7 +46,7 @@ export default class Cluster extends React.Component {
 
     render() {
         const { socket, instanceSpecs, data: cluster } = this.props;
-        const { owner, dockerImage, master, workers = [] } = cluster;
+        const { owner, dockerImage, master, workers = [], workerInstanceType } = cluster;
 
         // TODO: return short-form image tag
         const clusterTitle =
@@ -81,7 +81,7 @@ export default class Cluster extends React.Component {
                         <ClusterTotals
                             instanceSpecs={instanceSpecs}
                             masterInstanceType={master.instanceType}
-                            workerInstanceType={workers[0].instanceType}
+                            workerInstanceType={workerInstanceType}
                             numWorkers={workers.length}
                             active={true}
                         />
