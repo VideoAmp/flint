@@ -39,6 +39,9 @@ private[akka] class AkkaWebSocketMessageReceiver(
   private def handleMessageText(messageText: String): Unit =
     decodeMessage(messageText).fold(
       errs => logDecodingErrors(logger, messageText, errs),
-      message => receivedMessage() = Some(message)
+      message => {
+        logger.trace(s"Received message $message")
+        receivedMessage() = Some(message)
+      }
     )
 }

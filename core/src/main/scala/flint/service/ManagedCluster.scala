@@ -11,6 +11,8 @@ trait ManagedCluster extends Killable {
 
   final val newWorkers: Rx[Seq[Instance]] = Var(Seq.empty[Instance])
 
+  val workerInstanceType: String
+
   protected val managementService: ManagementService
 
   final def addWorkers(count: Int): Future[Seq[Instance]] = {

@@ -10,13 +10,18 @@ import _root_.akka.http.scaladsl.model.ws.{ Message => _, _ }
 import _root_.akka.stream.QueueOfferResult
 import _root_.akka.stream.scaladsl._
 
+import com.typesafe.scalalogging.LazyLogging
+
 private[akka] class AkkaWebSocketMessageSender[Send <: Message](
     sourceQueue: SourceQueue[TextMessage],
     encodeMessage: Send => String)(implicit actorSystem: ActorSystem)
-    extends MessageSender[Send] {
+    extends MessageSender[Send]
+    with LazyLogging {
   import actorSystem.dispatcher
 
   def sendMessage(message: Send): Future[Send] = {
+    logger.trace(s"Sending message $message")
+
     val messageText = encodeMessage(message)
     val wsMessage   = TextMessage(messageText)
 

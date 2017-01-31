@@ -11,7 +11,7 @@ import rx._
 private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
     clusterService: AwsClusterService,
-    workerInstanceType: String,
+    override val workerInstanceType: String,
     workerBidPrice: Option[BigDecimal])
     extends ManagedCluster {
   override protected val managementService = clusterService.managementService

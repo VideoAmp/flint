@@ -2,6 +2,8 @@ package flint
 package server
 package messaging
 
+import flint.service.ManagedCluster
+
 import scala.concurrent.duration.FiniteDuration
 
 private[messaging] case class ClusterSnapshot(
@@ -11,11 +13,12 @@ private[messaging] case class ClusterSnapshot(
     ttl: Option[FiniteDuration],
     idleTimeout: Option[FiniteDuration],
     master: InstanceSnapshot,
-    workers: List[InstanceSnapshot])
+    workers: List[InstanceSnapshot],
+    workerInstanceType: String)
 
 private[messaging] object ClusterSnapshot {
-  def apply(cluster: Cluster): ClusterSnapshot = {
-    import cluster._
+  def apply(managedCluster: ManagedCluster): ClusterSnapshot = {
+    import managedCluster.cluster._
 
     ClusterSnapshot(
       id,
@@ -24,6 +27,7 @@ private[messaging] object ClusterSnapshot {
       ttl,
       idleTimeout,
       InstanceSnapshot(master),
-      workers.now.toList.map(InstanceSnapshot(_)))
+      workers.now.toList.map(InstanceSnapshot(_)),
+      managedCluster.workerInstanceType)
   }
 }

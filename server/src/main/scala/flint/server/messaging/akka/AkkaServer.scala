@@ -80,8 +80,8 @@ class AkkaServer(
         }
       case req @ HttpRequest(GET, Uri.Path(`clustersPath`), _, _, _) =>
         logger.info("Received GET request for clusters")
-        val clusters         = clusterService.clusterSystem.clusters.now.values.map(_.cluster)
-        val clusterSnapshots = clusters.map(ClusterSnapshot(_)).toList
+        val managedClusters  = clusterService.clusterSystem.clusters.now.values
+        val clusterSnapshots = managedClusters.map(ClusterSnapshot(_)).toList
         val responseBody     = compactJson(toJValue(clusterSnapshots))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
           .withHeaders(`Access-Control-Allow-Origin`.*)

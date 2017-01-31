@@ -9,7 +9,7 @@ import rx._
 private[mock] case class MockManagedCluster(cluster: Cluster)(
     clusterService: MockClusterService,
     workers: Var[Seq[Instance]],
-    workerInstanceType: String,
+    override val workerInstanceType: String,
     placementGroup: Option[String])
     extends ManagedCluster {
   override protected val managementService = MockManagementService
