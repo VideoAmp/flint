@@ -216,7 +216,7 @@ export default class ClusterDialog extends React.Component {
                                 id="worker-count-amount-input"
                                 floatingLabelText="Worker Count"
                                 defaultValue={this.state.numWorkers}
-                                min={1}
+                                min={0}
                                 max={100}
                                 strategy="allow"
                                 errorText={this.state.workerCountErrorText}
