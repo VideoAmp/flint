@@ -323,7 +323,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
          }
        }
      } else { Future.successful(Seq.empty) }).flatMap { _ =>
-      terminateInstances((cluster.master +: cluster.workers.now).map(_.id): _*)
+      Future.sequence((cluster.master +: cluster.workers.now).map(_.terminate)).map(_ => ())
     }
 
   private def terminateInstances(instanceIds: String*): Future[Unit] =
@@ -334,10 +334,11 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         terminatingInstances.foreach { terminatingInstance =>
           tagInstances(
             instanceIds.toStream,
-            Seq(new Tag(Tags.ContainerState, ContainerStopped.toString)))
-          clusterSystem.updateInstanceState(
-            terminatingInstance.getInstanceId,
-            terminatingInstance.getCurrentState)
+            Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
+            clusterSystem.updateInstanceState(
+              terminatingInstance.getInstanceId,
+              terminatingInstance.getCurrentState)
+          }
         }
       }
     } else {
