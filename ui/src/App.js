@@ -2,6 +2,7 @@ import React from "react";
 import R from "ramda";
 import ReconnectingWebSocket from "reconnecting-websocket";
 import Store from "store";
+import Masonry from "react-masonry-component";
 
 import AppBar from "material-ui/AppBar";
 import FloatingActionButton from "material-ui/FloatingActionButton";
@@ -158,7 +159,7 @@ export default class App extends React.Component {
                     <div>
                         <AppBar title="Flint" showMenuIconButton={false}/>
                         <div className="cluster-container">
-                            <div className="clusters">
+                            <Masonry className="clusters">
                                 {
                                     mapAndReturnObjectValues(cluster =>
                                         <div className="cluster" key={cluster.id}>
@@ -170,7 +171,7 @@ export default class App extends React.Component {
                                         this.state.clusters
                                     )
                                 }
-                            </div>
+                            </Masonry>
                         </div>
                         <ClusterDialog
                             openState={this.state.clusterDialogOpen}

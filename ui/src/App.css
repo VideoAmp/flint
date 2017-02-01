@@ -4,22 +4,9 @@
     padding: 1.5em;
 }
 
-.clusters {
-    column-count: 2;
-}
-
 .cluster {
-    display: inline-block;
-    width: 100%;
-    margin: 0 0 1em 0;
-}
-
-.status-indicator {
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    background: green;
-    margin-top: 10px;
+    width: 45%;
+    margin: 0.5em;
 }
 
 .fab {
