@@ -7,6 +7,7 @@ export default class ClusterTotals extends React.Component {
     state = {
         numberOfCores: 1,
         ramAmount: 1,
+        storageAmount: 1,
         totalCostPerHour: 0.03,
     };
 
@@ -23,6 +24,13 @@ export default class ClusterTotals extends React.Component {
 
         const totalRamBytes = (workerInstanceTypeRam * numWorkers);
         return totalRamBytes / (2 ** 30);
+    }
+
+    calculateStorageAmount = (workerInstanceTypeInfo, numWorkers) => {
+        const { devices, storagePerDevice } = workerInstanceTypeInfo.storage;
+
+        const totalStorageBytes = (devices * storagePerDevice * numWorkers);
+        return totalStorageBytes / (2 ** 30);
     }
 
     calculateTotalCostPerHour = (masterInstanceTypeInfo, workerInstanceTypeInfo, numWorkers) => {
@@ -45,6 +53,10 @@ export default class ClusterTotals extends React.Component {
                 numWorkers
             ),
             ramAmount: this.calculateRamAmount(
+                workerInstanceTypeInfo,
+                numWorkers
+            ),
+            storageAmount: this.calculateStorageAmount(
                 workerInstanceTypeInfo,
                 numWorkers
             ),
@@ -76,18 +88,18 @@ export default class ClusterTotals extends React.Component {
 
     render() {
         const { active } =  this.props;
-        const { numberOfCores, ramAmount, totalCostPerHour } = this.state;
+        const { numberOfCores, ramAmount, storageAmount, totalCostPerHour } = this.state;
         return (
             <Toolbar style={{ backgroundColor: "#F5F5F5" }}>
                 <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
                     <p>
-                        {numberOfCores} cores, {ramAmount} GiB RAM
+                        {numberOfCores} cores, {ramAmount} GiB RAM, {storageAmount} GiB Scratch
                         {active ? `, $${totalCostPerHour}/hour` : "" }
                     </p>
                 </ToolbarGroup>
                 <ToolbarGroup style={{ paddingRight: "24px" }} lastChild={true}>
                     <p>
-                        { active ? "2 hours remaining" : `$${totalCostPerHour}/hour` }
+                        { active ? "??? hours remaining" : `$${totalCostPerHour}/hour` }
                     </p>
                 </ToolbarGroup>
             </Toolbar>
