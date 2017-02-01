@@ -16,8 +16,6 @@ private[messaging] final class MessagingProtocol(
     messageSender: MessageSender[ServerMessage],
     messageReceiver: MessageReceiver)(implicit ctx: Ctx.Owner)
     extends LazyLogging {
-  import messageSender.sendMessage
-
   // Even though messageNo will only be accessed by a single thread (from the update executor)
   // concurrently, that thread might change. Therefore, we mark it @volatile
   @volatile
@@ -40,6 +38,11 @@ private[messaging] final class MessagingProtocol(
         }
       }
     }
+  }
+
+  private def sendMessage(message: ServerMessage): Future[ServerMessage] = {
+    logger.trace(s"Sending message $message")
+    messageSender.sendMessage(message)
   }
 
   private def addClusterObservers(cluster: ManagedCluster) = {
@@ -88,7 +91,7 @@ private[messaging] final class MessagingProtocol(
 
   messageReceiver.receivedMessage.foreach { optMessage =>
     optMessage.collect { case clientMessage: ClientMessage => clientMessage }.foreach { message =>
-      logger.debug(s"Received $message")
+      logger.trace(s"Received $message")
     }
   }
 

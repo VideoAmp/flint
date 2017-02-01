@@ -20,8 +20,6 @@ private[akka] class AkkaWebSocketMessageSender[Send <: Message](
   import actorSystem.dispatcher
 
   def sendMessage(message: Send): Future[Send] = {
-    logger.trace(s"Sending message $message")
-
     val messageText = encodeMessage(message)
     val wsMessage   = TextMessage(messageText)
 
