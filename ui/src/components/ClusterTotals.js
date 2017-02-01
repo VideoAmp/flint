@@ -78,7 +78,7 @@ export default class ClusterTotals extends React.Component {
         const { active } =  this.props;
         const { numberOfCores, ramAmount, totalCostPerHour } = this.state;
         return (
-            <Toolbar>
+            <Toolbar style={{ backgroundColor: "#F5F5F5" }}>
                 <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
                     <p>
                         {numberOfCores} cores, {ramAmount} GiB RAM
