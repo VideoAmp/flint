@@ -6,6 +6,9 @@ import messaging.akka.AkkaServer
 import service.aws.AwsClusterService
 import service.mock.MockClusterService
 
+import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration.Duration
+
 import _root_.akka.actor.ActorSystem
 import _root_.akka.stream.ActorMaterializer
 
@@ -17,6 +20,8 @@ import configs.syntax._
 object FlintServer extends LazyLogging {
   def main(args: Array[String]): Unit = {
     import FlintCtx.owner
+
+    val interactive = args.length == 1 && args(0) == "-i"
 
     val configParseOptions = ConfigParseOptions.defaults.setAllowMissing(false)
     val config             = ConfigFactory.defaultApplication(configParseOptions)
@@ -51,16 +56,32 @@ object FlintServer extends LazyLogging {
     val server: Server with Killable = AkkaServer(clusterService, dockerImageRepo, dockerCreds)
     val bindingFuture                = server.bindTo(bindInterface, bindPort, apiRoot)
 
-    bindingFuture.map { binding =>
-      logger.info(s"Flint messaging server online at ${binding.messagingUrl}")
-      logger.info(s"Flint service online at ${binding.serviceUrl}")
-      // scalastyle:off println
-      println("Press RETURN to shut down")
-      // scalastyle:on println
-      scala.io.StdIn.readLine
+    val bindingFuture2 =
+      bindingFuture.map { binding =>
+        logger.info(s"Flint messaging server online at ${binding.messagingUrl}")
+        logger.info(s"Flint service online at ${binding.serviceUrl}")
+        binding
+      }
 
-      binding
-    }.flatMap(_.unbind).onComplete(_ => server.terminate)
+    def completeBindingFuture(bindingFuture: Future[Binding]): Unit =
+      bindingFuture.flatMap(_.unbind).onComplete(_ => server.terminate)
+
+    if (interactive) {
+      completeBindingFuture(bindingFuture2.map { binding =>
+        // scalastyle:off println
+        println("Press RETURN to shut down")
+        // scalastyle:on println
+        scala.io.StdIn.readLine
+        binding
+      })
+    } else {
+      try {
+        Await.ready(bindingFuture2, Duration.Inf)
+      } catch {
+        case _: InterruptedException =>
+          completeBindingFuture(bindingFuture2)
+      }
+    }
   }
 
   private def validateConfig(config: Config): Unit = {

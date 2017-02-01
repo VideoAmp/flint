@@ -2,6 +2,8 @@ name := "flint-server"
 
 fork := true
 
+run := { (run in Compile).partialInput(" -i").evaluated }
+
 javaOptions ++= Seq(
   "-Dconfig.file=../conf/server.conf",
   "-Dakka.loglevel=error",
