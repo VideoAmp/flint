@@ -1,6 +1,9 @@
 import React from "react";
 import R from "ramda";
+import CopyToClipboard from "react-copy-to-clipboard";
+
 import { ListItem } from "material-ui/List";
+import Snackbar from "material-ui/Snackbar";
 import IconButton from "material-ui/IconButton";
 import Avatar from "material-ui/Avatar";
 import Trash from "material-ui/svg-icons/action/delete";
@@ -23,6 +26,7 @@ const leftAvatarStyles = { margin: 12.5 };
 export default class Instance extends React.Component {
     state = {
         isBeingTerminated: false,
+        copied: false,
     }
 
     terminateWorker = (socket, { id }) => {
@@ -47,6 +51,10 @@ export default class Instance extends React.Component {
     }
 
     onRightIconButtonClick = () => this.terminateWorker(this.props.socket, this.props.data);
+
+    onSnackbarRequestClose = () => this.setState({ copied: false });
+
+    onIPAddressCopy = () => this.setState({ copied: true })
 
     getRightIconButton = (data, master) => {
         if (this.isTerminatable(data, master)) {
@@ -75,12 +83,30 @@ export default class Instance extends React.Component {
         const { data, master } = this.props;
 
         return (
-            <ListItem
-                primaryText={`${data.instanceType} ${data.ipAddress} ${master ? "Master" : "Worker"}`}
-                leftAvatar={this.getInstanceStateElement(data.containerState)}
-                rightIconButton={this.getRightIconButton(data, master)}
-                disabled={true}
-            />
+            <div>
+                <ListItem
+                    leftAvatar={this.getInstanceStateElement(data.containerState)}
+                    rightIconButton={this.getRightIconButton(data, master)}
+                    disabled={true}>
+                    <div>
+                        {data.instanceType}
+                        &nbsp;
+                        <CopyToClipboard
+                            text={data.ipAddress}
+                            onCopy={this.onIPAddressCopy}>
+                            <span style={{ cursor: "pointer" }}>{data.ipAddress}</span>
+                        </CopyToClipboard>
+                        &nbsp;
+                        {master ? "Master" : "Worker"}
+                    </div>
+                </ListItem>
+                <Snackbar
+                    open={this.state.copied}
+                    message="Copied to clipboard"
+                    autoHideDuration={2000}
+                    onRequestClose={this.onSnackbarRequestClose}
+                />
+            </div>
         );
     }
 }
