@@ -22,6 +22,11 @@ const getInstanceMapper = (socket, master) =>
         </div>
     );
 
+const getActiveWorkerCount = workers =>
+  workers.filter(
+    worker => worker.containerState === "ContainerRunning"
+  ).length;
+
 export default class Cluster extends React.Component {
     state = {
         clusterInstanceDialogOpen: false,
@@ -57,6 +62,7 @@ export default class Cluster extends React.Component {
                 <Card>
                     <CardHeader
                         title={clusterTitle}
+                        subtitle={dockerImage.tag}
                         titleStyle={{ "fontSize": "24px" }}
                         textStyle={{ paddingRight: "0px" }}
                         style={{ paddingRight: "0px" }}
@@ -82,7 +88,7 @@ export default class Cluster extends React.Component {
                             instanceSpecs={instanceSpecs}
                             masterInstanceType={master.instanceType}
                             workerInstanceType={workerInstanceType}
-                            numWorkers={workers.length}
+                            numWorkers={getActiveWorkerCount(workers)}
                             active={true}
                         />
                     </CardActions>
