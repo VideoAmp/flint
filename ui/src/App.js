@@ -7,7 +7,7 @@ import AppBar from "material-ui/AppBar";
 import FloatingActionButton from "material-ui/FloatingActionButton";
 import ContentAdd from "material-ui/svg-icons/content/add";
 import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
-import { yellow700 } from "material-ui/styles/colors";
+import { amber500 } from "material-ui/styles/colors";
 import getMuiTheme from "material-ui/styles/getMuiTheme";
 
 import "./App.css";
@@ -17,7 +17,7 @@ import ClusterDialog from "./components/ClusterDialog";
 
 const muiTheme = getMuiTheme({
     palette: {
-        primary1Color: yellow700,
+        primary1Color: amber500,
     },
 });
 
