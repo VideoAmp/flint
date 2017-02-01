@@ -26,8 +26,8 @@ export default class ClusterTotals extends React.Component {
         return totalRamBytes / (2 ** 30);
     }
 
-    calculateStorageAmount = (workerInstanceTypeInfo, numWorkers) => {
-        const { devices, storagePerDevice } = workerInstanceTypeInfo.storage;
+    calculateStorageAmount = ({ storage }, numWorkers) => {
+        const { devices, storagePerDevice } = storage;
 
         const totalStorageBytes = (devices * storagePerDevice * numWorkers);
         return totalStorageBytes / (2 ** 30);
@@ -95,11 +95,6 @@ export default class ClusterTotals extends React.Component {
                     <p>
                         {numberOfCores} cores, {ramAmount} GiB RAM, {storageAmount} GiB Scratch
                         {active ? `, $${totalCostPerHour}/hour` : "" }
-                    </p>
-                </ToolbarGroup>
-                <ToolbarGroup style={{ paddingRight: "24px" }} lastChild={true}>
-                    <p>
-                        { active ? "??? hours remaining" : `$${totalCostPerHour}/hour` }
                     </p>
                 </ToolbarGroup>
             </Toolbar>
