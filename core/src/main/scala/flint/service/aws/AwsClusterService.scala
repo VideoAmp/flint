@@ -54,24 +54,25 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 
   override val instanceSpecs = aws.instanceSpecs
 
-  override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] = {
-    val oneHourAgo = Instant.now.minus(1, HOURS)
-    val describeSpotPriceHistoryRequest =
-      new DescribeSpotPriceHistoryRequest()
-        .withInstanceTypes(instanceTypes: _*)
-        .withProductDescriptions(RIProductDescription.LinuxUNIX.toString)
-        .withAvailabilityZone(awsConfig.get[String]("availability_zone").value)
-        .withStartTime(new Date(oneHourAgo.toEpochMilli))
-    ec2Client
-      .describeSpotPriceHistory(describeSpotPriceHistoryRequest)
-      .map(
-        _.map(
-          awsSpotPrice =>
-            SpotPrice(
-              awsSpotPrice.getInstanceType,
-              BigDecimal(awsSpotPrice.getSpotPrice),
-              awsSpotPrice.getTimestamp.toInstant)))
-  }
+  override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] =
+    if (instanceTypes.isEmpty) { Future.successful(Seq.empty) } else {
+      val oneHourAgo = Instant.now.minus(1, HOURS)
+      val describeSpotPriceHistoryRequest =
+        new DescribeSpotPriceHistoryRequest()
+          .withInstanceTypes(instanceTypes: _*)
+          .withProductDescriptions(RIProductDescription.LinuxUNIX.toString)
+          .withAvailabilityZone(awsConfig.get[String]("availability_zone").value)
+          .withStartTime(new Date(oneHourAgo.toEpochMilli))
+      ec2Client
+        .describeSpotPriceHistory(describeSpotPriceHistoryRequest)
+        .map(
+          _.map(
+            awsSpotPrice =>
+              SpotPrice(
+                awsSpotPrice.getInstanceType,
+                BigDecimal(awsSpotPrice.getSpotPrice),
+                awsSpotPrice.getTimestamp.toInstant)))
+    }
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] =
     launchCluster(spec, workerBidPrice = None)
