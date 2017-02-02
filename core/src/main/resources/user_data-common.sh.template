@@ -24,7 +24,7 @@ aws ec2 create-tags --resources $(curl -s http://169.254.169.254/latest/meta-dat
          Key=%CLUSTER_ID_TAG_KEY%,Value=%CLUSTER_ID_TAG_VALUE% \
          Key=%LEGACY_CLUSTER_ID_TAG_KEY%,Value=%CLUSTER_ID_TAG_VALUE% \
          Key=%OWNER_TAG_KEY%,Value="%OWNER_TAG_VALUE%" \
-         Key=%SPARK_ROLE_TAG_KEY%,Value=%SPARK_ROLE_TAG_VALUE%
+         Key=%SPARK_ROLE_TAG_KEY%,Value=%SPARK_ROLE_TAG_VALUE% %EXTRA_INSTANCE_TAGS%
 
 /usr/bin/time yum -y update 2> /tmp/yum_update_time.txt
 

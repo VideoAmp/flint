@@ -10,6 +10,8 @@ class UserDataSpec extends FlatSpec {
   import UserDataSpec._
   import AwsClusterService._
 
+  private val extraInstanceTags = Map("foo" -> "bar", "biz" -> "baz")
+
   behavior of "createUserData"
 
   it should "create user data without local storage" in {
@@ -20,6 +22,7 @@ class UserDataSpec extends FlatSpec {
       InstanceProvisioning.Normal,
       DockerImage("test", "me"),
       Nil,
+      extraInstanceTags,
       testAwsConfig,
       testDockerConfig)
   }
@@ -33,6 +36,7 @@ class UserDataSpec extends FlatSpec {
       InstanceProvisioning.Normal,
       DockerImage("test", "me"),
       blockDeviceMappings,
+      extraInstanceTags,
       testAwsConfig,
       testDockerConfig)
   }

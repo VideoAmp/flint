@@ -9,23 +9,8 @@ import scala.concurrent.duration.FiniteDuration
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 
-private[aws] object Tags {
-  val ResourceName = "Name"
-
-  val ClusterId          = "flint:cluster_id"
-  val ClusterDockerImage = "flint:cluster_docker_image"
-  val ClusterTTL         = "flint:cluster_ttl"
-  val ClusterIdleTimeout = "flint:cluster_idle_timeout"
-  val ContainerState     = "flint:container_state"
-  val DockerImage        = "flint:docker_image"
-  val Owner              = "flint:owner"
-  val SparkRole          = "flint:spark_cluster_role"
-  val WorkerInstanceType = "flint:worker_instance_type"
-  val WorkerBidPrice     = "flint:worker_bid_price"
-
-  val LegacyClusterId           = "cluster_id"
-  private val LegacyClusterTTL  = "lifetime_hours"
-  private val LegacyDockerImage = "docker_image"
+private[aws] class Tags(extraInstanceTags: Map[String, String]) {
+  import Tags._
 
   def masterTags(
       clusterSpec: ClusterSpec,
@@ -59,7 +44,12 @@ private[aws] object Tags {
     } else { noTags }
 
     commonResourceTags ++
-      (commonTags ++ ttlTags ++ idleTimeoutTags ++ workerBidPriceTags ++ legacyTags).map {
+      (commonTags ++
+        ttlTags ++
+        idleTimeoutTags ++
+        workerBidPriceTags ++
+        extraInstanceTags ++
+        legacyTags).map {
         case (name, value) => new Tag(name, value)
       }.toSeq
   }
@@ -73,10 +63,28 @@ private[aws] object Tags {
       Map(LegacyClusterId -> clusterId.toString)
     } else { noTags }
 
-    commonTags ++ legacyTags.map {
+    commonTags ++ (extraInstanceTags ++ legacyTags).map {
       case (name, value) => new Tag(name, value)
     }.toSeq
   }
+}
+private[aws] object Tags {
+  val ResourceName = "Name"
+
+  val ClusterId          = "flint:cluster_id"
+  val ClusterDockerImage = "flint:cluster_docker_image"
+  val ClusterTTL         = "flint:cluster_ttl"
+  val ClusterIdleTimeout = "flint:cluster_idle_timeout"
+  val ContainerState     = "flint:container_state"
+  val DockerImage        = "flint:docker_image"
+  val Owner              = "flint:owner"
+  val SparkRole          = "flint:spark_cluster_role"
+  val WorkerInstanceType = "flint:worker_instance_type"
+  val WorkerBidPrice     = "flint:worker_bid_price"
+
+  val LegacyClusterId           = "cluster_id"
+  private val LegacyClusterTTL  = "lifetime_hours"
+  private val LegacyDockerImage = "docker_image"
 
   def spotInstanceRequestTags(clusterId: ClusterId, owner: String): Seq[Tag] =
     commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)

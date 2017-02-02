@@ -39,6 +39,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   private val dockerConfig = flintConfig.get[Config]("docker").value
   private val awsConfig    = flintConfig.get[Config]("aws").value
 
+  private val extraInstanceTags = awsConfig.get[Map[String, String]]("extra_instance_tags").value
+  private val tags              = new Tags(extraInstanceTags)
+
   private[aws] val legacyCompatibility = awsConfig.get[Boolean]("legacy_compatibility").value
 
   private lazy val ssmClient                        = createSsmClient(awsConfig)
@@ -129,6 +132,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         InstanceProvisioning.Normal,
         spec.dockerImage,
         blockDeviceMappings,
+        extraInstanceTags,
         awsConfig,
         dockerConfig)
     val masterRequest =
@@ -151,8 +155,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         flintInstance(masterAwsInstance)
       }
       .flatMap { master =>
-        val tags = Tags.masterTags(spec, workerBidPrice, legacyCompatibility)
-        tagInstances(Seq(master.id), tags).map(_ => master)
+        val masterTags = tags.masterTags(spec, workerBidPrice, legacyCompatibility)
+        tagResources(Seq(master.id), masterTags).map(_ => master)
       }
   }
 
@@ -215,6 +219,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         master.ipAddress,
         workerSpecs,
         dockerImage,
+        extraInstanceTags,
         awsConfig,
         dockerConfig)
     val workersRequest =
@@ -226,11 +231,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         workerUserData,
         awsConfig)
     ec2Client.runInstances(workersRequest).flatMap { reservation =>
-      val workers = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
-      val tags    = Tags.workerTags(clusterId, owner, legacyCompatibility)
-      val createTagsRequest =
-        new CreateTagsRequest().withResources(workers.map(_.id): _*).withTags(tags: _*)
-      ec2Client.createTags(createTagsRequest).map(_ => workers)
+      val workers    = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
+      val workerTags = tags.workerTags(clusterId, owner, legacyCompatibility)
+      tagResources(workers.map(_.id), workerTags).map(_ => workers)
     }
   }
 
@@ -254,6 +257,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         master.ipAddress,
         workerSpecs,
         dockerImage,
+        extraInstanceTags,
         awsConfig,
         dockerConfig)
     val workersRequest =
@@ -266,11 +270,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         bidPrice,
         awsConfig)
     ec2Client.requestSpotInstances(workersRequest).flatMap { spotInstancesRequests =>
-      val spotInstanceRequestIds = spotInstancesRequests.map(_.getSpotInstanceRequestId)
-      val tags                   = Tags.spotInstanceRequestTags(clusterId, owner)
-      val createTagsRequest =
-        new CreateTagsRequest().withResources(spotInstanceRequestIds: _*).withTags(tags: _*)
-      ec2Client.createTags(createTagsRequest).map(_ => Seq.empty)
+      val spotInstanceRequestIds  = spotInstancesRequests.map(_.getSpotInstanceRequestId)
+      val spotInstanceRequestTags = Tags.spotInstanceRequestTags(clusterId, owner)
+      tagResources(spotInstanceRequestIds, spotInstanceRequestTags).map(_ => Seq.empty)
     }
   }
 
@@ -301,10 +303,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       instanceSpecs)(() => terminateInstances(instanceId))
   }
 
-  private[aws] def tagInstances(instanceIds: Seq[String], tags: Seq[Tag]): Future[Unit] =
-    if (instanceIds.nonEmpty) {
+  private[aws] def tagResources(resourceIds: Seq[String], tags: Seq[Tag]): Future[Unit] =
+    if (resourceIds.nonEmpty) {
       val createTagsRequest =
-        new CreateTagsRequest().withResources(instanceIds: _*).withTags(tags: _*)
+        new CreateTagsRequest().withResources(resourceIds: _*).withTags(tags: _*)
       ec2Client.createTags(createTagsRequest)
     } else {
       Future.successful(())
@@ -333,7 +335,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
       ec2Client.terminateInstances(terminateInstancesRequest).map { terminatingInstances =>
         terminatingInstances.foreach { terminatingInstance =>
-          tagInstances(
+          tagResources(
             instanceIds.toStream,
             Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
             clusterSystem.updateInstanceState(
@@ -497,6 +499,7 @@ private[aws] object AwsClusterService {
       provisioning: InstanceProvisioning,
       dockerImage: DockerImage,
       blockDeviceMappings: Seq[BlockDeviceMapping],
+      extraInstanceTags: Map[String, String],
       awsConfig: Config,
       dockerConfig: Config
   ): String = {
@@ -558,7 +561,14 @@ private[aws] object AwsClusterService {
 
     val baseTemplate = readTextResource("user_data-common.sh.template")
 
+    val extraInstanceTagsString =
+      extraInstanceTags.map {
+        case (name, value) =>
+          s"""Key="$name",Value="$value""""
+      }.mkString(" ")
+
     chunks += replaceContainerTagMacros(baseTemplate)
+      .replaceMacro("EXTRA_INSTANCE_TAGS", extraInstanceTagsString)
     chunks += ""
 
     val instanceTemplate = readTextResource(
@@ -576,6 +586,7 @@ private[aws] object AwsClusterService {
       masterIpAddress: InetAddress,
       workerSpecs: InstanceSpecs,
       dockerImage: DockerImage,
+      extraInstanceTags: Map[String, String],
       awsConfig: Config,
       dockerConfig: Config): String = {
     val blockDeviceMappings = createBlockDeviceMappings(workerSpecs.storage)
@@ -587,6 +598,7 @@ private[aws] object AwsClusterService {
         provisioning,
         dockerImage,
         blockDeviceMappings,
+        extraInstanceTags,
         awsConfig,
         dockerConfig)
     baseUserData
