@@ -74,7 +74,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
       Var(dockerImage),
       lifecycleState,
       Var(ContainerRunning),
-      specs)(() => terminateInstances(id))
+      specs)(instance => terminateInstances(instance.id))
   }
 
   private[mock] def terminateClusterInstances(

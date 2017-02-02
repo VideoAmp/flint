@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Success
 
 import com.amazonaws.{ ClientConfiguration, PredefinedClientConfigurations }
 import com.amazonaws.auth._
@@ -300,7 +301,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       dockerImage,
       lifecycleState,
       containerState,
-      instanceSpecs)(() => terminateInstances(instanceId))
+      instanceSpecs)(instance => terminateInstances(instance))
   }
 
   private[aws] def tagResources(resourceIds: Seq[String], tags: Seq[Tag]): Future[Unit] =
@@ -326,24 +327,30 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
          }
        }
      } else { Future.successful(Seq.empty) }).flatMap { _ =>
-      Future.sequence((cluster.master +: cluster.workers.now).map(_.terminate)).map(_ => ())
+      terminateInstances((cluster.master +: cluster.workers.now): _*)
     }
 
-  private def terminateInstances(instanceIds: String*): Future[Unit] =
-    if (instanceIds.nonEmpty) {
+  private def terminateInstances(instances: Instance*): Future[Unit] =
+    if (instances.nonEmpty) {
+      val instanceIds = instances.map(_.id)
       val terminateInstancesRequest =
         new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
-      ec2Client.terminateInstances(terminateInstancesRequest).map { terminatingInstances =>
-        terminatingInstances.foreach { terminatingInstance =>
-          tagResources(
-            instanceIds.toStream,
-            Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
-            clusterSystem.updateInstanceState(
-              terminatingInstance.getInstanceId,
-              terminatingInstance.getCurrentState)
+      ec2Client
+        .terminateInstances(terminateInstancesRequest)
+        .andThen {
+          case Success(_) => instances.foreach(_.containerState.asVar() = ContainerStopped)
+        }
+        .map { terminatingInstances =>
+          terminatingInstances.foreach { terminatingInstance =>
+            tagResources(
+              instanceIds.toStream,
+              Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
+              clusterSystem.updateInstanceState(
+                terminatingInstance.getInstanceId,
+                terminatingInstance.getCurrentState)
+            }
           }
         }
-      }
     } else {
       Future.successful(())
     }

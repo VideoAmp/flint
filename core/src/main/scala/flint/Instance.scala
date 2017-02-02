@@ -14,13 +14,10 @@ case class Instance(
     dockerImage: Rx[Option[DockerImage]],
     state: Rx[LifecycleState],
     containerState: Rx[ContainerState],
-    specs: InstanceSpecs)(terminator: () => Future[Unit])
+    specs: InstanceSpecs)(terminator: Instance => Future[Unit])
     extends Killable {
 
-  override def terminate(): Future[Unit] =
-    terminator() andThen {
-      case Success(_) => containerState.asVar() = ContainerStopped
-    }
+  override def terminate(): Future[Unit] = terminator(this)
 
   override def equals(other: Any): Boolean = other match {
     case otherInstance: Instance => id == otherInstance.id
@@ -38,7 +35,7 @@ object Instance {
       dockerImage: Option[DockerImage],
       state: LifecycleState,
       containerState: ContainerState,
-      specs: InstanceSpecs)(terminator: () => Future[Unit]): Instance =
+      specs: InstanceSpecs)(terminator: Instance => Future[Unit]): Instance =
     new Instance(
       id,
       ipAddress,
