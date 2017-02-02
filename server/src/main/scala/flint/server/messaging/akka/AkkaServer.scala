@@ -69,7 +69,9 @@ class AkkaServer(
     val clustersPath      = apiRoot + "/clusters"
     val dockerImagesPath  = apiRoot + "/dockerImages"
     val instanceSpecsPath = apiRoot + "/instanceSpecs"
-    val requestHandler: HttpRequest => HttpResponse = {
+    val spotPricesPath    = apiRoot + "/spotPrices"
+
+    val syncRequestHandler: PartialFunction[HttpRequest, HttpResponse] = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
         logger.info("Received GET request for messaging websocket")
         req.header[UpgradeToWebSocket] match {
@@ -98,15 +100,47 @@ class AkkaServer(
               .withHeaders(`Access-Control-Allow-Origin`.*)
         }
       case req @ HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
+        logger.info("Received GET request for instance specs")
         val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
           .withHeaders(`Access-Control-Allow-Origin`.*)
-      case req =>
-        req.discardEntityBytes()
-        HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*)
     }
+    val asyncRequestHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
+      case req @ HttpRequest(GET, uri @ Uri.Path(`spotPricesPath`), _, _, _) =>
+        uri
+          .query()
+          .get("instanceTypes")
+          .map { rawInstanceTypes =>
+            val instanceTypes = rawInstanceTypes.split(",", -1)
+            logger.info(
+              "Received GET request for spot prices for instance types: " + instanceTypes
+                .mkString(", "))
+            clusterService.getSpotPrices(instanceTypes: _*).map { spotPrices =>
+              val responseBody = compactJson(toJValue(spotPrices.toList))
+              HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+                .withHeaders(`Access-Control-Allow-Origin`.*)
+            }
+          }
+          .getOrElse {
+            logger.info("Received GET request for spot prices without specifying instance types")
+            Future.successful(
+              HttpResponse(400)
+                .withHeaders(`Access-Control-Allow-Origin`.*)
+                .withEntity("No instance types specified\n"))
+          }
+    }
+    val notFoundHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
+      case req =>
+        logger.info("Received unknown request")
+        req.discardEntityBytes()
+        Future.successful(HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*))
+    }
+    val requestHandler: HttpRequest => Future[HttpResponse] =
+      (syncRequestHandler andThen Future.successful)
+        .orElse(asyncRequestHandler)
+        .orElse(notFoundHandler)
 
-    Http().bindAndHandleSync(requestHandler, interface, port).map { serverBinding =>
+    Http().bindAndHandleAsync(requestHandler, interface, port).map { serverBinding =>
       new Binding {
         private val bindAddress = interface + ":" + port
 

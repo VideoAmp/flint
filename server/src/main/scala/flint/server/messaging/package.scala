@@ -3,6 +3,8 @@ package server
 
 import service.ClusterSpec
 
+import java.time.{ Instant, OffsetDateTime, ZoneOffset }
+
 import scala.concurrent.duration.FiniteDuration
 
 import com.typesafe.scalalogging.Logger
@@ -41,6 +43,21 @@ package object messaging {
     }
 
     override def write(value: BigDecimal): JValue = JDecimal(value)
+  }
+
+  private[messaging] implicit val jsonInstant: JSON[Instant] = new JSON[Instant] {
+    override def read(jval: JValue): JValidation[Instant] = jval match {
+      case JString(s) =>
+        try {
+          Success(OffsetDateTime.parse(s).toInstant)
+        } catch {
+          case ex: Exception => fail("Failed to parse instant: " + ex.getMessage)
+        }
+      case _ => fail("String expected")
+    }
+
+    override def write(value: Instant): JValue =
+      JString(value.atOffset(ZoneOffset.UTC).toString)
   }
 
   private[messaging] implicit val jsonDuration: JSON[FiniteDuration] = new JSON[FiniteDuration] {
@@ -102,6 +119,8 @@ package object messaging {
   private[messaging] implicit val instanceStorageSpecJson = deriveJSON[InstanceStorageSpec]
 
   private[messaging] implicit val instanceSpecsJson = deriveJSON[InstanceSpecs]
+
+  private[messaging] implicit val spotPriceJson = deriveJSON[SpotPrice]
 
   private[messaging] implicit val instanceSnapshotJson = deriveJSON[InstanceSnapshot]
 
