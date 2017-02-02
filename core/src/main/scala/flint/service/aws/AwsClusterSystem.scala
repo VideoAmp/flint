@@ -70,7 +70,11 @@ private[aws] class AwsClusterSystem private[aws] (
             case (clusterId, Some(managedCluster)) => clusterId -> managedCluster
           }.toMap
 
-          AwsClusterSystem.this.newClusters() = newClusters.values.toIndexedSeq
+          if (newClusters.nonEmpty) {
+            logger.debug(s"Adding ${newClusters.size} new cluster(s)")
+            AwsClusterSystem.this.newClusters() = newClusters.values.toIndexedSeq
+          }
+
           clusters() = retainedClusters ++ newClusters
         case Failure(ex) =>
           logger.error("Received exception trying to describe instances", ex)
@@ -90,15 +94,16 @@ private[aws] class AwsClusterSystem private[aws] (
       pollingInterval.unit)
   }
 
-  private[aws] def addCluster(managedCluster: AwsManagedCluster): Unit =
-    clusters.synchronized {
-      val clustersNow = clusters.now
-      val clusterId   = managedCluster.cluster.id
+  private[aws] def addCluster(managedCluster: AwsManagedCluster): Unit = {
+    val clustersNow = clusters.now
+    val clusterId   = managedCluster.cluster.id
 
-      if (!clustersNow.contains(clusterId)) {
-        clusters() = clustersNow.updated(clusterId, managedCluster)
-      }
+    if (!clustersNow.contains(clusterId)) {
+      logger.debug(s"Adding new cluster")
+      newClusters() = Seq(managedCluster)
+      clusters() = clustersNow.updated(clusterId, managedCluster)
     }
+  }
 
   private[aws] def updateInstanceState(instanceId: String, newState: LifecycleState): Unit =
     clusters.now.values
