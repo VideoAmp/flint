@@ -6,6 +6,7 @@ import uuid from "uuid/v4";
 import { Grid, Cell } from "react-flexr";
 import "react-flexr/styles.css";
 
+import Checkbox from "material-ui/Checkbox";
 import Dialog from "material-ui/Dialog";
 import Divider from "material-ui/Divider";
 import FlatButton from "material-ui/FlatButton";
@@ -31,6 +32,7 @@ export default class ClusterDialog extends React.Component {
         lifetimeHoursErrorText: "",
         workerCountErrorText: "",
         idleTimeoutCountErrorText: "",
+        ownerErrorText: "",
         masterInstanceType: "",
         workerInstanceType: "",
         numWorkers: 1,
@@ -58,8 +60,15 @@ export default class ClusterDialog extends React.Component {
             workerInstanceType,
             numWorkers,
             tag,
+            isSpotCluster,
         } = this.state;
 
+        if (!owner) {
+            this.setState({ ownerErrorText: "Please enter an owner" });
+            return;
+        }
+
+        const messageType = isSpotCluster ? "LaunchSpotCluster" : "LaunchCluster";
         const clusterSpec = {
             id: uuid(),
             dockerImage: {
@@ -74,7 +83,7 @@ export default class ClusterDialog extends React.Component {
             numWorkers,
         };
 
-        this.props.socket.send(JSON.stringify({ clusterSpec, "$type": "LaunchCluster" }));
+        this.props.socket.send(JSON.stringify({ clusterSpec, "$type": messageType }));
         this.props.close(owner);
     }
 
@@ -111,7 +120,15 @@ export default class ClusterDialog extends React.Component {
     handleFieldChange = stateName =>
         (event, index, value) => this.setState(R.objOf(stateName, value))
 
-    handleOwnerChange = owner => this.setState({ owner });
+    handleCheckboxChange = stateName =>
+        (event, isInputChecked) =>
+            this.setState(R.objOf(stateName, isInputChecked))
+
+    handleOwnerChange = (owner) => {
+        const ownerErrorText = owner ? "" : "Please enter an owner";
+        this.setState({ ownerErrorText });
+        this.setState({ owner });
+    }
 
     render() {
         const { instanceSpecs, ownerDataSource = [], openState, close } = this.props;
@@ -175,6 +192,7 @@ export default class ClusterDialog extends React.Component {
                                 onUpdateInput={this.handleOwnerChange}
                                 style={fieldStyles}
                                 hintText="Enter your name here"
+                                errorText={this.state.ownerErrorText}
                                 floatingLabelText="Owner"
                             />
                         </Cell>
@@ -240,6 +258,15 @@ export default class ClusterDialog extends React.Component {
                                 onError={this.onIdleTimeoutCountError}
                                 onValid={this.onIdleTimeoutCountValid}
                                 style={fieldStyles}
+                            />
+                        </Cell>
+                    </Grid>
+                    <Grid style={gridStyles}>
+                        <Cell>
+                            <Checkbox
+                                label="Use Spot Cluster"
+                                checked={this.state.isSpotCluster}
+                                onCheck={this.handleCheckboxChange("isSpotCluster")}
                             />
                         </Cell>
                     </Grid>
