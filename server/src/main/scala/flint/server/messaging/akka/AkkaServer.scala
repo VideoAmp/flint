@@ -47,7 +47,7 @@ class AkkaServer(
   private val dockerTags = new Tags(httpClient)
 
   private val (messageSender, messageReceiver) = {
-    val messageSource = Source.queue[TextMessage](0, OverflowStrategy.backpressure)
+    val messageSource = Source.queue[TextMessage](100, OverflowStrategy.dropBuffer)
     val messageSink   = Sink.queue[TextMessage]
     val (messageSourceQueue, messageSinkQueue) =
       messageSource.toMat(messageSink)(Keep.both).run
