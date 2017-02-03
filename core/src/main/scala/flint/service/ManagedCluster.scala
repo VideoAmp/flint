@@ -13,6 +13,7 @@ trait ManagedCluster extends Killable {
   final val newWorkers: Rx[Seq[Instance]] = Var(Seq.empty[Instance])
 
   val workerInstanceType: String
+  val workerBidPrice: Option[BigDecimal]
 
   protected val managementService: ManagementService
 

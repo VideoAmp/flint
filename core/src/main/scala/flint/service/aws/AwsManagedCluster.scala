@@ -15,7 +15,7 @@ private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
     clusterService: AwsClusterService,
     override val workerInstanceType: String,
-    workerBidPrice: Option[BigDecimal])
+    override val workerBidPrice: Option[BigDecimal])
     extends ManagedCluster
     with LazyLogging {
   override protected val managementService = clusterService.managementService

@@ -10,6 +10,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
     clusterService: MockClusterService,
     workers: Var[Seq[Instance]],
     override val workerInstanceType: String,
+    override val workerBidPrice: Option[BigDecimal],
     placementGroup: Option[String])
     extends ManagedCluster {
   override protected val managementService = MockManagementService
