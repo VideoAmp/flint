@@ -14,7 +14,8 @@ private[messaging] case class ClusterSnapshot(
     idleTimeout: Option[FiniteDuration],
     master: InstanceSnapshot,
     workers: List[InstanceSnapshot],
-    workerInstanceType: String)
+    workerInstanceType: String,
+    workerBidPrice: Option[BigDecimal])
 
 private[messaging] object ClusterSnapshot {
   def apply(managedCluster: ManagedCluster): ClusterSnapshot = {
@@ -28,6 +29,7 @@ private[messaging] object ClusterSnapshot {
       idleTimeout,
       InstanceSnapshot(master),
       workers.now.toList.map(InstanceSnapshot(_)),
-      managedCluster.workerInstanceType)
+      managedCluster.workerInstanceType,
+      managedCluster.workerBidPrice)
   }
 }
