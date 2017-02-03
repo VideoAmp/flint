@@ -169,6 +169,21 @@ private[messaging] final class MessagingProtocol(
           .flatMap(error =>
             sendMessage(ClusterLaunchAttempt(serverId, nextMessageNo, clusterSpec, error)))
           .map(Some(_))
+      case Some(LaunchSpotCluster(clusterSpec, bidPrice)) =>
+        clusterService
+          .launchSpotCluster(clusterSpec, bidPrice)
+          .map(_ => None)
+          .recover {
+            case ex =>
+              val error =
+                s"Failed to launch spot cluster with bid price $bidPrice for spec $clusterSpec: " +
+                  ex.getMessage
+              logger.error(error, ex)
+              Some(error)
+          }
+          .flatMap(error =>
+            sendMessage(ClusterLaunchAttempt(serverId, nextMessageNo, clusterSpec, error)))
+          .map(Some(_))
       case Some(TerminateCluster(clusterId)) =>
         clusterService.clusterSystem.clusters.now
           .get(clusterId)
