@@ -4,6 +4,8 @@ package messaging
 
 import service.ClusterSpec
 
+import java.net.InetAddress
+
 private[messaging] sealed trait Message
 
 private[messaging] sealed trait ClientMessage extends Message
@@ -80,6 +82,13 @@ private[messaging] final case class InstanceDockerImage(
     messageNo: Int,
     instanceId: String,
     dockerImage: Option[DockerImage])
+    extends ServerMessage
+
+private[messaging] final case class InstanceIpAddress(
+    serverId: String,
+    messageNo: Int,
+    instanceId: String,
+    ipAddress: Option[InetAddress])
     extends ServerMessage
 
 private[messaging] final case class InstanceState(

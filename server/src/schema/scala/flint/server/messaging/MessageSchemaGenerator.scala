@@ -79,6 +79,7 @@ object MessageSchemaGenerator {
         createMessageSchema[DockerImageChangeAttempt],
         createMessageSchema[InstanceContainerState],
         createMessageSchema[InstanceDockerImage],
+        createMessageSchema[InstanceIpAddress],
         createMessageSchema[InstanceState],
         createMessageSchema[WorkerAdditionAttempt],
         createMessageSchema[WorkerTerminationAttempt],

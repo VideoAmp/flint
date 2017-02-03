@@ -5,6 +5,7 @@ package messaging
 import service.{ ClusterService, ManagedCluster }
 
 import scala.concurrent.Future
+import scala.util.{ Failure, Success }
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -42,20 +43,27 @@ private[messaging] final class MessagingProtocol(
 
   private def sendMessage(message: ServerMessage): Future[ServerMessage] = {
     logger.trace(s"Sending message $message")
-    messageSender.sendMessage(message)
+    messageSender.sendMessage(message) andThen {
+      case Success(message) =>
+        logger.trace(s"Sent message $message")
+      case Failure(ex) =>
+        logger.error(s"Failed to send message $message", ex)
+    }
   }
 
   private def addClusterObservers(cluster: ManagedCluster) = {
     cluster.cluster.instances.now.foreach(addInstanceObservers)
     cluster.newWorkers.foreach { workers =>
-      val workersAdded =
-        WorkersAdded(
-          serverId,
-          nextMessageNo,
-          cluster.cluster.id,
-          workers.map(InstanceSnapshot(_)).toList)
-      sendMessage(workersAdded).foreach { _ =>
-        workers.foreach(addInstanceObservers)
+      if (workers.nonEmpty) {
+        val workersAdded =
+          WorkersAdded(
+            serverId,
+            nextMessageNo,
+            cluster.cluster.id,
+            workers.map(InstanceSnapshot(_)).toList)
+        sendMessage(workersAdded).foreach { _ =>
+          workers.foreach(addInstanceObservers)
+        }
       }
     }
   }
@@ -66,15 +74,23 @@ private[messaging] final class MessagingProtocol(
 
     instance.dockerImage.foreach { dockerImage =>
       sendMessage(InstanceDockerImage(serverId, nextMessageNo, instance.id, dockerImage))
-      logger.trace(
+      logger.debug(
         s"Instance docker image change. " +
           s"Instance $instanceName, " +
           s"docker image ${dockerImage}")
     }
 
+    instance.ipAddress.foreach { ipAddress =>
+      sendMessage(InstanceIpAddress(serverId, nextMessageNo, instance.id, ipAddress))
+      logger.debug(
+        s"Instance IP address change. " +
+          s"Instance $instanceName, " +
+          s"ip address ${ipAddress.orNull}")
+    }
+
     instance.state.foreach { state =>
       sendMessage(InstanceState(serverId, nextMessageNo, instance.id, state))
-      logger.trace(
+      logger.debug(
         s"Instance state change. " +
           s"Instance $instanceName, " +
           s"state ${state}")
@@ -82,7 +98,7 @@ private[messaging] final class MessagingProtocol(
 
     instance.containerState.foreach { state =>
       sendMessage(InstanceContainerState(serverId, nextMessageNo, instance.id, state))
-      logger.trace(
+      logger.debug(
         s"Container state change. " +
           s"Instance $instanceName, " +
           s"state ${state}")
@@ -102,15 +118,16 @@ private[messaging] final class MessagingProtocol(
           .get(clusterId)
           .map(_.addWorkers(count))
           .map { optAddWorkers =>
+            logger.debug(optAddWorkers.toString)
             optAddWorkers.map(_ => None).recover {
               case ex =>
-                val error = s"Failed to add workers to cluster with id: $clusterId"
+                val error = s"Failed to add workers to cluster with id $clusterId: " + ex.getMessage
                 logger.error(error, ex)
                 Some(error)
             }
           }
           .getOrElse {
-            val error = s"Add workers: no cluster with id: $clusterId"
+            val error = s"Add workers: no cluster with id $clusterId"
             logger.error(error)
             Future.successful(Some(error))
           }
@@ -124,13 +141,14 @@ private[messaging] final class MessagingProtocol(
           .map { optChangeDockerImage =>
             optChangeDockerImage.map(_ => None).recover {
               case ex =>
-                val error = s"Failed to change Docker image of cluster with id: $clusterId"
+                val error =
+                  s"Failed to change Docker image of cluster with id $clusterId: " + ex.getMessage
                 logger.error(error, ex)
                 Some(error)
             }
           }
           .getOrElse {
-            val error = s"Change docker image: no cluster with id: $clusterId"
+            val error = s"Change docker image: no cluster with id $clusterId"
             logger.error(error)
             Future.successful(Some(error))
           }
@@ -144,7 +162,7 @@ private[messaging] final class MessagingProtocol(
           .map(_ => None)
           .recover {
             case ex =>
-              val error = s"Failed to launch cluster for spec: $clusterSpec"
+              val error = s"Failed to launch cluster for spec $clusterSpec: " + ex.getMessage
               logger.error(error, ex)
               Some(error)
           }
@@ -158,13 +176,13 @@ private[messaging] final class MessagingProtocol(
           .map { optTermination =>
             optTermination.map(_ => None).recover {
               case ex =>
-                val error = s"Failed to terminate cluster with id: $clusterId"
+                val error = s"Failed to terminate cluster with id $clusterId: " + ex.getMessage
                 logger.error(error, ex)
                 Some(error)
             }
           }
           .getOrElse {
-            val error = s"Terminate cluster: no cluster with id: $clusterId"
+            val error = s"Terminate cluster: no cluster with id $clusterId"
             logger.error(error)
             Future.successful(Some(error))
           }
@@ -186,13 +204,14 @@ private[messaging] final class MessagingProtocol(
           .map { optTermination =>
             optTermination.map(_ => None).recover {
               case ex =>
-                val error = s"Failed to terminate worker with instance id: $instanceId"
+                val error =
+                  s"Failed to terminate worker with instance id $instanceId: " + ex.getMessage
                 logger.error(error, ex)
                 Some(error)
             }
           }
           .getOrElse {
-            val error = s"Terminate worker: no worker with instance id: $instanceId"
+            val error = s"Terminate worker: no worker with instance id $instanceId"
             logger.error(error)
             Future.successful(Some(error))
           }
@@ -207,17 +226,9 @@ private[messaging] final class MessagingProtocol(
                   error)))
           .map(Some(_))
       case Some(clientMessage: ClientMessage) =>
-        logger.error(s"Don't know how to handle client message: $clientMessage")
+        logger.error(s"Don't know how to handle client message $clientMessage")
         Future.successful(None)
       case Some(_: ServerMessage) | None => Future.successful(None)
-    }
-  }
-
-  response.foreach { futureOptMessage =>
-    futureOptMessage.foreach { optMessage =>
-      optMessage.foreach { message =>
-        logger.debug(s"Replied with $message")
-      }
     }
   }
 }

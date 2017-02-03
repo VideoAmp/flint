@@ -69,7 +69,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
 
     Instance(
       id,
-      InetAddress.getLoopbackAddress,
+      Var(Some(InetAddress.getLoopbackAddress)),
       placementGroup,
       Var(dockerImage),
       lifecycleState,

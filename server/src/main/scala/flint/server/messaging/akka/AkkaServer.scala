@@ -47,7 +47,7 @@ class AkkaServer(
   private val dockerTags = new Tags(httpClient)
 
   private val (messageSender, messageReceiver) = {
-    val messageSource = Source.queue[TextMessage](0, OverflowStrategy.backpressure)
+    val messageSource = Source.queue[TextMessage](100, OverflowStrategy.dropBuffer)
     val messageSink   = Sink.queue[TextMessage]
     val (messageSourceQueue, messageSinkQueue) =
       messageSource.toMat(messageSink)(Keep.both).run
@@ -130,8 +130,8 @@ class AkkaServer(
           }
     }
     val notFoundHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
-      case req =>
-        logger.info("Received unknown request")
+      case req @ HttpRequest(_, Uri.Path(requestPath), _, _, _) =>
+        logger.info("Received request for unknown path " + requestPath)
         req.discardEntityBytes()
         Future.successful(HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*))
     }

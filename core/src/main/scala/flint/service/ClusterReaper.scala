@@ -34,22 +34,24 @@ object ClusterReaper extends LazyLogging {
     """Applications:<\/strong>(?:\s*)(\d+)(?:\s*)<a href="#running-app">Running""".r.unanchored
 
   def hasRunningApps(cluster: Cluster): Option[Boolean] =
-    if (cluster.master.containerState.now == ContainerRunning) {
-      val masterUIHost = cluster.master.ipAddress
-      val masterUIPort = 8080
-      val masterUrl    = new URL(s"http://${masterUIHost.getHostAddress}:$masterUIPort")
+    cluster.master.ipAddress.now.flatMap { masterIpAddress =>
+      if (cluster.master.containerState.now == ContainerRunning) {
+        val masterUIHost = masterIpAddress
+        val masterUIPort = 8080
+        val masterUrl    = new URL(s"http://${masterUIHost.getHostAddress}:$masterUIPort")
 
-      try {
-        val response                                 = getContent(masterUrl)
-        val MasterUIRunningAppCount(runningAppCount) = response.replaceAll("""\R""", "")
-        Some(runningAppCount.toInt != 0)
-      } catch {
-        case e: IOException =>
-          logger.error(s"Failed to fetch Master UI at $masterUrl", e)
-          None
+        try {
+          val response                                 = getContent(masterUrl)
+          val MasterUIRunningAppCount(runningAppCount) = response.replaceAll("""\R""", "")
+          Some(runningAppCount.toInt != 0)
+        } catch {
+          case e: IOException =>
+            logger.error(s"Failed to fetch Master UI at $masterUrl", e)
+            None
+        }
+      } else {
+        None
       }
-    } else {
-      None
     }
 
   private def getContent(

@@ -3,6 +3,7 @@ package service
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
+import scala.util.Try
 
 import rx._
 
@@ -15,20 +16,26 @@ trait ManagedCluster extends Killable {
 
   protected val managementService: ManagementService
 
-  final def addWorkers(count: Int): Future[Seq[Instance]] = {
-    require(cluster.master.state.now == Running, "Cluster master must be running to add workers")
-    require(count > 0, "Worker count must be positive")
-    addWorkers0(count)
-  }
+  final def addWorkers(count: Int): Future[Seq[Instance]] =
+    Future
+      .fromTry(Try {
+        require(
+          cluster.master.state.now == Running,
+          "cluster master must be running to add workers")
+        require(count > 0, "worker count must be positive")
+      })
+      .flatMap(_ => addWorkers0(count))
 
   protected def addWorkers0(count: Int): Future[Seq[Instance]]
 
-  final def changeDockerImage(dockerImage: DockerImage): Future[Unit] = {
-    require(
-      cluster.master.state.now == Running,
-      "Cluster master must be running to change docker image")
-    changeDockerImage0(dockerImage)
-  }
+  final def changeDockerImage(dockerImage: DockerImage): Future[Unit] =
+    Future
+      .fromTry(
+        Try(
+          require(
+            cluster.master.state.now == Running,
+            "cluster master must be running to change docker image")))
+      .flatMap(_ => changeDockerImage0(dockerImage))
 
   protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] = {
     val instances = cluster.master +: cluster.workers.now
@@ -48,6 +55,16 @@ trait ManagedCluster extends Killable {
           .map(_ => ())
       }
   }
+
+  final def terminate(): Future[Unit] =
+    Future
+      .fromTry(Try {
+        require(cluster.master.state.now != Terminating, "cluster is already terminating")
+        require(cluster.master.state.now != Terminated, "cluster is already terminated")
+      })
+      .flatMap(_ => terminate0)
+
+  protected def terminate0(): Future[Unit]
 
   override def toString(): String = "Managed" + cluster.toString
 }

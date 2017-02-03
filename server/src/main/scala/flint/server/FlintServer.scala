@@ -24,7 +24,11 @@ object FlintServer extends LazyLogging {
     val interactive = args.length == 1 && args(0) == "-i"
 
     val configParseOptions = ConfigParseOptions.defaults.setAllowMissing(false)
-    val config             = ConfigFactory.defaultApplication(configParseOptions)
+
+    // Don't timeout an idle web socket connection
+    val fallbackConfig = ConfigFactory.parseString("""akka.http.server.idle-timeout="infinite"""")
+    val config =
+      ConfigFactory.defaultApplication(configParseOptions).withFallback(fallbackConfig)
     validateConfig(config)
 
     val flintConfig  = config.get[Config]("flint").value
@@ -49,7 +53,10 @@ object FlintServer extends LazyLogging {
     val dockerCreds     = Token(dockerAuthToken)
 
     implicit val actorSystem =
-      ActorSystem("flint", defaultExecutionContext = Some(ioExecutionContext))
+      ActorSystem(
+        "flint",
+        config = Some(config),
+        defaultExecutionContext = Some(ioExecutionContext))
     implicit val materializer = ActorMaterializer()
     import actorSystem.dispatcher
 

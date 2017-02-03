@@ -2,9 +2,12 @@ package flint
 package service
 package aws
 
+import java.net.InetAddress
+
 import scala.concurrent.Future
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance }
+import com.typesafe.scalalogging.LazyLogging
 
 import rx._
 
@@ -13,10 +16,11 @@ private[aws] class AwsManagedCluster(
     clusterService: AwsClusterService,
     override val workerInstanceType: String,
     workerBidPrice: Option[BigDecimal])
-    extends ManagedCluster {
+    extends ManagedCluster
+    with LazyLogging {
   override protected val managementService = clusterService.managementService
 
-  override def terminate(): Future[Unit] =
+  override protected def terminate0(): Future[Unit] =
     clusterService.terminateCluster(cluster, isSpot = workerBidPrice.isDefined)
 
   override protected def addWorkers0(count: Int) =
@@ -33,6 +37,7 @@ private[aws] class AwsManagedCluster(
         workerInstanceType,
         workerBidPrice)
       .map { newWorkers =>
+        logger.debug(s"Adding ${newWorkers.size} new worker(s)")
         this.newWorkers.asVar() = newWorkers
         cluster.workers.asVar() = cluster.workers.now ++ newWorkers
         newWorkers
@@ -48,6 +53,8 @@ private[aws] class AwsManagedCluster(
   private[aws] def update(instances: Seq[AwsInstance]): Unit =
     Tags.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
       def updateInstance(instance: Instance, awsInstance: AwsInstance) = {
+        instance.ipAddress.asVar() =
+          Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
         instance.dockerImage.asVar() = Tags.getDockerImage(awsInstance)
         instance.state.asVar() = awsInstance.getState
         Tags.getContainerState(awsInstance).foreach(instance.containerState.asVar() = _)
@@ -82,7 +89,11 @@ private[aws] class AwsManagedCluster(
           workersNow.map(_.id).contains(workerId)
       }.map { case (_, workerInstance) => clusterService.flintInstance(workerInstance) }
 
-      this.newWorkers.asVar() = newWorkers.toIndexedSeq
+      if (newWorkers.nonEmpty) {
+        logger.debug(s"Adding ${newWorkers.size} new worker(s)")
+        this.newWorkers.asVar() = newWorkers.toIndexedSeq
+      }
+
       cluster.workers.asVar() = retainedWorkers ++ newWorkers
     }
 }
