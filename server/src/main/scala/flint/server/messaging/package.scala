@@ -34,16 +34,22 @@ package object messaging {
 
   private[messaging] implicit val jsonBigDecimal: JSON[BigDecimal] = new JSON[BigDecimal] {
     override def read(jval: JValue): JValidation[BigDecimal] = jval match {
-      case JDecimal(decimal) =>
-        try {
-          Success(decimal)
-        } catch {
-          case ex: Exception => fail("Failed to parse decimal: " + ex.getMessage)
-        }
-      case _ => fail("Number expected")
+      case JDouble(double)   => parseDecimal(double)
+      case JDecimal(decimal) => parseDecimal(decimal)
+      case JLong(long)       => parseDecimal(long)
+      case JInt(int)         => parseDecimal(BigDecimal(int))
+      case jval              => fail("Number expected. Got " + jval.getClass.getSimpleName)
     }
 
     override def write(value: BigDecimal): JValue = JDecimal(value)
+
+    private def parseDecimal(decimal: BigDecimal) =
+      try {
+        Success(decimal)
+      } catch {
+        case ex: Exception => fail("Failed to parse number: " + ex.getMessage)
+      }
+
   }
 
   private[messaging] implicit val jsonInstant: JSON[Instant] = new JSON[Instant] {
@@ -54,7 +60,7 @@ package object messaging {
         } catch {
           case ex: Exception => fail("Failed to parse instant: " + ex.getMessage)
         }
-      case _ => fail("String expected")
+      case jval => fail("String expected. Got " + jval.getClass.getSimpleName)
     }
 
     override def write(value: Instant): JValue =
@@ -70,7 +76,7 @@ package object messaging {
         } catch {
           case ex: Exception => fail("Failed to parse duration: " + ex.getMessage)
         }
-      case _ => fail("String expected")
+      case jval => fail("String expected. Got " + jval.getClass.getSimpleName)
     }
 
     override def write(value: FiniteDuration): JValue =
@@ -85,7 +91,7 @@ package object messaging {
         } catch {
           case ex: Exception => fail("Failed to parse ip address: " + ex.getMessage)
         }
-      case _ => fail("String expected")
+      case jval => fail("String expected. Got " + jval.getClass.getSimpleName)
     }
 
     override def write(value: InetAddress): JValue = JString(value.getHostAddress)
@@ -93,16 +99,20 @@ package object messaging {
 
   private[messaging] implicit val jsonSpace: JSON[Space] = new JSON[Space] {
     override def read(jval: JValue): JValidation[Space] = jval match {
-      case JInt(bytes) =>
-        try {
-          Success(Space.fromBytes(bytes))
-        } catch {
-          case ex: Exception => fail("Failed to parse space: " + ex.getMessage)
-        }
-      case _ => fail("Integer expected")
+      case JInt(bytes)  => parseBytes(bytes)
+      case JLong(bytes) => parseBytes(bytes)
+      case jval         => fail("Integer expected. Got " + jval.getClass.getSimpleName)
     }
 
     override def write(value: Space): JValue = JInt(value.bytes)
+
+    private def parseBytes(bytes: BigInt) =
+      try {
+        Success(Space.fromBytes(bytes))
+      } catch {
+        case ex: Exception => fail("Failed to parse space: " + ex.getMessage)
+      }
+
   }
 
   private[messaging] implicit val dockerImageJson = deriveJSON[DockerImage]

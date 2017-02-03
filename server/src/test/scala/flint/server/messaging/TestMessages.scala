@@ -39,6 +39,7 @@ object TestMessages {
       InstanceDockerImage(serverId, 0, instanceId, Some(dockerImage)),
       InstanceState(serverId, 0, instanceId, Running),
       LaunchCluster(clusterSpec),
+      LaunchSpotCluster(clusterSpec, BigDecimal(1.23)),
       TerminateCluster(clusterId),
       TerminateWorker(instanceId),
       WorkerAdditionAttempt(serverId, 0, clusterId, 3, error),
