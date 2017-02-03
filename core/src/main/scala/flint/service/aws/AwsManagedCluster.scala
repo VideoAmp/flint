@@ -18,7 +18,7 @@ private[aws] class AwsManagedCluster(
     with LazyLogging {
   override protected val managementService = clusterService.managementService
 
-  override def terminate(): Future[Unit] =
+  override protected def terminate0(): Future[Unit] =
     clusterService.terminateCluster(cluster, isSpot = workerBidPrice.isDefined)
 
   override protected def addWorkers0(count: Int) =

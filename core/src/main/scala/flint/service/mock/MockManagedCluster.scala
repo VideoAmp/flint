@@ -14,7 +14,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
     extends ManagedCluster {
   override protected val managementService = MockManagementService
 
-  override def terminate(): Future[Unit] =
+  override protected def terminate0(): Future[Unit] =
     clusterService.terminateClusterInstances(cluster.master, cluster.workers)
 
   override protected def addWorkers0(count: Int) =

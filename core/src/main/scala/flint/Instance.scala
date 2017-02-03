@@ -3,7 +3,7 @@ package flint
 import java.net.InetAddress
 
 import scala.concurrent.Future
-import scala.util.Success
+import scala.util.Try
 
 import rx._
 
@@ -17,7 +17,13 @@ case class Instance(
     specs: InstanceSpecs)(terminator: Instance => Future[Unit])
     extends Killable {
 
-  override def terminate(): Future[Unit] = terminator(this)
+  override def terminate(): Future[Unit] =
+    Future
+      .fromTry(Try {
+        require(state.now != Terminating, "instance is already terminating")
+        require(state.now != Terminated, "instance is already terminated")
+      })
+      .flatMap(_ => terminator(this))
 
   override def equals(other: Any): Boolean = other match {
     case otherInstance: Instance => id == otherInstance.id
