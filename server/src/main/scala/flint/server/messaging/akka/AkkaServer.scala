@@ -130,8 +130,8 @@ class AkkaServer(
           }
     }
     val notFoundHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
-      case req =>
-        logger.info("Received unknown request")
+      case req @ HttpRequest(_, Uri.Path(requestPath), _, _, _) =>
+        logger.info("Received request for unknown path " + requestPath)
         req.discardEntityBytes()
         Future.successful(HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*))
     }

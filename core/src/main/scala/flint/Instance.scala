@@ -9,7 +9,7 @@ import rx._
 
 case class Instance(
     id: String,
-    ipAddress: InetAddress,
+    ipAddress: Rx[Option[InetAddress]],
     placementGroup: Option[String],
     dockerImage: Rx[Option[DockerImage]],
     state: Rx[LifecycleState],
@@ -36,7 +36,7 @@ case class Instance(
 object Instance {
   private[flint] def apply(
       id: String,
-      ipAddress: InetAddress,
+      ipAddress: Option[InetAddress],
       placementGroup: Option[String],
       dockerImage: Option[DockerImage],
       state: LifecycleState,
@@ -44,7 +44,7 @@ object Instance {
       specs: InstanceSpecs)(terminator: Instance => Future[Unit]): Instance =
     new Instance(
       id,
-      ipAddress,
+      Var(ipAddress),
       placementGroup,
       Var(dockerImage),
       Var(state),

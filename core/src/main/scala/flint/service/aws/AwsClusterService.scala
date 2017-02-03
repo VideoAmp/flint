@@ -217,7 +217,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         clusterId,
         owner,
         InstanceProvisioning.Normal,
-        master.ipAddress,
+        master.ipAddress.now.get, // Unsafe but whatevs
         workerSpecs,
         dockerImage,
         extraInstanceTags,
@@ -255,7 +255,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         clusterId,
         owner,
         InstanceProvisioning.Spot,
-        master.ipAddress,
+        master.ipAddress.now.get, // Unsafe but whatevs
         workerSpecs,
         dockerImage,
         extraInstanceTags,
@@ -284,8 +284,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   }
 
   private[aws] def flintInstance(awsInstance: AwsInstance): Instance = {
-    val instanceId                     = awsInstance.getInstanceId
-    val ipAddress                      = InetAddress.getByName(awsInstance.getPrivateIpAddress)
+    val instanceId = awsInstance.getInstanceId
+    val ipAddress =
+      Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
     val lifecycleState: LifecycleState = awsInstance.getState
     val containerState =
       Tags.getContainerState(awsInstance).getOrElse(ContainerPending)

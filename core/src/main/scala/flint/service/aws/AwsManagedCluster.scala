@@ -2,6 +2,8 @@ package flint
 package service
 package aws
 
+import java.net.InetAddress
+
 import scala.concurrent.Future
 
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance }
@@ -51,6 +53,8 @@ private[aws] class AwsManagedCluster(
   private[aws] def update(instances: Seq[AwsInstance]): Unit =
     Tags.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
       def updateInstance(instance: Instance, awsInstance: AwsInstance) = {
+        instance.ipAddress.asVar() =
+          Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
         instance.dockerImage.asVar() = Tags.getDockerImage(awsInstance)
         instance.state.asVar() = awsInstance.getState
         Tags.getContainerState(awsInstance).foreach(instance.containerState.asVar() = _)

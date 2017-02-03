@@ -80,6 +80,14 @@ private[messaging] final class MessagingProtocol(
           s"docker image ${dockerImage}")
     }
 
+    instance.ipAddress.foreach { ipAddress =>
+      sendMessage(InstanceIpAddress(serverId, nextMessageNo, instance.id, ipAddress))
+      logger.debug(
+        s"Instance IP address change. " +
+          s"Instance $instanceName, " +
+          s"ip address ${ipAddress.orNull}")
+    }
+
     instance.state.foreach { state =>
       sendMessage(InstanceState(serverId, nextMessageNo, instance.id, state))
       logger.debug(

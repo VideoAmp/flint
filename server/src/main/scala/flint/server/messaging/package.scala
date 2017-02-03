@@ -3,6 +3,7 @@ package server
 
 import service.ClusterSpec
 
+import java.net.InetAddress
 import java.time.{ Instant, OffsetDateTime, ZoneOffset }
 
 import scala.concurrent.duration.FiniteDuration
@@ -74,6 +75,20 @@ package object messaging {
 
     override def write(value: FiniteDuration): JValue =
       JString(JDuration.ofMillis(value.toMillis).toString)
+  }
+
+  private[messaging] implicit val jsonInetAddress: JSON[InetAddress] = new JSON[InetAddress] {
+    override def read(jval: JValue): JValidation[InetAddress] = jval match {
+      case JString(inetAddress) =>
+        try {
+          Success(InetAddress.getByName(inetAddress))
+        } catch {
+          case ex: Exception => fail("Failed to parse ip address: " + ex.getMessage)
+        }
+      case _ => fail("String expected")
+    }
+
+    override def write(value: InetAddress): JValue = JString(value.getHostAddress)
   }
 
   private[messaging] implicit val jsonSpace: JSON[Space] = new JSON[Space] {
