@@ -1,4 +1,5 @@
 import React from "react";
+import R from "ramda";
 
 import { Card, CardActions, CardHeader, CardText } from "material-ui/Card";
 import Divider from "material-ui/Divider";
@@ -11,13 +12,14 @@ import ClusterInstanceDialog from "./ClusterInstanceDialog";
 import ClusterTerminateDialog from "./ClusterTerminateDialog";
 import Instance from "./Instance";
 
-const getInstanceMapper = (socket, master) =>
+const getInstanceMapper = (socket, master, isSpotCluster) =>
     instance => (
         <div key={instance.id}>
             <Instance
                 data={instance}
                 master={master}
-                socket={socket}/>
+                socket={socket}
+                isSpotCluster={isSpotCluster}/>
             <Divider />
         </div>
     );
@@ -51,8 +53,8 @@ export default class Cluster extends React.Component {
 
     render() {
         const { socket, instanceSpecs, data: cluster } = this.props;
-        const { owner, dockerImage, master, workers = [], workerInstanceType } = cluster;
-
+        const { owner, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
+        const isSpotCluster = !R.isNil(workerBidPrice);
         // TODO: return short-form image tag
         const clusterTitle =
             `${owner} ${dockerImage.tag.split("-")[0]}`;
@@ -80,8 +82,8 @@ export default class Cluster extends React.Component {
                     </CardHeader>
                     <CardText style={{ padding: "0px" }}>
                         <Divider />
-                        { getInstanceMapper(socket, true)(master) }
-                        { workers.map(getInstanceMapper(socket, false)) }
+                        { getInstanceMapper(socket, true, isSpotCluster)(master) }
+                        { workers.map(getInstanceMapper(socket, false, isSpotCluster)) }
                     </CardText>
                     <CardActions style={{ padding: "0px" }}>
                         <ClusterTotals
