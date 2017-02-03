@@ -80,7 +80,7 @@ export default class Instance extends React.Component {
     }
 
     render() {
-        const { data, master } = this.props;
+        const { data, master, isSpotCluster } = this.props;
 
         return (
             <div>
@@ -97,6 +97,7 @@ export default class Instance extends React.Component {
                             <span style={{ cursor: "pointer" }}>{data.ipAddress}</span>
                         </CopyToClipboard>
                         &nbsp;
+                        {!master && isSpotCluster ? "Spot " : ""}
                         {master ? "Master" : "Worker"}
                     </div>
                 </ListItem>
