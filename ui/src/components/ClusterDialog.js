@@ -82,8 +82,10 @@ export default class ClusterDialog extends React.Component {
             workerInstanceType,
             numWorkers,
         };
+        const bidPrice = R.prop("hourlyPrice", R.find(R.propEq("instanceType", workerInstanceType))(
+            this.props.instanceSpecs));
 
-        this.props.socket.send(JSON.stringify({ clusterSpec, "$type": messageType }));
+        this.props.socket.send(JSON.stringify({ bidPrice, clusterSpec, "$type": messageType }));
         this.props.close(owner);
     }
 
