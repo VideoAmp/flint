@@ -40,7 +40,7 @@ export default class ClusterDialog extends React.Component {
         idleTimeout: 15,
     };
 
-    getDockerImageTags = () => fetch("http://localhost:8080/api/version/1/dockerImages")
+    getDockerImageTags = () => fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
             .then(response => response.json())
             .then((dockerImages) => {
                 const tags = R.map(R.prop("tag"), dockerImages);
