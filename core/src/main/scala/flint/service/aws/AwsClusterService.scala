@@ -153,7 +153,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       .runInstances(masterRequest)
       .map { reservation =>
         val masterAwsInstance = reservation.getInstances.asScala.head
-        flintInstance(masterAwsInstance)
+        flintInstance(spec.id, masterAwsInstance, false)
       }
       .flatMap { master =>
         val masterTags = tags.masterTags(spec, workerBidPrice, legacyCompatibility)
@@ -232,7 +232,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         workerUserData,
         awsConfig)
     ec2Client.runInstances(workersRequest).flatMap { reservation =>
-      val workers    = reservation.getInstances.asScala.map(flintInstance).toIndexedSeq
+      val workers =
+        reservation.getInstances.asScala
+          .map(instance => flintInstance(clusterId, instance, false))
+          .toIndexedSeq
       val workerTags = tags.workerTags(clusterId, owner, legacyCompatibility)
       tagResources(workers.map(_.id), workerTags).map(_ => workers)
     }
@@ -283,7 +286,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     ec2Client.describeInstances(request)
   }
 
-  private[aws] def flintInstance(awsInstance: AwsInstance): Instance = {
+  private[aws] def flintInstance(
+      clusterId: ClusterId,
+      awsInstance: AwsInstance,
+      isSpot: Boolean): Instance = {
     val instanceId = awsInstance.getInstanceId
     val ipAddress =
       Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
@@ -302,7 +308,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       dockerImage,
       lifecycleState,
       containerState,
-      instanceSpecs)(instance => terminateInstances(instance))
+      instanceSpecs)(instance => terminateInstances(clusterId, Seq(instance), isSpot))
   }
 
   private[aws] def tagResources(resourceIds: Seq[String], tags: Seq[Tag]): Future[Unit] =
@@ -315,43 +321,50 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     }
 
   private[aws] def terminateCluster(cluster: Cluster, isSpot: Boolean): Future[Unit] =
-    (if (isSpot) {
-       val clusterIdFilter = new Filter(s"tag:${Tags.ClusterId}").withValues(cluster.id.toString)
-       val request         = new DescribeSpotInstanceRequestsRequest().withFilters(clusterIdFilter)
-       ec2Client.describeSpotInstanceRequests(request).flatMap { spotInstanceRequests =>
-         if (spotInstanceRequests.nonEmpty) {
-           val request = new CancelSpotInstanceRequestsRequest()
-             .withSpotInstanceRequestIds(spotInstanceRequests.map(_.getSpotInstanceRequestId): _*)
-           ec2Client.cancelSpotInstanceRequests(request)
-         } else {
-           Future.successful(())
-         }
-       }
-     } else { Future.successful(Seq.empty) }).flatMap { _ =>
-      terminateInstances((cluster.master +: cluster.workers.now): _*)
-    }
+    terminateInstances(cluster.id, (cluster.master +: cluster.workers.now), isSpot)
 
-  private def terminateInstances(instances: Instance*): Future[Unit] =
+  private def terminateInstances(
+      clusterId: ClusterId,
+      instances: Seq[Instance],
+      areSpot: Boolean): Future[Unit] =
     if (instances.nonEmpty) {
       val instanceIds = instances.map(_.id)
-      val terminateInstancesRequest =
-        new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
-      ec2Client
-        .terminateInstances(terminateInstancesRequest)
-        .andThen {
-          case Success(_) => instances.foreach(_.containerState.asVar() = ContainerStopped)
-        }
-        .map { terminatingInstances =>
-          terminatingInstances.foreach { terminatingInstance =>
-            tagResources(
-              instanceIds.toStream,
-              Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
-              clusterSystem.updateInstanceState(
-                terminatingInstance.getInstanceId,
-                terminatingInstance.getCurrentState)
+      (if (areSpot) {
+         val clusterIdFilter =
+           new Filter(s"tag:${Tags.ClusterId}").withValues(clusterId.toString)
+         val request = new DescribeSpotInstanceRequestsRequest().withFilters(clusterIdFilter)
+         ec2Client.describeSpotInstanceRequests(request).flatMap { spotInstanceRequests =>
+           if (spotInstanceRequests.nonEmpty) {
+             val request = new CancelSpotInstanceRequestsRequest().withSpotInstanceRequestIds(
+               spotInstanceRequests
+                 .filter(spotInstanceRequest =>
+                   instanceIds.contains(spotInstanceRequest.getInstanceId))
+                 .map(_.getSpotInstanceRequestId): _*)
+             ec2Client.cancelSpotInstanceRequests(request)
+           } else {
+             Future.successful(())
+           }
+         }
+       } else { Future.successful(Seq.empty) }).flatMap { _ =>
+        val terminateInstancesRequest =
+          new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
+        ec2Client
+          .terminateInstances(terminateInstancesRequest)
+          .andThen {
+            case Success(_) => instances.foreach(_.containerState.asVar() = ContainerStopped)
+          }
+          .map { terminatingInstances =>
+            terminatingInstances.foreach { terminatingInstance =>
+              tagResources(
+                instanceIds.toStream,
+                Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
+                clusterSystem.updateInstanceState(
+                  terminatingInstance.getInstanceId,
+                  terminatingInstance.getCurrentState)
+              }
             }
           }
-        }
+      }
     } else {
       Future.successful(())
     }

@@ -87,7 +87,10 @@ private[aws] class AwsManagedCluster(
       val newWorkers = workerAwsInstances.filterNot {
         case (workerId, _) =>
           workersNow.map(_.id).contains(workerId)
-      }.map { case (_, workerInstance) => clusterService.flintInstance(workerInstance) }
+      }.map {
+        case (_, workerInstance) =>
+          clusterService.flintInstance(cluster.id, workerInstance, workerBidPrice.isDefined)
+      }
 
       if (newWorkers.nonEmpty) {
         logger.debug(s"Adding ${newWorkers.size} new worker(s)")
@@ -110,9 +113,13 @@ private[aws] object AwsManagedCluster {
             val ttl            = Tags.getClusterTTL(masterAwsInstance)
             val idleTimeout    = Tags.getClusterIdleTimeout(masterAwsInstance)
             val workerBidPrice = Tags.getWorkerBidPrice(masterAwsInstance)
-            val master         = clusterService.flintInstance(masterAwsInstance)
+            val master =
+              clusterService.flintInstance(clusterId, masterAwsInstance, false)
             val workers =
-              Tags.filterWorkers(clusterId, instances).map(clusterService.flintInstance)
+              Tags
+                .filterWorkers(clusterId, instances)
+                .map(instance =>
+                  clusterService.flintInstance(clusterId, instance, workerBidPrice.isDefined))
 
             val cluster =
               Cluster(
