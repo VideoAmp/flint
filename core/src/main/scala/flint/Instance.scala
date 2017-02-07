@@ -14,7 +14,7 @@ case class Instance(
     dockerImage: Rx[Option[DockerImage]],
     state: Rx[LifecycleState],
     containerState: Rx[ContainerState],
-    specs: InstanceSpecs)(terminator: Instance => Future[Unit])
+    specs: InstanceSpecs)(terminator: Instance => Future[Unit])(implicit ctx: Ctx.Owner)
     extends Killable {
 
   override def terminate(): Future[Unit] =
@@ -24,6 +24,10 @@ case class Instance(
         require(state.now != Terminated, "instance is already terminated")
       })
       .flatMap(_ => terminator(this))
+
+  val effectiveContainerState: Rx[ContainerState] = Rx {
+    containerState().constrainedBy(state())
+  }
 
   override def equals(other: Any): Boolean = other match {
     case otherInstance: Instance => id == otherInstance.id
@@ -41,7 +45,8 @@ object Instance {
       dockerImage: Option[DockerImage],
       state: LifecycleState,
       containerState: ContainerState,
-      specs: InstanceSpecs)(terminator: Instance => Future[Unit]): Instance =
+      specs: InstanceSpecs)(terminator: Instance => Future[Unit])(
+      implicit ctx: Ctx.Owner): Instance =
     new Instance(
       id,
       Var(ipAddress),

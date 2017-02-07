@@ -96,7 +96,7 @@ private[messaging] final class MessagingProtocol(
           s"state ${state}")
     }
 
-    instance.containerState.foreach { state =>
+    instance.effectiveContainerState.foreach { state =>
       sendMessage(InstanceContainerState(serverId, nextMessageNo, instance.id, state))
       logger.debug(
         s"Container state change. " +

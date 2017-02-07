@@ -14,7 +14,7 @@ buildOptions in docker := (buildOptions in docker).value.copy(cache = false)
 
 dockerfile in docker := {
   val artifact           = (assemblyOutputPath in assembly).value
-  val artifactTargetPath = artifact.name
+  val artifactTargetPath = name.value + "-assembly.jar"
 
   new Dockerfile {
     from("videoamp/alpine-java:8_jdk_unlimited")

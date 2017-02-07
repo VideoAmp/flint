@@ -35,7 +35,7 @@ object ClusterReaper extends LazyLogging {
 
   def hasRunningApps(cluster: Cluster): Option[Boolean] =
     cluster.master.ipAddress.now.flatMap { masterIpAddress =>
-      if (cluster.master.containerState.now == ContainerRunning) {
+      if (cluster.master.effectiveContainerState.now == ContainerRunning) {
         val masterUIHost = masterIpAddress
         val masterUIPort = 8080
         val masterUrl    = new URL(s"http://${masterUIHost.getHostAddress}:$masterUIPort")

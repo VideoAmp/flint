@@ -21,7 +21,7 @@ private[messaging] object InstanceSnapshot {
       placementGroup,
       dockerImage.now,
       state.now,
-      containerState.now,
+      effectiveContainerState.now,
       specs.instanceType)
   }
 }
