@@ -21,6 +21,12 @@ object FlintServer extends LazyLogging {
   def main(args: Array[String]): Unit = {
     import FlintCtx.owner
 
+    // scalastyle:off println
+    println(
+      "Flint Server version " + BuildInfo.version + " (Scala " +
+        BuildInfo.scalaVersion + "), commit hash " + BuildInfo.gitHeadCommit.take(7))
+    // scalastyle:on println
+
     val interactive = args.length == 1 && args(0) == "-i"
 
     val configParseOptions = ConfigParseOptions.defaults.setAllowMissing(false)
