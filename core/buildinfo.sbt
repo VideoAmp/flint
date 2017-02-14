@@ -13,3 +13,10 @@ buildInfoKeys := Seq[BuildInfoKey](
 
 buildInfoOptions += BuildInfoOption.ToJson
 buildInfoOptions += BuildInfoOption.ToMap
+
+buildInfoOptions ++= {
+  if (isSnapshot.value)
+    BuildInfoOption.BuildTime :: Nil
+  else
+    Nil
+}

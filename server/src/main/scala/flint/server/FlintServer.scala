@@ -44,7 +44,7 @@ object FlintServer extends LazyLogging {
     val bindInterface = bindAddress.takeWhile(_ != ':')
     val bindPort      = bindAddress.dropWhile(_ != ':').drop(1).toInt
 
-    val apiRoot = "/api/version/1"
+    val apiRoot = "/api/version/" + ServerBuildInfo.flintServerAPIVersion
 
     val clusterService =
       serverConfig.get[String]("cluster_service").value match {
