@@ -128,6 +128,27 @@ export default class App extends React.Component {
 
                 const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
                 this.setState({ clusters: updatedClusters });
+            } else if (R.propEq("$type", "ClustersRemoved", message)) {
+                const { clusterIds: removedClusterIds } = message;
+                const updatedClusterState = R.omit(removedClusterIds, clusters);
+                this.setState({ clusters: updatedClusterState });
+                console.log("Clusters removed");
+            } else if (R.propEq("$type", "WorkersRemoved", message)) {
+                const { clusterId, workerIds: removedWorkerIds } = message;
+                if (!R.has(clusterId, clusters)) {
+                    return console.log(`Cluster with id ${clusterId} not found`);
+                }
+                const clusterToUpdate = R.prop(clusterId, clusters);
+                const updatedCluster = R.assoc(
+                    "workers",
+                    R.reject(worker => R.contains(R.prop("id", worker), removedWorkerIds),
+                        R.prop("workers", clusterToUpdate)),
+                    clusterToUpdate
+                );
+
+                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+                this.setState({ clusters: updatedClusters });
+                console.log("Workers removed");
             }
             return undefined;
         };
