@@ -68,6 +68,7 @@ private[aws] class Tags(extraInstanceTags: Map[String, String]) {
     }.toSeq
   }
 }
+
 private[aws] object Tags {
   val ResourceName = "Name"
 

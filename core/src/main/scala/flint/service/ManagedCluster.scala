@@ -10,7 +10,8 @@ import rx._
 trait ManagedCluster extends Killable {
   val cluster: Cluster
 
-  final val newWorkers: Rx[Seq[Instance]] = Var(Seq.empty[Instance])
+  final val newWorkers: Rx[Seq[Instance]]   = Var(Seq.empty[Instance])
+  final val removedWorkers: Rx[Seq[String]] = Var(Seq.empty[String])
 
   val workerInstanceType: String
   val workerBidPrice: Option[BigDecimal]

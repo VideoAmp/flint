@@ -74,8 +74,8 @@ private[aws] class AwsManagedCluster(
 
       // Update `cluster.workers` from `workerInstances` in three steps:
       // 1. Retain workers present in `workerInstances`
-      val retainedWorkers =
-        workersNow.filter(worker => workerAwsInstances.contains(worker.id))
+      val (retainedWorkers, removedWorkers) =
+        workersNow.partition(worker => workerAwsInstances.contains(worker.id))
 
       // 2. Update retained workers
       retainedWorkers.foreach { worker =>
@@ -95,6 +95,11 @@ private[aws] class AwsManagedCluster(
       if (newWorkers.nonEmpty) {
         logger.debug(s"Adding ${newWorkers.size} new worker(s)")
         this.newWorkers.asVar() = newWorkers.toIndexedSeq
+      }
+
+      if (removedWorkers.nonEmpty) {
+        logger.debug(s"Removing ${removedWorkers.size} retired worker(s)")
+        this.removedWorkers.asVar() = removedWorkers.map(_.id).toIndexedSeq
       }
 
       cluster.workers.asVar() = retainedWorkers ++ newWorkers

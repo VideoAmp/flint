@@ -12,5 +12,6 @@ trait ClusterSystem {
     clusters().filter(_._2.cluster.master.effectiveContainerState() == ContainerRunning)
   }
 
-  val newClusters: Rx[Seq[ManagedCluster]]
+  final val newClusters: Rx[Seq[ManagedCluster]] = Var(Seq.empty[ManagedCluster])
+  final val removedClusters: Rx[Seq[ClusterId]] = Var(Seq.empty[ClusterId])
 }

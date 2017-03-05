@@ -23,8 +23,6 @@ private[aws] class AwsClusterSystem private[aws] (
     with LazyLogging {
   override val clusters = Var(Map.empty[ClusterId, AwsManagedCluster])
 
-  override val newClusters = Var(Seq.empty[ManagedCluster])
-
   private val clustersRebuildTask = new Runnable {
     override def run(): Unit =
       Await.ready(awsClusterService.describeFlintInstances, Duration.Inf).onComplete {
@@ -49,7 +47,7 @@ private[aws] class AwsClusterSystem private[aws] (
 
           // Rebuild `clusters` from `currentClusterInstances` in three steps:
           // 1. Retain clusters present in `currentClusterInstances`
-          val retainedClusters = clustersNow.filter {
+          val (retainedClusters, removedClusters) = clustersNow.partition {
             case (clusterId, _) =>
               currentClusterInstances.contains(clusterId)
           }
@@ -72,7 +70,13 @@ private[aws] class AwsClusterSystem private[aws] (
 
           if (newClusters.nonEmpty) {
             logger.debug(s"Adding ${newClusters.size} new cluster(s)")
-            AwsClusterSystem.this.newClusters() = newClusters.values.toIndexedSeq
+            AwsClusterSystem.this.newClusters.asVar() = newClusters.values.toIndexedSeq
+          }
+
+          if (removedClusters.nonEmpty) {
+            logger.debug(s"Removing ${removedClusters.size} retired cluster(s)")
+            AwsClusterSystem.this.removedClusters.asVar() =
+              removedClusters.values.map(_.cluster.id).toIndexedSeq
           }
 
           clusters() = retainedClusters ++ newClusters
@@ -99,8 +103,8 @@ private[aws] class AwsClusterSystem private[aws] (
     val clusterId   = managedCluster.cluster.id
 
     if (!clustersNow.contains(clusterId)) {
-      logger.debug(s"Adding new cluster")
-      newClusters() = Seq(managedCluster)
+      logger.debug("Adding new cluster")
+      newClusters.asVar() = Seq(managedCluster)
       clusters() = clustersNow.updated(clusterId, managedCluster)
     }
   }
