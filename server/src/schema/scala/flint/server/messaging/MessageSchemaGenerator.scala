@@ -76,6 +76,7 @@ object MessageSchemaGenerator {
         createMessageSchema[ClusterLaunchAttempt],
         createMessageSchema[ClusterTerminationAttempt],
         createMessageSchema[ClustersAdded],
+        createMessageSchema[ClustersRemoved],
         createMessageSchema[DockerImageChangeAttempt],
         createMessageSchema[InstanceContainerState],
         createMessageSchema[InstanceDockerImage],
@@ -83,7 +84,8 @@ object MessageSchemaGenerator {
         createMessageSchema[InstanceState],
         createMessageSchema[WorkerAdditionAttempt],
         createMessageSchema[WorkerTerminationAttempt],
-        createMessageSchema[WorkersAdded]
+        createMessageSchema[WorkersAdded],
+        createMessageSchema[WorkersRemoved]
       )
     } else { Seq.empty[JsObject] }
 

@@ -39,6 +39,12 @@ private[messaging] final class MessagingProtocol(
         }
       }
     }
+    clusterSystem.removedClusters.foreach { clusterIds =>
+      if (clusterIds.nonEmpty) {
+        val clustersRemoved = ClustersRemoved(serverId, nextMessageNo, clusterIds.toList)
+        sendMessage(clustersRemoved)
+      }
+    }
   }
 
   private def sendMessage(message: ServerMessage): Future[ServerMessage] = {
@@ -64,6 +70,13 @@ private[messaging] final class MessagingProtocol(
         sendMessage(workersAdded).foreach { _ =>
           workers.foreach(addInstanceObservers)
         }
+      }
+    }
+    cluster.removedWorkers.foreach { workerIds =>
+      if (workerIds.nonEmpty) {
+        val workersRemoved =
+          WorkersRemoved(serverId, nextMessageNo, cluster.cluster.id, workerIds.toList)
+        sendMessage(workersRemoved)
       }
     }
   }

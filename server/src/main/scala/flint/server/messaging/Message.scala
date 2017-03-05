@@ -62,6 +62,12 @@ private[messaging] final case class ClustersAdded(
     clusters: List[ClusterSnapshot])
     extends ServerMessage
 
+private[messaging] final case class ClustersRemoved(
+    serverId: String,
+    messageNo: Int,
+    clusterIds: List[ClusterId])
+    extends ServerMessage
+
 private[messaging] final case class DockerImageChangeAttempt(
     serverId: String,
     messageNo: Int,
@@ -130,6 +136,13 @@ private[messaging] final case class WorkersAdded(
     messageNo: Int,
     clusterId: ClusterId,
     workers: List[InstanceSnapshot])
+    extends ServerMessage
+
+private[messaging] final case class WorkersRemoved(
+    serverId: String,
+    messageNo: Int,
+    clusterId: ClusterId,
+    workerIds: List[String])
     extends ServerMessage
 
 private[messaging] object MessageCodec {
