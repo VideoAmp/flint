@@ -13,5 +13,5 @@ trait ClusterSystem {
   }
 
   final val newClusters: Rx[Seq[ManagedCluster]] = Var(Seq.empty[ManagedCluster])
-  final val removedClusters: Rx[Seq[ClusterId]] = Var(Seq.empty[ClusterId])
+  final val removedClusters: Rx[Seq[ClusterId]]  = Var(Seq.empty[ClusterId])
 }

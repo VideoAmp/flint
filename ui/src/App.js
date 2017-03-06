@@ -141,8 +141,10 @@ export default class App extends React.Component {
                 const clusterToUpdate = R.prop(clusterId, clusters);
                 const updatedCluster = R.assoc(
                     "workers",
-                    R.reject(worker => R.contains(R.prop("id", worker), removedWorkerIds),
-                        R.prop("workers", clusterToUpdate)),
+                    R.reject(
+                        worker => R.contains(R.prop("id", worker), removedWorkerIds),
+                        R.prop("workers", clusterToUpdate)
+                    ),
                     clusterToUpdate
                 );
 
