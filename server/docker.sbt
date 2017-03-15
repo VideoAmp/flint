@@ -20,8 +20,6 @@ dockerfile in docker := {
     from("videoamp/alpine-java:8_jdk_unlimited")
     runRaw("apk update")
     runRaw("apk add jemalloc")
-    stageFile((baseDirectory in LocalRootProject).value / "conf", "conf")
-    copyRaw("conf", "conf")
     copy(artifact, artifactTargetPath)
     expose(8080)
     entryPoint(
