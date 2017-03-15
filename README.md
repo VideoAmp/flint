@@ -13,7 +13,7 @@ Flint is a Scala library for managing on-demand Spark clusters. It includes a We
 java -Dconfig.file=<path-to-server.conf> -jar server/target/scala-2.11/flint-server-assembly-*.jar
 ```
 
-A default logging configuration file is provided in [conf/log4j2.xml](conf/log4j2.xml). See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring the logger.
+An example logging configuration file is provided in [conf/log4j2-example.xml](conf/log4j2-example.xml). See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring the logger.
 
 The Flint server uses [Akka](http://akka.io/), which has its own logging configuration. For the sake of simplicity, you can adjust the default Akka log level by specifying the `akka.loglevel` system property, e.g. `-Dakka.loglevel=error`.
 

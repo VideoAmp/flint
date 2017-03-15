@@ -14,7 +14,7 @@
     <Logger name="flint" level="info" additivity="false">
       <AppenderRef ref="FlintConsole" />
     </Logger>
-    <Root level="info">
+    <Root level="debug">
       <AppenderRef ref="Console" />
     </Root>
   </Loggers>
