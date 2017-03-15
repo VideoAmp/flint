@@ -1,4 +1,5 @@
 aws_service.conf
 creds.conf
 docker.conf
+log4j2.xml
 server.conf
