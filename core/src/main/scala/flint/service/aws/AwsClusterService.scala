@@ -43,8 +43,6 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   private val extraInstanceTags = awsConfig.get[Map[String, String]]("extra_instance_tags").value
   private val tags              = new Tags(extraInstanceTags)
 
-  private[aws] val legacyCompatibility = awsConfig.get[Boolean]("legacy_compatibility").value
-
   private lazy val ssmClient                        = createSsmClient(awsConfig)
   override val managementService: ManagementService = new AwsManagementService(ssmClient)
 
@@ -156,7 +154,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         flintInstance(spec.id, masterAwsInstance, false)
       }
       .flatMap { master =>
-        val masterTags = tags.masterTags(spec, workerBidPrice, legacyCompatibility)
+        val masterTags = tags.masterTags(spec, workerBidPrice)
         tagResources(Seq(master.id), masterTags).map(_ => master)
       }
   }
@@ -236,7 +234,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         reservation.getInstances.asScala
           .map(instance => flintInstance(clusterId, instance, false))
           .toIndexedSeq
-      val workerTags = tags.workerTags(clusterId, owner, legacyCompatibility)
+      val workerTags = tags.workerTags(clusterId, owner)
       tagResources(workers.map(_.id), workerTags).map(_ => workers)
     }
   }
@@ -572,7 +570,6 @@ private[aws] object AwsClusterService {
         .replaceMacro("SCRATCH_VOLUMES", sparkLocalDirs.map(x => s"-v $x:$x").mkString(" "))
         .replaceMacro("SPARK_LOCAL_DIRS", sparkLocalDirs.mkString(","))
         .replaceMacro("CLUSTER_ID_TAG_KEY", Tags.ClusterId)
-        .replaceMacro("LEGACY_CLUSTER_ID_TAG_KEY", Tags.LegacyClusterId)
         .replaceMacro("CLUSTER_ID_TAG_VALUE", clusterId)
         .replaceMacro("DOCKER_IMAGE_KEY", Tags.DockerImage)
         .replaceMacro("DOCKER_IMAGE_VALUE", dockerImage.canonicalName)

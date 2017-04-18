@@ -12,10 +12,7 @@ import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 private[aws] class Tags(extraInstanceTags: Map[String, String]) {
   import Tags._
 
-  def masterTags(
-      clusterSpec: ClusterSpec,
-      workerBidPrice: Option[BigDecimal],
-      includeLegacyTags: Boolean): Seq[Tag] = {
+  def masterTags(clusterSpec: ClusterSpec, workerBidPrice: Option[BigDecimal]): Seq[Tag] = {
     import clusterSpec._
 
     val noTags = Map.empty[String, String]
@@ -36,34 +33,20 @@ private[aws] class Tags(extraInstanceTags: Map[String, String]) {
       .map(workerBidPrice => Map(WorkerBidPrice -> workerBidPrice.toString))
       .getOrElse(noTags)
 
-    val legacyTags = if (includeLegacyTags) {
-      Map(
-        LegacyClusterId   -> id.toString,
-        LegacyClusterTTL  -> ttl.map(_.toHours).getOrElse(Int.MaxValue.toLong).toString,
-        LegacyDockerImage -> dockerImage.tag)
-    } else { noTags }
-
     commonResourceTags ++
       (commonTags ++
         ttlTags ++
         idleTimeoutTags ++
         workerBidPriceTags ++
-        extraInstanceTags ++
-        legacyTags).map {
+        extraInstanceTags).map {
         case (name, value) => new Tag(name, value)
       }.toSeq
   }
 
-  def workerTags(clusterId: ClusterId, owner: String, includeLegacyTags: Boolean): Seq[Tag] = {
-    val noTags = Map.empty[String, String]
+  def workerTags(clusterId: ClusterId, owner: String): Seq[Tag] = {
+    val commonResourceTags = commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
 
-    val commonTags = commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
-
-    val legacyTags = if (includeLegacyTags) {
-      Map(LegacyClusterId -> clusterId.toString)
-    } else { noTags }
-
-    commonTags ++ (extraInstanceTags ++ legacyTags).map {
+    commonResourceTags ++ extraInstanceTags.map {
       case (name, value) => new Tag(name, value)
     }.toSeq
   }
@@ -83,10 +66,6 @@ private[aws] object Tags {
   val WorkerInstanceType = "flint:worker_instance_type"
   val WorkerBidPrice     = "flint:worker_bid_price"
 
-  val LegacyClusterId           = "cluster_id"
-  private val LegacyClusterTTL  = "lifetime_hours"
-  private val LegacyDockerImage = "docker_image"
-
   def spotInstanceRequestTags(clusterId: ClusterId, owner: String): Seq[Tag] =
     commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
 
@@ -105,18 +84,12 @@ private[aws] object Tags {
     }.toIndexedSeq
   }
 
-  def dockerImageTags(dockerImage: DockerImage, includeLegacyTags: Boolean): Seq[Tag] = {
+  def dockerImageTags(dockerImage: DockerImage): Seq[Tag] = {
     val tags = Seq(
       ClusterDockerImage -> dockerImage.canonicalName,
       DockerImage        -> dockerImage.canonicalName)
-    val legacyTags =
-      if (includeLegacyTags) {
-        Seq(LegacyDockerImage -> dockerImage.tag)
-      } else {
-        Seq.empty
-      }
 
-    (tags ++ legacyTags).map {
+    tags.map {
       case (name, value) => new Tag(name, value)
     }
   }

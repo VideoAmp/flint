@@ -45,8 +45,7 @@ private[aws] class AwsManagedCluster(
 
   override protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] =
     super.changeDockerImage0(dockerImage).flatMap { _ =>
-      val dockerImageTags =
-        Tags.dockerImageTags(dockerImage, clusterService.legacyCompatibility)
+      val dockerImageTags = Tags.dockerImageTags(dockerImage)
       clusterService.tagResources(Seq(cluster.master.id), dockerImageTags)
     }
 
