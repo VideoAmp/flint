@@ -36,12 +36,35 @@ export default class ClusterDialog extends React.Component {
         workerCountErrorText: "",
         idleTimeoutCountErrorText: "",
         ownerErrorText: "",
+        workerBidPriceErrorText: "",
         masterInstanceType: "",
         workerInstanceType: "",
         numWorkers: 1,
         lifetimeHours: 10,
         idleTimeout: null,
+        workerBidPrice: 0,
+        workerBidPriceString: "",
     };
+
+    getDockerImageTags = () => fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
+            .then(response => response.json())
+            .then((dockerImages) => {
+                const tags = R.map(R.prop("tag"), dockerImages);
+                const getImageNumber = R.compose(parseInt, R.join(""), R.takeLastWhile(x => x !== "-"));
+                const sortByImageNumberDesc = R.sortBy(R.compose(R.negate, getImageNumber));
+                const sortedTags = sortByImageNumberDesc(tags);
+                this.setState({ tags: sortedTags, tag: sortedTags[0] });
+                return sortedTags;
+            })
+
+    getBidPrice = (workerInstanceType) => {
+        const getBidPrice = R.compose(
+            parseFloat,
+            R.prop("hourlyPrice"),
+            R.find(R.propEq("instanceType", workerInstanceType))
+        );
+        return getBidPrice(this.props.instanceSpecs);
+    }
 
     launchCluster = () => {
         const {
@@ -53,15 +76,16 @@ export default class ClusterDialog extends React.Component {
             numWorkers,
             tag,
             isSpotCluster,
+            workerBidPriceErrorText,
+            workerBidPrice,
         } = this.state;
-
-        const getBidPrice = R.compose(
-            R.prop("hourlyPrice"),
-            R.find(R.propEq("instanceType", workerInstanceType))
-        );
 
         if (!owner) {
             this.setState({ ownerErrorText: "Please enter an owner" });
+            return;
+        }
+
+        if (isSpotCluster && workerBidPriceErrorText !== "") {
             return;
         }
 
@@ -79,9 +103,8 @@ export default class ClusterDialog extends React.Component {
             workerInstanceType,
             numWorkers,
         };
-        const bidPrice = getBidPrice(this.props.instanceSpecs);
 
-        this.props.socket.send(JSON.stringify({ bidPrice, clusterSpec, "$type": messageType }));
+        this.props.socket.send(JSON.stringify({ "bidPrice": workerBidPrice, clusterSpec, "$type": messageType }));
         this.props.close(owner);
     }
 
@@ -91,9 +114,12 @@ export default class ClusterDialog extends React.Component {
 
     componentWillReceiveProps() {
         const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], this.props);
+        const defaultWorkerBidPrice =
+            parseFloat(R.pathOr("", ["instanceSpecs", 0, "hourlyPrice"], this.props));
         this.setState({
             masterInstanceType: defaultInstance,
             workerInstanceType: defaultInstance,
+            workerBidPrice: defaultWorkerBidPrice,
         });
     }
 
@@ -119,6 +145,16 @@ export default class ClusterDialog extends React.Component {
     };
     onIdleTimeoutCountValid = idleTimeout => this.setState({ idleTimeout });
 
+    onWorkerBidPriceChange = (event, value) => this.setState({ workerBidPriceString: value });
+    onWorkerBidPriceError = (error) => {
+        const workerBidPriceErrorText = (error === "none") ? "" : "Please enter a valid worker bid price";
+        this.setState({ workerBidPriceErrorText });
+    };
+    onWorkerBidPriceValid = workerBidPrice => this.setState({
+        workerBidPrice,
+        workerBidPriceString: workerBidPrice.toString(),
+    });
+
     handleFieldChange = stateName =>
         (event, index, value) => this.setState(R.objOf(stateName, value))
 
@@ -128,9 +164,17 @@ export default class ClusterDialog extends React.Component {
 
     handleOwnerChange = (owner) => {
         const ownerErrorText = owner ? "" : "Please enter an owner";
-        this.setState({ ownerErrorText });
-        this.setState({ owner });
+        this.setState({ ownerErrorText, owner });
     }
+
+    handleWorkerInstanceTypeChange = stateName =>
+        (event, index, value) => {
+            const bidPrice = this.getBidPrice(value);
+            this.setState({
+                workerBidPriceString: bidPrice.toString(),
+                [stateName]: value,
+            });
+        }
 
     render() {
         const { instanceSpecs, ownerDataSource = [], openState, close } = this.props;
@@ -149,6 +193,9 @@ export default class ClusterDialog extends React.Component {
 
         const fieldStyles = { width: "100%" };
         const gridStyles = { marginBottom: "0px" };
+        const workerBidPriceStyles = {
+            visibility: this.state.isSpotCluster ? "visible" : "hidden",
+        };
 
         return (
             <Dialog
@@ -227,14 +274,14 @@ export default class ClusterDialog extends React.Component {
                         <Cell>
                             <SelectField
                                 value={this.state.workerInstanceType}
-                                onChange={this.handleFieldChange("workerInstanceType")}
+                                onChange={this.handleWorkerInstanceTypeChange("workerInstanceType")}
                                 floatingLabelText="Worker Type"
                                 fullWidth={true}>
                                 {this.props.instanceSpecs.map(generateInstanceSpec)}
                             </SelectField>
                         </Cell>
                     </Grid>
-                    <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>
+                    <Grid style={gridStyles}>
                         <Cell>
                             <NumberInput
                                 id="worker-count-amount-input"
@@ -264,12 +311,27 @@ export default class ClusterDialog extends React.Component {
                             />
                         </Cell>
                     </Grid>
-                    <Grid style={gridStyles}>
-                        <Cell>
+                    <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>
+                        <Cell style={{ alignSelf: "center" }}>
                             <Checkbox
                                 label="Use Spot Cluster"
-                                checked={this.state.isSpotCluster}
+                                defaultChecked={this.state.isSpotCluster}
                                 onCheck={this.handleCheckboxChange("isSpotCluster")}
+                            />
+                        </Cell>
+                        <Cell>
+                            <NumberInput
+                                id="worker-bid-price-input"
+                                floatingLabelText="Spot Worker Bid Price"
+                                value={this.state.workerBidPriceString}
+                                min={0}
+                                max={50}
+                                strategy="allow"
+                                errorText={this.state.workerBidPriceErrorText}
+                                onChange={this.onWorkerBidPriceChange}
+                                onError={this.onWorkerBidPriceError}
+                                onValid={this.onWorkerBidPriceValid}
+                                style={R.merge(fieldStyles, workerBidPriceStyles)}
                             />
                         </Cell>
                     </Grid>
