@@ -73,6 +73,7 @@ export default class App extends React.Component {
         instanceSpecs: [],
         socket: null,
         ownerDataSource: Store.get("ownerDataSource"),
+        lastOwner: Store.get("lastOwner"),
     };
 
     getClusters = () => fetch(`${this.baseUrl}/clusters`)
@@ -169,7 +170,8 @@ export default class App extends React.Component {
             const { ownerDataSource } = this.state;
             const updatedOwnerDataSource = R.union([owner], ownerDataSource);
             Store.set("ownerDataSource", updatedOwnerDataSource);
-            this.setState(R.merge({ ownerDataSource: updatedOwnerDataSource }, updatedState));
+            Store.set("lastOwner", owner);
+            this.setState(R.merge({ ownerDataSource: updatedOwnerDataSource, lastOwner: owner }, updatedState));
         } else {
             this.setState(updatedState);
         }
@@ -202,6 +204,7 @@ export default class App extends React.Component {
                             socket={this.state.socket}
                             instanceSpecs={this.state.instanceSpecs}
                             ownerDataSource={this.state.ownerDataSource}
+                            defaultOwner={this.state.lastOwner}
                         />
                         <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
                             <ContentAdd />
