@@ -2,6 +2,7 @@ import React from "react";
 import R from "ramda";
 
 import { Card, CardActions, CardHeader, CardText } from "material-ui/Card";
+import CircularProgress from "material-ui/CircularProgress";
 import Divider from "material-ui/Divider";
 import IconButton from "material-ui/IconButton";
 import SelectField from "material-ui/SelectField";
@@ -90,7 +91,9 @@ export default class Cluster extends React.Component {
             },
         };
         this.props.socket.send(JSON.stringify(R.merge(message, { "$type": "ChangeDockerImage" })));
-        this.setState({ imageChangeInProgress: true });
+        cluster.imageChangeInProgress = true;
+        // Update the UI to reflect the new value of cluster.imageChangeInProgress
+        this.forceUpdate();
     };
 
     render() {
@@ -100,6 +103,16 @@ export default class Cluster extends React.Component {
         // TODO: return short-form image tag
         const clusterTitle =
             `${owner} ${dockerImage.tag.split("-")[0]}`;
+
+        const imageLockIcon = () => {
+            if (cluster.imageChangeInProgress) {
+                return <CircularProgress size={20} />;
+            }
+
+            return this.state.imageChangeLocked ||
+                cluster.master.containerState !== "ContainerRunning" ?
+                <Lock /> : <LockOpen />;
+        };
 
         return (
             <div>
@@ -124,12 +137,9 @@ export default class Cluster extends React.Component {
                               iconStyle={{ width: "20px", height: "20px" }}
                               style={{ width: "20px", height: "20px", padding: "0px" }}
                               onTouchTap={this.handleImageChangeLockChange}
-                              disabled={cluster.master.containerState !== "ContainerRunning"}>
-                              {
-                                  this.state.imageChangeLocked ||
-                                      cluster.master.containerState !== "ContainerRunning" ?
-                                      <Lock /> : <LockOpen />
-                              }
+                              disabled={cluster.imageChangeInProgress ||
+                                cluster.master.containerState !== "ContainerRunning"}>
+                              { imageLockIcon() }
                           </IconButton>
                           <SelectField
                               style={{ width: "auto", paddingLeft: "10px" }}
@@ -137,6 +147,7 @@ export default class Cluster extends React.Component {
                               labelStyle={{ fontSize: "14px" }}
                               disabled={
                                 this.state.imageChangeLocked ||
+                                cluster.imageChangeInProgress ||
                                 cluster.master.containerState !== "ContainerRunning"
                               }
                               value={dockerImage.tag}
