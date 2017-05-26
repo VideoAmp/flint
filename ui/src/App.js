@@ -39,12 +39,12 @@ const getInstanceIdClusterIdMap = R.pipe(
   R.fromPairs
 );
 
-const updateInstanceContainerStateInCluster = (cluster, instanceId, containerState) => {
+const updateInstanceInCluster = (cluster, instanceId, propToUpdate) => {
     const masterInstanceId = R.path(["master", "id"], cluster);
     if (R.equals(masterInstanceId, instanceId)) {
         return R.assoc(
             "master",
-            R.merge(R.prop("master", cluster), { containerState }),
+            R.merge(R.prop("master", cluster), propToUpdate),
             cluster
         );
     }
@@ -56,7 +56,7 @@ const updateInstanceContainerStateInCluster = (cluster, instanceId, containerSta
         "workers",
         R.update(
             workerToUpdateIndex,
-            R.merge(workerToUpdate, { containerState }),
+            R.merge(workerToUpdate, propToUpdate),
             workers
         ),
         cluster
@@ -83,6 +83,26 @@ export default class App extends React.Component {
     getInstanceSpecs = () => fetch(`${this.baseUrl}/instanceSpecs`)
             .then(response => response.json())
             .then(instanceSpecs => this.setState({ instanceSpecs }))
+
+    handleInstanceUpdateMessage = (message, propToUpdate) => {
+        const instanceId = message.instanceId;
+        const clusters = this.state.clusters;
+        const instanceClusterMap = getInstanceIdClusterIdMap(clusters);
+        if (!R.has(instanceId, instanceClusterMap)) {
+            console.log(`Instance with id ${instanceId} not found`);
+            return;
+        }
+        const clusterIdToUpdate = R.prop(instanceId, instanceClusterMap);
+        const clusterToUpdate = R.prop(clusterIdToUpdate, clusters);
+        const updatedCluster = updateInstanceInCluster(
+            clusterToUpdate,
+            instanceId,
+            propToUpdate
+        );
+
+        const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+        this.setState({ clusters: updatedClusters });
+    }
 
     componentDidMount() {
         this.getInstanceSpecs().then(this.getClusters);
@@ -114,21 +134,9 @@ export default class App extends React.Component {
                 this.setState({ clusters: updatedClusters });
                 console.log("Workers Added");
             } else if (R.propEq("$type", "InstanceContainerState", message)) {
-                const { instanceId, containerState } = message;
-                const instanceClusterMap = getInstanceIdClusterIdMap(clusters);
-                if (!R.has(instanceId, instanceClusterMap)) {
-                    return console.log(`Instance with id ${instanceId} not found`);
-                }
-                const clusterIdToUpdate = R.prop(instanceId, instanceClusterMap);
-                const clusterToUpdate = R.prop(clusterIdToUpdate, clusters);
-                const updatedCluster = updateInstanceContainerStateInCluster(
-                    clusterToUpdate,
-                    instanceId,
-                    containerState
-                );
-
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
-                this.setState({ clusters: updatedClusters });
+                this.handleInstanceUpdateMessage(message, { containerState: message.containerState });
+            } else if (R.propEq("$type", "InstanceIpAddress", message)) {
+                this.handleInstanceUpdateMessage(message, { ipAddress: message.ipAddress });
             } else if (R.propEq("$type", "ClustersRemoved", message)) {
                 const { clusterIds: removedClusterIds } = message;
                 const updatedClusterState = R.omit(removedClusterIds, clusters);
