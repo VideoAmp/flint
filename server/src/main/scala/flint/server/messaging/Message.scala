@@ -76,6 +76,13 @@ private[messaging] final case class DockerImageChangeAttempt(
     error: Option[String])
     extends ServerMessage
 
+private[messaging] final case class DockerImageChangeRequest(
+    serverId: String,
+    messageNo: Int,
+    clusterId: ClusterId,
+    dockerImage: DockerImage)
+    extends ServerMessage
+
 private[messaging] final case class InstanceContainerState(
     serverId: String,
     messageNo: Int,

@@ -78,6 +78,7 @@ object MessageSchemaGenerator {
         createMessageSchema[ClustersAdded],
         createMessageSchema[ClustersRemoved],
         createMessageSchema[DockerImageChangeAttempt],
+        createMessageSchema[DockerImageChangeRequest],
         createMessageSchema[InstanceContainerState],
         createMessageSchema[InstanceDockerImage],
         createMessageSchema[InstanceIpAddress],
