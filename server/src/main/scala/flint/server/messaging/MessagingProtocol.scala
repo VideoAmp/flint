@@ -32,22 +32,21 @@ private[messaging] final class MessagingProtocol(
     clusterSystem.clusters.now.map(_._2).foreach(addClusterObservers)
     clusterSystem.newClusters.foreach { managedClusters =>
       if (managedClusters.nonEmpty) {
-        val clustersAdded =
-          ClustersAdded(serverId, nextMessageNo, managedClusters.map(ClusterSnapshot(_)).toList)
-        sendMessage(clustersAdded).foreach { _ =>
-          managedClusters.foreach(addClusterObservers)
+        sendMessage(ClustersAdded(_, _, managedClusters.map(ClusterSnapshot(_)).toList)).foreach {
+          _ =>
+            managedClusters.foreach(addClusterObservers)
         }
       }
     }
     clusterSystem.removedClusters.foreach { clusterIds =>
       if (clusterIds.nonEmpty) {
-        val clustersRemoved = ClustersRemoved(serverId, nextMessageNo, clusterIds.toList)
-        sendMessage(clustersRemoved)
+        sendMessage(ClustersRemoved(_, _, clusterIds.toList))
       }
     }
   }
 
-  private def sendMessage(message: ServerMessage): Future[ServerMessage] = {
+  private def sendMessage(messageFun: (String, Int) => ServerMessage): Future[ServerMessage] = {
+    val message = messageFun(serverId, nextMessageNo)
     logger.trace(s"Sending message $message")
     messageSender.sendMessage(message) andThen {
       case Success(message) =>
@@ -61,22 +60,18 @@ private[messaging] final class MessagingProtocol(
     cluster.cluster.instances.now.foreach(addInstanceObservers)
     cluster.newWorkers.foreach { workers =>
       if (workers.nonEmpty) {
-        val workersAdded =
-          WorkersAdded(
-            serverId,
-            nextMessageNo,
-            cluster.cluster.id,
-            workers.map(InstanceSnapshot(_)).toList)
-        sendMessage(workersAdded).foreach { _ =>
+        sendMessage(WorkersAdded(
+          _,
+          _,
+          cluster.cluster.id,
+          workers.map(InstanceSnapshot(_)).toList)).foreach { _ =>
           workers.foreach(addInstanceObservers)
         }
       }
     }
     cluster.removedWorkers.foreach { workerIds =>
       if (workerIds.nonEmpty) {
-        val workersRemoved =
-          WorkersRemoved(serverId, nextMessageNo, cluster.cluster.id, workerIds.toList)
-        sendMessage(workersRemoved)
+        sendMessage(WorkersRemoved(_, _, cluster.cluster.id, workerIds.toList))
       }
     }
   }
@@ -86,7 +81,7 @@ private[messaging] final class MessagingProtocol(
     val instanceName             = instanceIdentityHashCode + ":" + instance.id
 
     instance.dockerImage.foreach { dockerImage =>
-      sendMessage(InstanceDockerImage(serverId, nextMessageNo, instance.id, dockerImage))
+      sendMessage(InstanceDockerImage(_, _, instance.id, dockerImage))
       logger.debug(
         s"Instance docker image change. " +
           s"Instance $instanceName, " +
@@ -94,7 +89,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.ipAddress.foreach { ipAddress =>
-      sendMessage(InstanceIpAddress(serverId, nextMessageNo, instance.id, ipAddress))
+      sendMessage(InstanceIpAddress(_, _, instance.id, ipAddress))
       logger.debug(
         s"Instance IP address change. " +
           s"Instance $instanceName, " +
@@ -102,7 +97,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.state.foreach { state =>
-      sendMessage(InstanceState(serverId, nextMessageNo, instance.id, state))
+      sendMessage(InstanceState(_, _, instance.id, state))
       logger.debug(
         s"Instance state change. " +
           s"Instance $instanceName, " +
@@ -110,7 +105,7 @@ private[messaging] final class MessagingProtocol(
     }
 
     instance.effectiveContainerState.foreach { state =>
-      sendMessage(InstanceContainerState(serverId, nextMessageNo, instance.id, state))
+      sendMessage(InstanceContainerState(_, _, instance.id, state))
       logger.debug(
         s"Container state change. " +
           s"Instance $instanceName, " +
@@ -144,13 +139,15 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error =>
-            sendMessage(WorkerAdditionAttempt(serverId, nextMessageNo, clusterId, count, error)))
+          .flatMap(error => sendMessage(WorkerAdditionAttempt(_, _, clusterId, count, error)))
           .map(Some(_))
       case Some(ChangeDockerImage(clusterId, dockerImage)) =>
         clusterService.clusterSystem.clusters.now
           .get(clusterId)
-          .map(_.changeDockerImage(dockerImage))
+          .map { cluster =>
+            sendMessage(DockerImageChangeRequest(_, _, clusterId, dockerImage)).flatMap(_ =>
+              cluster.changeDockerImage(dockerImage))
+          }
           .map { optChangeDockerImage =>
             optChangeDockerImage.map(_ => None).recover {
               case ex =>
@@ -166,8 +163,7 @@ private[messaging] final class MessagingProtocol(
             Future.successful(Some(error))
           }
           .flatMap(error =>
-            sendMessage(
-              DockerImageChangeAttempt(serverId, nextMessageNo, clusterId, dockerImage, error)))
+            sendMessage(DockerImageChangeAttempt(_, _, clusterId, dockerImage, error)))
           .map(Some(_))
       case Some(LaunchCluster(clusterSpec)) =>
         clusterService
@@ -179,8 +175,7 @@ private[messaging] final class MessagingProtocol(
               logger.error(error, ex)
               Some(error)
           }
-          .flatMap(error =>
-            sendMessage(ClusterLaunchAttempt(serverId, nextMessageNo, clusterSpec, error)))
+          .flatMap(error => sendMessage(ClusterLaunchAttempt(_, _, clusterSpec, error)))
           .map(Some(_))
       case Some(LaunchSpotCluster(clusterSpec, bidPrice)) =>
         clusterService
@@ -194,8 +189,7 @@ private[messaging] final class MessagingProtocol(
               logger.error(error, ex)
               Some(error)
           }
-          .flatMap(error =>
-            sendMessage(ClusterLaunchAttempt(serverId, nextMessageNo, clusterSpec, error)))
+          .flatMap(error => sendMessage(ClusterLaunchAttempt(_, _, clusterSpec, error)))
           .map(Some(_))
       case Some(TerminateCluster(clusterId)) =>
         clusterService.clusterSystem.clusters.now
@@ -214,15 +208,8 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(
-            error =>
-              sendMessage(
-                ClusterTerminationAttempt(
-                  serverId,
-                  nextMessageNo,
-                  clusterId,
-                  ClientRequested,
-                  error)))
+          .flatMap(error =>
+            sendMessage(ClusterTerminationAttempt(_, _, clusterId, ClientRequested, error)))
           .map(Some(_))
       case Some(TerminateWorker(instanceId)) =>
         clusterService.clusterSystem.clusters.now.values
@@ -243,15 +230,8 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(
-            error =>
-              sendMessage(
-                WorkerTerminationAttempt(
-                  serverId,
-                  nextMessageNo,
-                  instanceId,
-                  ClientRequested,
-                  error)))
+          .flatMap(error =>
+            sendMessage(WorkerTerminationAttempt(_, _, instanceId, ClientRequested, error)))
           .map(Some(_))
       case Some(clientMessage: ClientMessage) =>
         logger.error(s"Don't know how to handle client message $clientMessage")
