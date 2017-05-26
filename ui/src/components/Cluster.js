@@ -4,7 +4,11 @@ import R from "ramda";
 import { Card, CardActions, CardHeader, CardText } from "material-ui/Card";
 import Divider from "material-ui/Divider";
 import IconButton from "material-ui/IconButton";
+import SelectField from "material-ui/SelectField";
+import MenuItem from "material-ui/MenuItem";
 import Trash from "material-ui/svg-icons/action/delete";
+import Lock from "material-ui/svg-icons/action/lock";
+import LockOpen from "material-ui/svg-icons/action/lock-open";
 import Add from "material-ui/svg-icons/content/add";
 
 import ClusterTotals from "./ClusterTotals";
@@ -31,9 +35,26 @@ const getActiveWorkerCount = workers =>
 
 export default class Cluster extends React.Component {
     state = {
+        tags: [],
         clusterInstanceDialogOpen: false,
         clusterTerminateDialogOpen: false,
+        imageChangeLocked: true,
     };
+
+    getDockerImageTags = () => fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
+            .then(response => response.json())
+            .then((dockerImages) => {
+                const tags = R.map(R.prop("tag"), dockerImages);
+                const getImageNumber = R.compose(parseInt, R.join(""), R.takeLastWhile(x => x !== "-"));
+                const sortByImageNumberDesc = R.sortBy(R.compose(R.negate, getImageNumber));
+                const sortedTags = sortByImageNumberDesc(tags);
+                this.setState({ tags: sortedTags, tag: sortedTags[0] });
+                return sortedTags;
+            })
+
+    componentWillMount() {
+        this.getDockerImageTags();
+    }
 
     handleClusterInstanceDialogOpen = () => {
         this.setState({ clusterInstanceDialogOpen: true });
@@ -51,6 +72,27 @@ export default class Cluster extends React.Component {
         this.setState({ clusterTerminateDialogOpen: false });
     };
 
+    handleImageChangeLockChange = () => {
+        this.setState(prevState => ({ imageChangeLocked: !prevState.imageChangeLocked }));
+    };
+
+    handleImageChange = (event, index, imageTag) => {
+        const cluster = this.props.data;
+        const currentImageTag = cluster.dockerImage.tag;
+
+        if (currentImageTag === imageTag) return;
+
+        const message = {
+            clusterId: cluster.id,
+            dockerImage: {
+                repo: "videoamp/spark",
+                tag: imageTag,
+            },
+        };
+        this.props.socket.send(JSON.stringify(R.merge(message, { "$type": "ChangeDockerImage" })));
+        this.setState({ imageChangeInProgress: true });
+    };
+
     render() {
         const { socket, instanceSpecs, data: cluster } = this.props;
         const { owner, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
@@ -64,11 +106,9 @@ export default class Cluster extends React.Component {
                 <Card>
                     <CardHeader
                         title={clusterTitle}
-                        subtitle={dockerImage.tag}
                         titleStyle={{ "fontSize": "24px" }}
                         textStyle={{ paddingRight: "0px" }}
-                        style={{ paddingRight: "0px" }}
-                    >
+                        style={{ paddingBottom: "0px", paddingRight: "0px" }}>
                         <div style={{ float: "right", marginTop: "-11px" }}>
                             <IconButton onTouchTap={this.handleClusterTerminateDialogOpen}>
                                 <Trash />
@@ -78,6 +118,35 @@ export default class Cluster extends React.Component {
                                 onTouchTap={this.handleClusterInstanceDialogOpen}>
                                 <Add />
                             </IconButton>
+                        </div>
+                        <div>
+                          <IconButton
+                              iconStyle={{ width: "20px", height: "20px" }}
+                              style={{ width: "20px", height: "20px", padding: "0px" }}
+                              onTouchTap={this.handleImageChangeLockChange}
+                              disabled={cluster.master.containerState !== "ContainerRunning"}>
+                              {
+                                  this.state.imageChangeLocked ||
+                                      cluster.master.containerState !== "ContainerRunning" ?
+                                      <Lock /> : <LockOpen />
+                              }
+                          </IconButton>
+                          <SelectField
+                              style={{ width: "auto", paddingLeft: "10px" }}
+                              underlineDisabledStyle={{ display: "none" }}
+                              labelStyle={{ fontSize: "14px" }}
+                              disabled={
+                                this.state.imageChangeLocked ||
+                                cluster.master.containerState !== "ContainerRunning"
+                              }
+                              value={dockerImage.tag}
+                              onChange={this.handleImageChange}>
+                              {
+                                  this.state.tags.map((tag, key) =>
+                                      <MenuItem key={key} value={tag} primaryText={tag} />
+                                  )
+                              }
+                          </SelectField>
                         </div>
                     </CardHeader>
                     <CardText style={{ padding: "0px" }}>
@@ -98,12 +167,12 @@ export default class Cluster extends React.Component {
                 <ClusterInstanceDialog
                     openState={this.state.clusterInstanceDialogOpen}
                     close={this.handleClusterInstanceDialogClose}
-                    socket={this.props.socket}
+                    socket={socket}
                     cluster={cluster}/>
                 <ClusterTerminateDialog
                     openState={this.state.clusterTerminateDialogOpen}
                     close={this.handleClusterTerminateDialogClose}
-                    socket={this.props.socket}
+                    socket={socket}
                     cluster={cluster}/>
             </div>
         );
