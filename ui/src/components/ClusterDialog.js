@@ -28,6 +28,7 @@ const generateInstanceSpec =
 
 export default class ClusterDialog extends React.Component {
     state = {
+        owner: this.props.defaultOwner,
         tags: [],
         lifetimeHoursErrorText: "",
         workerCountErrorText: "",
@@ -137,7 +138,7 @@ export default class ClusterDialog extends React.Component {
     }
 
     render() {
-        const { instanceSpecs, ownerDataSource = [], defaultOwner, openState, close } = this.props;
+        const { instanceSpecs, ownerDataSource = [], openState, close } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
@@ -194,7 +195,7 @@ export default class ClusterDialog extends React.Component {
                         <Cell>
                             <AutoComplete
                                 dataSource={ownerDataSource}
-                                searchText={defaultOwner}
+                                searchText={this.state.owner}
                                 onNewRequest={this.handleOwnerChange}
                                 onUpdateInput={this.handleOwnerChange}
                                 style={fieldStyles}
