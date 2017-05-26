@@ -1,6 +1,6 @@
 name := "flint"
 
-val awsSdkVersion = "1.11.94"
+val awsSdkVersion = "1.11.136"
 
 libraryDependencies ++= Seq(
   "com.lihaoyi"                %% "scalarx"         % "0.3.2",
@@ -8,5 +8,5 @@ libraryDependencies ++= Seq(
   "com.amazonaws"              % "aws-java-sdk-ec2" % awsSdkVersion,
   "com.amazonaws"              % "aws-java-sdk-ssm" % awsSdkVersion,
   "com.typesafe.scala-logging" %% "scala-logging"   % "3.5.0",
-  "org.scalatest"              %% "scalatest"       % "3.0.1" % "test"
+  "org.scalatest"              %% "scalatest"       % "3.0.3" % "test"
 )

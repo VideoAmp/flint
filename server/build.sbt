@@ -12,7 +12,7 @@ javaOptions ++= Seq(
 
 connectInput := true
 
-val log4jVersion = "2.8"
+val log4jVersion = "2.8.2"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"         %% "akka-http-core"  % "10.0.3",
@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   "org.apache.logging.log4j"  % "log4j-slf4j-impl" % log4jVersion % "runtime",
   "org.apache.httpcomponents" % "httpclient"       % "4.5.3",
   "com.github.pathikrit"      %% "better-files"    % "2.17.1",
-  "io.sphere"                 %% "sphere-json"     % "0.6.9"
+  "io.sphere"                 %% "sphere-json"     % "0.6.13"
 )
 
 lazy val Schema = config("schema").extend(Compile).hide
@@ -31,7 +31,7 @@ inConfig(Schema)(Defaults.configSettings)
 
 resolvers += "vamp repo" at "https://videoamp.artifactoryonline.com/videoamp/repo/"
 resolvers += Resolver.bintrayRepo("commercetools", "maven")
-libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.3" % Schema
+libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.4" % Schema
 
 inConfig(Schema)(ScalaFmtPlugin.configScalafmtSettings)
 
