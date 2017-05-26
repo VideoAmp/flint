@@ -11,10 +11,10 @@
     </Console>
   </Appenders>
   <Loggers>
-    <Logger name="flint" level="info" additivity="false">
+    <Logger name="flint" level="debug" additivity="false">
       <AppenderRef ref="FlintConsole" />
     </Logger>
-    <Root level="debug">
+    <Root level="info">
       <AppenderRef ref="Console" />
     </Root>
   </Loggers>
