@@ -85,8 +85,8 @@ export default class App extends React.Component {
             .then(instanceSpecs => this.setState({ instanceSpecs }))
 
     handleInstanceUpdateMessage = (message, propToUpdate) => {
-        const instanceId = message.instanceId;
         const clusters = this.state.clusters;
+        const instanceId = message.instanceId;
         const instanceClusterMap = getInstanceIdClusterIdMap(clusters);
         if (!R.has(instanceId, instanceClusterMap)) {
             console.log(`Instance with id ${instanceId} not found`);
@@ -133,6 +133,8 @@ export default class App extends React.Component {
                 const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
                 this.setState({ clusters: updatedClusters });
                 console.log("Workers Added");
+            } else if (R.propEq("$type", "InstanceState", message)) {
+                this.handleInstanceUpdateMessage(message, { state: message.state });
             } else if (R.propEq("$type", "InstanceContainerState", message)) {
                 this.handleInstanceUpdateMessage(message, { containerState: message.containerState });
             } else if (R.propEq("$type", "InstanceIpAddress", message)) {

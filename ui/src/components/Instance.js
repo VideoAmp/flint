@@ -18,7 +18,7 @@ const containerStateColorMap = {
     "ContainerPending": cyan300,
     "ContainerStarting": yellow300,
     "ContainerRunning": green300,
-    "ContainerStopped": red300,
+    "ContainerStopping": yellow300,
 };
 
 const leftAvatarStyles = { margin: 12.5 };
@@ -37,17 +37,32 @@ export default class Instance extends React.Component {
 
     isTerminatable = (data, master) => data.state !== "Terminated" && !master && !this.state.isBeingTerminated
 
-    getInstanceStateElement = (containerState) => {
-        if (R.has(containerState, containerStateColorMap)) {
-            return (
-                <Avatar
-                    backgroundColor={containerStateColorMap[containerState]}
-                    size={15}
-                    style={leftAvatarStyles} />
-            );
+    // Instance status element logic:
+    //   1. Return red dot if instance is terminated
+    //   2. Return circular progress if instance is not running
+    //   3. Return colored dot according to container state as defined in getInstanceStatusElement
+    // The net effect is that red dots and progress indicators are reserved for terminated or
+    // non-running instances. Other colored dots indicate Docker container states.
+    getInstanceStatusElement = (instanceState, containerState) => {
+        const avatar = backgroundColor =>
+            <Avatar
+                backgroundColor={backgroundColor}
+                size={15}
+                style={leftAvatarStyles} />;
+
+        if (instanceState === "Terminated") {
+            return avatar(red300);
         }
 
-        return <CircularProgress size={15} style={leftAvatarStyles}/>;
+        if (instanceState !== "Running") {
+            return <CircularProgress size={15} style={leftAvatarStyles}/>;
+        }
+
+        const backgroundColor = R.has(containerState, containerStateColorMap) ?
+            containerStateColorMap[containerState] :
+            yellow300;
+
+        return avatar(backgroundColor);
     }
 
     onRightIconButtonClick = () => this.terminateWorker(this.props.socket, this.props.data);
@@ -86,7 +101,7 @@ export default class Instance extends React.Component {
         return (
             <div>
                 <ListItem
-                    leftAvatar={this.getInstanceStateElement(data.containerState)}
+                    leftAvatar={this.getInstanceStatusElement(data.state, data.containerState)}
                     rightIconButton={this.getRightIconButton(data, master)}
                     disabled={true}>
                     <div>
