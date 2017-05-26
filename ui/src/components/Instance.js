@@ -71,7 +71,7 @@ export default class Instance extends React.Component {
                     href={`http://${data.ipAddress}:8080`}
                     target="_blank"
                     touch={true}
-                    disabled={this.state.isBeingTerminated || this.props.data.containerState !== "ContainerRunning"}>
+                    disabled={this.state.isBeingTerminated || data.containerState !== "ContainerRunning"}>
                     <Link />
                 </IconButton>
             );
