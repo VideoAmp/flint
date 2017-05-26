@@ -102,7 +102,7 @@ export default class Instance extends React.Component {
                         {instanceType}
                         &nbsp;
                         <CopyToClipboard
-                            text={ipAddress}
+                            text={R.defaultTo("", ipAddress)}
                             onCopy={this.onIPAddressCopy}>
                             <span style={{ cursor: "pointer" }}>{ipAddress}</span>
                         </CopyToClipboard>
