@@ -35,7 +35,7 @@ private[akka] class ConnectionFlowFactory(
           logger.error(s"Caught exception completing completion promise $completionPromise", ex)
       }
     }
-    val sink =
+    val sink: Sink[WsMessage, NotUsed] =
       Flow[WsMessage].collect {
         case message: TextMessage =>
           logger.trace("Received message " + message.text)
@@ -48,10 +48,8 @@ private[akka] class ConnectionFlowFactory(
               .toOption
               .collect {
                 case message: ClientMessage =>
+                  logger.trace(s"Decoded message " + message)
                   messageReceiver.receivedMessage.asVar() = Some(message)
-                  message
-                case message: ServerMessage =>
-                  messageSender.sendMessage(message)
                   message
             })
         .collect {
@@ -61,14 +59,13 @@ private[akka] class ConnectionFlowFactory(
         }
         .to(completionSink)
 
-    val source = new RxStreamSource(
-      messageReceiver.receivedMessage.map(_.map(MessageCodec.encode)).map(_.map(TextMessage(_))))(
-      completionPromise.future)
+    val source: Graph[SourceShape[Option[Message]], NotUsed] =
+      new RxStreamSource(messageReceiver.receivedMessage)(completionPromise.future)
 
     Flow.fromSinkAndSource(sink, source).collect {
-      case Some(message) =>
+      case Some(message: ServerMessage) =>
         logger.trace("Routing message " + message)
-        message
+        TextMessage(MessageCodec.encode(message))
     }
   }
 }

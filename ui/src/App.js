@@ -117,11 +117,7 @@ export default class App extends React.Component {
     handleMessage = (message) => {
         console.log(message);
 
-        if (!message.serverId) {
-            // This is a client message which we sent. Why are we getting these? We should
-            // just be getting server messages, right?
-            console.log("Skipping message without server id");
-        } else if (!this.serverId) {
+        if (!this.serverId) {
             // Ignore the first message after app startup
             console.log(`No server id: ${this.serverId}. Initializing message sequence`);
             this.initializeMessageSequence(message);
