@@ -113,14 +113,12 @@ private[messaging] final class MessagingProtocol(
     }
   }
 
-  messageReceiver.receivedMessage.foreach { optMessage =>
+  private val response: Rx[Future[Option[ServerMessage]]] = Rx {
+    val optMessage = messageReceiver.receivedMessage()
     optMessage.collect { case clientMessage: ClientMessage => clientMessage }.foreach { message =>
       logger.trace(s"Received $message")
     }
-  }
-
-  private val response: Rx[Future[Option[ServerMessage]]] = Rx {
-    messageReceiver.receivedMessage() match {
+    optMessage match {
       case Some(AddWorkers(clusterId, count)) =>
         clusterService.clusterSystem.clusters.now
           .get(clusterId)
