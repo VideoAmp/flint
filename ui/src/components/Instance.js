@@ -18,7 +18,6 @@ const containerStateColorMap = {
     "ContainerPending": cyan300,
     "ContainerStarting": yellow300,
     "ContainerRunning": green300,
-    "ContainerStopping": yellow300,
 };
 
 const leftAvatarStyles = { margin: 12.5 };
@@ -37,12 +36,6 @@ export default class Instance extends React.Component {
 
     isTerminatable = (data, master) => data.state !== "Terminated" && !master && !this.state.isBeingTerminated
 
-    // Instance status element logic:
-    //   1. Return red dot if instance is terminated
-    //   2. Return circular progress if instance is not running
-    //   3. Return colored dot according to container state as defined in getInstanceStatusElement
-    // The net effect is that red dots and progress indicators are reserved for terminated or
-    // non-running instances. Other colored dots indicate Docker container states.
     getInstanceStatusElement = (instanceState, containerState) => {
         const avatar = backgroundColor =>
             <Avatar
@@ -54,13 +47,11 @@ export default class Instance extends React.Component {
             return avatar(red300);
         }
 
-        if (instanceState !== "Running") {
+        if (instanceState !== "Running" || !R.has(containerState, containerStateColorMap)) {
             return <CircularProgress size={15} style={leftAvatarStyles}/>;
         }
 
-        const backgroundColor = R.has(containerState, containerStateColorMap) ?
-            containerStateColorMap[containerState] :
-            yellow300;
+        const backgroundColor = containerStateColorMap[containerState];
 
         return avatar(backgroundColor);
     }
@@ -80,13 +71,15 @@ export default class Instance extends React.Component {
             );
         }
 
+        const { ipAddress, containerState } = data;
+
         if (master) {
             return (
                 <IconButton
-                    href={`http://${data.ipAddress}:8080`}
+                    href={`http://${ipAddress}:8080`}
                     target="_blank"
                     touch={true}
-                    disabled={this.state.isBeingTerminated || data.containerState !== "ContainerRunning"}>
+                    disabled={this.state.isBeingTerminated || containerState !== "ContainerRunning"}>
                     <Link />
                 </IconButton>
             );
@@ -97,20 +90,21 @@ export default class Instance extends React.Component {
 
     render() {
         const { data, master, isSpotCluster } = this.props;
+        const { instanceType, ipAddress, state, containerState } = data;
 
         return (
             <div>
                 <ListItem
-                    leftAvatar={this.getInstanceStatusElement(data.state, data.containerState)}
+                    leftAvatar={this.getInstanceStatusElement(state, containerState)}
                     rightIconButton={this.getRightIconButton(data, master)}
                     disabled={true}>
                     <div>
-                        {data.instanceType}
+                        {instanceType}
                         &nbsp;
                         <CopyToClipboard
-                            text={data.ipAddress}
+                            text={ipAddress}
                             onCopy={this.onIPAddressCopy}>
-                            <span style={{ cursor: "pointer" }}>{data.ipAddress}</span>
+                            <span style={{ cursor: "pointer" }}>{ipAddress}</span>
                         </CopyToClipboard>
                         &nbsp;
                         {!master && isSpotCluster ? "Spot " : ""}
