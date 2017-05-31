@@ -121,101 +121,101 @@ export default class App extends React.Component {
         } else if (!this.validateMessageSequence(message)) {
             console.log("Refreshing clusters");
             this.getClusters().then(this.initializeMessageSequence(message));
-        } else {
-            console.log(message);
-            const { clusters } = this.state;
-            if (R.propEq("$type", "ClustersAdded", message)) {
-                const { clusters: newClusters } = message;
-                const updatedClusterState = R.merge(clusters, R.indexBy(R.prop("id"), newClusters));
-                this.setState({ clusters: updatedClusterState });
-                console.log("Launched new cluster");
-            } else if (R.propEq("$type", "WorkersAdded", message)) {
-                const { clusterId, workers } = message;
-                if (!R.has(clusterId, clusters)) {
-                    return console.log(`Cluster with id ${clusterId} not found`);
-                }
-                const clusterToUpdate = R.prop(clusterId, clusters);
-                const updatedCluster = R.assoc(
-                    "workers",
-                    R.unionWith(R.eqBy(R.prop("id")), R.prop("workers", clusterToUpdate), workers),
-                    clusterToUpdate
-                );
-
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
-                this.setState({ clusters: updatedClusters });
-                console.log("Workers Added");
-            } else if (R.propEq("$type", "InstanceState", message)) {
-                this.handleInstanceUpdateMessage(message, { state: message.state });
-            } else if (R.propEq("$type", "InstanceContainerState", message)) {
-                this.handleInstanceUpdateMessage(message, { containerState: message.containerState });
-            } else if (R.propEq("$type", "InstanceIpAddress", message)) {
-                this.handleInstanceUpdateMessage(message, { ipAddress: message.ipAddress });
-            } else if (R.propEq("$type", "DockerImageChangeRequest", message)) {
-                const { clusterId } = message;
-
-                if (!R.has(clusterId, clusters)) {
-                    return console.log(`Cluster with id ${clusterId} not found`);
-                }
-                const clusterToUpdate = R.prop(clusterId, clusters);
-                const updatedCluster = R.assoc(
-                  "imageChangeInProgress",
-                  true,
-                  clusterToUpdate,
-                );
-
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
-                this.setState({ clusters: updatedClusters });
-            } else if (R.propEq("$type", "DockerImageChangeAttempt", message)) {
-                const { clusterId, dockerImage, error } = message;
-
-                if (!R.has(clusterId, clusters)) {
-                    return console.log(`Cluster with id ${clusterId} not found`);
-                }
-                if (error) {
-                    return console.log(`Failed to change Docker image for cluster with id ${clusterId}: ${error}`);
-                }
-                const clusterToUpdate = R.prop(clusterId, clusters);
-                const updatedCluster = R.assoc(
-                  "dockerImage",
-                  dockerImage,
-                  R.assoc("imageChangeInProgress", false, clusterToUpdate),
-                );
-
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
-                this.setState({ clusters: updatedClusters });
-            } else if (R.propEq("$type", "ClustersRemoved", message)) {
-                const { clusterIds: removedClusterIds } = message;
-                const updatedClusterState = R.omit(removedClusterIds, clusters);
-                this.setState({ clusters: updatedClusterState });
-                console.log("Clusters removed");
-            } else if (R.propEq("$type", "WorkersRemoved", message)) {
-                const { clusterId, workerIds: removedWorkerIds } = message;
-                if (!R.has(clusterId, clusters)) {
-                    return console.log(`Cluster with id ${clusterId} not found`);
-                }
-                const clusterToUpdate = R.prop(clusterId, clusters);
-                const updatedCluster = R.assoc(
-                    "workers",
-                    R.reject(
-                        worker => R.contains(R.prop("id", worker), removedWorkerIds),
-                        R.prop("workers", clusterToUpdate)
-                    ),
-                    clusterToUpdate
-                );
-
-                const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
-                this.setState({ clusters: updatedClusters });
-                console.log("Workers removed");
-            }
-            this.messageNo = message.messageNo;
         }
+
+        console.log(message);
+        const { clusters } = this.state;
+        if (R.propEq("$type", "ClustersAdded", message)) {
+            const { clusters: newClusters } = message;
+            const updatedClusterState = R.merge(clusters, R.indexBy(R.prop("id"), newClusters));
+            this.setState({ clusters: updatedClusterState });
+            console.log("Launched new cluster");
+        } else if (R.propEq("$type", "WorkersAdded", message)) {
+            const { clusterId, workers } = message;
+            if (!R.has(clusterId, clusters)) {
+                return console.log(`Cluster with id ${clusterId} not found`);
+            }
+            const clusterToUpdate = R.prop(clusterId, clusters);
+            const updatedCluster = R.assoc(
+                "workers",
+                R.unionWith(R.eqBy(R.prop("id")), R.prop("workers", clusterToUpdate), workers),
+                clusterToUpdate
+            );
+
+            const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+            this.setState({ clusters: updatedClusters });
+            console.log("Workers Added");
+        } else if (R.propEq("$type", "InstanceState", message)) {
+            this.handleInstanceUpdateMessage(message, { state: message.state });
+        } else if (R.propEq("$type", "InstanceContainerState", message)) {
+            this.handleInstanceUpdateMessage(message, { containerState: message.containerState });
+        } else if (R.propEq("$type", "InstanceIpAddress", message)) {
+            this.handleInstanceUpdateMessage(message, { ipAddress: message.ipAddress });
+        } else if (R.propEq("$type", "DockerImageChangeRequest", message)) {
+            const { clusterId } = message;
+
+            if (!R.has(clusterId, clusters)) {
+                return console.log(`Cluster with id ${clusterId} not found`);
+            }
+            const clusterToUpdate = R.prop(clusterId, clusters);
+            const updatedCluster = R.assoc(
+              "imageChangeInProgress",
+              true,
+              clusterToUpdate,
+            );
+
+            const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+            this.setState({ clusters: updatedClusters });
+        } else if (R.propEq("$type", "DockerImageChangeAttempt", message)) {
+            const { clusterId, dockerImage, error } = message;
+
+            if (!R.has(clusterId, clusters)) {
+                return console.log(`Cluster with id ${clusterId} not found`);
+            }
+            if (error) {
+                return console.log(`Failed to change Docker image for cluster with id ${clusterId}: ${error}`);
+            }
+            const clusterToUpdate = R.prop(clusterId, clusters);
+            const updatedCluster = R.assoc(
+              "dockerImage",
+              dockerImage,
+              R.assoc("imageChangeInProgress", false, clusterToUpdate),
+            );
+
+            const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+            this.setState({ clusters: updatedClusters });
+        } else if (R.propEq("$type", "ClustersRemoved", message)) {
+            const { clusterIds: removedClusterIds } = message;
+            const updatedClusterState = R.omit(removedClusterIds, clusters);
+            this.setState({ clusters: updatedClusterState });
+            console.log("Clusters removed");
+        } else if (R.propEq("$type", "WorkersRemoved", message)) {
+            const { clusterId, workerIds: removedWorkerIds } = message;
+            if (!R.has(clusterId, clusters)) {
+                return console.log(`Cluster with id ${clusterId} not found`);
+            }
+            const clusterToUpdate = R.prop(clusterId, clusters);
+            const updatedCluster = R.assoc(
+                "workers",
+                R.reject(
+                    worker => R.contains(R.prop("id", worker), removedWorkerIds),
+                    R.prop("workers", clusterToUpdate)
+                ),
+                clusterToUpdate
+            );
+
+            const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+            this.setState({ clusters: updatedClusters });
+            console.log("Workers removed");
+        }
+        this.messageNo = message.messageNo;
         return undefined;
     }
 
     initializeMessageSequence = (message) => {
         const { serverId, messageNo } = message;
         this.serverId = serverId;
-        this.messageNo = messageNo;
+        this.messageNo = messageNo - 1;
     }
 
     validateMessageSequence = (message) => {
@@ -233,14 +233,15 @@ export default class App extends React.Component {
     }
 
     componentDidMount() {
-        this.getInstanceSpecs().then(this.getClusters).then(() => {
-            const socket = new ReconnectingWebSocket(`${this.baseWebsocketUrl}/messaging`);
-            socket.onmessage = ({ data }) => {
-                const message = JSON.parse(data);
-                this.handleMessage(message);
-            };
-            this.setState({ socket });
-        });
+        const socket = new ReconnectingWebSocket(`${this.baseWebsocketUrl}/messaging`);
+        socket.onopen = () => {
+            this.getInstanceSpecs().then(this.getClusters);
+        };
+        socket.onmessage = ({ data }) => {
+            const message = JSON.parse(data);
+            this.handleMessage(message);
+        };
+        this.setState({ socket });
     }
 
     handleClusterDialogOpen = () => {
