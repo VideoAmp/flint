@@ -115,17 +115,14 @@ export default class App extends React.Component {
     }
 
     handleMessage = (message) => {
-        console.log(message);
-
         if (!this.serverId) {
-            // Ignore the first message after app startup
             console.log(`No server id: ${this.serverId}. Initializing message sequence`);
             this.initializeMessageSequence(message);
         } else if (!this.validateMessageSequence(message)) {
-            // Ignore the first message after a clusters refresh
             console.log("Refreshing clusters");
             this.getClusters().then(this.initializeMessageSequence(message));
         } else {
+            console.log(message);
             const { clusters } = this.state;
             if (R.propEq("$type", "ClustersAdded", message)) {
                 const { clusters: newClusters } = message;
