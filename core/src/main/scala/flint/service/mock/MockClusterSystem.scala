@@ -4,7 +4,7 @@ package mock
 
 import java.net.InetAddress
 import java.util.UUID
-import java.util.concurrent.{ ScheduledFuture, TimeUnit }
+import java.util.concurrent.TimeUnit
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.Future
@@ -19,8 +19,7 @@ private[mock] class MockClusterSystem(clusterService: MockClusterService)(
     with LazyLogging {
   override val clusters = Var(Map.empty[ClusterId, MockManagedCluster])
 
-  private val instanceLifecycleStateMap =
-    new TrieMap[String, (InstanceLifecycleSimulator, ScheduledFuture[_])]
+  private val instanceStateSimulatorMap = new TrieMap[String, InstanceStateSimulator]
 
   def runInstance(
       dockerImage: Option[DockerImage],
@@ -30,12 +29,11 @@ private[mock] class MockClusterSystem(clusterService: MockClusterService)(
     val lifecycleState = Var[LifecycleState](Pending)
     lifecycleState.collectFirst {
       case Terminated =>
-        instanceLifecycleStateMap.remove(id).foreach(_._2.cancel(false))
+        instanceStateSimulatorMap.remove(id).foreach(_.cancel)
     }
-    val lifecycleSimulator = new InstanceLifecycleSimulator(lifecycleState)
-    val future =
-      simulationExecutorService.scheduleAtFixedRate(lifecycleSimulator, 3, 3, TimeUnit.SECONDS)
-    instanceLifecycleStateMap(id) = (lifecycleSimulator, future)
+    val containerState = Var[ContainerState](ContainerPending)
+    val stateSimulator = new InstanceStateSimulator(lifecycleState, containerState)
+    instanceStateSimulatorMap(id) = stateSimulator
     val specs = instanceSpecsMap(instanceType)
 
     Instance(
@@ -44,7 +42,7 @@ private[mock] class MockClusterSystem(clusterService: MockClusterService)(
       placementGroup,
       Var(dockerImage),
       lifecycleState,
-      Var(ContainerRunning),
+      containerState,
       specs)(instance => Future.successful(terminateInstances(instance.id)))
   }
 
@@ -68,6 +66,6 @@ private[mock] class MockClusterSystem(clusterService: MockClusterService)(
 
   def terminateInstances(instanceIds: String*): Unit =
     instanceIds.foreach { instanceId =>
-      instanceLifecycleStateMap.get(instanceId).foreach(_._1.lifecycleState() = Terminating)
+      instanceStateSimulatorMap.get(instanceId).foreach(_.terminateInstance)
     }
 }
