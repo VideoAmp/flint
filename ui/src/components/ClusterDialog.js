@@ -40,7 +40,7 @@ export default class ClusterDialog extends React.Component {
         workerInstanceType: "",
         numWorkers: 1,
         lifetimeHours: 10,
-        idleTimeout: 15,
+        idleTimeout: null,
     };
 
     launchCluster = () => {
@@ -73,8 +73,8 @@ export default class ClusterDialog extends React.Component {
                 tag,
             },
             owner,
-            ttl: moment.duration(lifetimeHours, "hours").toString(),
-            idleTimeout: moment.duration(idleTimeout, "minutes").toString(),
+            ttl: lifetimeHours ? moment.duration(lifetimeHours, "hours").toString() : null,
+            idleTimeout: idleTimeout ? moment.duration(idleTimeout, "minutes").toString() : null,
             masterInstanceType,
             workerInstanceType,
             numWorkers,
@@ -98,8 +98,12 @@ export default class ClusterDialog extends React.Component {
     }
 
     onLifetimeHoursCountError = (error) => {
-        const lifetimeHoursErrorText = (error === "none") ? "" : "Please enter a valid lifetime hours amount";
+        const lifetimeHoursErrorText =
+            (error === "none" || error === "clean") ? "" : "Please enter a valid lifetime hours amount";
         this.setState({ lifetimeHoursErrorText });
+        if (error === "clean") {
+            this.setState({ lifetimeHours: null });
+        }
     };
     onLifetimeHoursValid = lifetimeHours => this.setState({ lifetimeHours });
 
@@ -256,7 +260,7 @@ export default class ClusterDialog extends React.Component {
                                 errorText={this.state.idleTimeoutCountErrorText}
                                 onError={this.onIdleTimeoutCountError}
                                 onValid={this.onIdleTimeoutCountValid}
-                                style={fieldStyles}
+                                style={R.merge(fieldStyles, { display: "none" })}
                             />
                         </Cell>
                     </Grid>
