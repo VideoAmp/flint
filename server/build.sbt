@@ -45,6 +45,4 @@ scalafmt := scalafmt.all(scalafmtScope).value
 inConfig(Schema)(rawScalastyleSettings)
 scalastyleSources in Schema := Seq((scalaSource in Schema).value)
 
-lazy val schemaScalastyle = taskKey[Unit]("schemaScalastyle")
-schemaScalastyle := scalastyle.in(Schema).toTask("").value
-(compile in Schema) <<= (compile in Schema) dependsOn schemaScalastyle
+(compile in Schema) := ((compile in Schema).dependsOn(scalastyle.in(Schema).toTask(""))).value
