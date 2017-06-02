@@ -94,7 +94,7 @@ export default class Cluster extends React.Component {
         const clusterTitle =
             `${owner} ${dockerImage.tag.split("-")[0]}`;
 
-        const imageLockIcon = () => {
+        const getImageLockIcon = () => {
             if (cluster.imageChangeInProgress) {
                 return <CircularProgress size={20} />;
             }
@@ -102,6 +102,9 @@ export default class Cluster extends React.Component {
             const isLocked = imageChangeLocked || cluster.master.containerState !== "ContainerRunning";
             return isLocked ? <Lock /> : <LockOpen />;
         };
+
+        const imageChangeForbidden =
+            cluster.imageChangeInProgress || cluster.master.containerState !== "ContainerRunning";
 
         return (
             <div>
@@ -126,19 +129,14 @@ export default class Cluster extends React.Component {
                               iconStyle={{ width: "20px", height: "20px" }}
                               style={{ width: "20px", height: "20px", padding: "0px" }}
                               onTouchTap={this.handleImageChangeLockChange}
-                              disabled={cluster.imageChangeInProgress ||
-                                cluster.master.containerState !== "ContainerRunning"}>
-                              { imageLockIcon() }
+                              disabled={imageChangeForbidden}>
+                              { getImageLockIcon() }
                           </IconButton>
                           <SelectField
                               style={{ width: "auto", paddingLeft: "10px" }}
                               underlineDisabledStyle={{ display: "none" }}
                               labelStyle={{ fontSize: "14px" }}
-                              disabled={
-                                imageChangeLocked ||
-                                cluster.imageChangeInProgress ||
-                                cluster.master.containerState !== "ContainerRunning"
-                              }
+                              disabled={imageChangeLocked || imageChangeForbidden}
                               value={dockerImage.tag}
                               onChange={this.handleImageChange}>
                               {
