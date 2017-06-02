@@ -69,7 +69,7 @@ export default class Cluster extends React.Component {
     };
 
     handleImageChange = (event, index, imageTag) => {
-        const cluster = this.props.data;
+        const { data: cluster, handleClusterUpdate } = this.props;
         const currentImageTag = cluster.dockerImage.tag;
 
         if (currentImageTag === imageTag) return;
@@ -82,9 +82,7 @@ export default class Cluster extends React.Component {
             },
         };
         this.props.socket.send(JSON.stringify(R.merge(message, { "$type": "ChangeDockerImage" })));
-        cluster.imageChangeInProgress = true;
-        // Update the UI to reflect the new value of cluster.imageChangeInProgress
-        this.forceUpdate();
+        handleClusterUpdate({ imageChangeInProgress: true });
     };
 
     render() {
