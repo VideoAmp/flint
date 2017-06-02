@@ -86,6 +86,7 @@ export default class Cluster extends React.Component {
     };
 
     render() {
+        const { imageChangeLocked } = this.state;
         const { socket, instanceSpecs, data: cluster } = this.props;
         const { owner, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
         const isSpotCluster = !R.isNil(workerBidPrice);
@@ -98,9 +99,8 @@ export default class Cluster extends React.Component {
                 return <CircularProgress size={20} />;
             }
 
-            return this.state.imageChangeLocked ||
-                cluster.master.containerState !== "ContainerRunning" ?
-                <Lock /> : <LockOpen />;
+            const isLocked = imageChangeLocked || cluster.master.containerState !== "ContainerRunning";
+            return isLocked ? <Lock /> : <LockOpen />;
         };
 
         return (
@@ -135,7 +135,7 @@ export default class Cluster extends React.Component {
                               underlineDisabledStyle={{ display: "none" }}
                               labelStyle={{ fontSize: "14px" }}
                               disabled={
-                                this.state.imageChangeLocked ||
+                                imageChangeLocked ||
                                 cluster.imageChangeInProgress ||
                                 cluster.master.containerState !== "ContainerRunning"
                               }
