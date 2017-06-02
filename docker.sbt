@@ -16,7 +16,8 @@ imageNames in docker := Seq(
 
 buildOptions in docker := (buildOptions in docker).value.copy(cache = false)
 
-val uiDir = baseDirectory / "ui"
+lazy val uiDir = settingKey[File]("uiDir")
+uiDir := baseDirectory.value / "ui"
 
 lazy val yarn = taskKey[Unit]("yarn")
 yarn := {
