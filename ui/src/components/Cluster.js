@@ -17,6 +17,8 @@ import ClusterInstanceDialog from "./ClusterInstanceDialog";
 import ClusterTerminateDialog from "./ClusterTerminateDialog";
 import Instance from "./Instance";
 
+import getDockerImageTags from "../api/getDockerImageTags";
+
 const getInstanceMapper = (socket, master, isSpotCluster) =>
     instance => (
         <div key={instance.id}>
@@ -42,19 +44,8 @@ export default class Cluster extends React.Component {
         imageChangeLocked: true,
     };
 
-    getDockerImageTags = () => fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
-            .then(response => response.json())
-            .then((dockerImages) => {
-                const tags = R.map(R.prop("tag"), dockerImages);
-                const getImageNumber = R.compose(parseInt, R.join(""), R.takeLastWhile(x => x !== "-"));
-                const sortByImageNumberDesc = R.sortBy(R.compose(R.negate, getImageNumber));
-                const sortedTags = sortByImageNumberDesc(tags);
-                this.setState({ tags: sortedTags, tag: sortedTags[0] });
-                return sortedTags;
-            })
-
     componentWillMount() {
-        this.getDockerImageTags();
+        getDockerImageTags().then(sortedTags => this.setState({ tags: sortedTags, tag: sortedTags[0] }));
     }
 
     handleClusterInstanceDialogOpen = () => {

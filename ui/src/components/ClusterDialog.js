@@ -17,6 +17,8 @@ import NumberInput from "material-ui-number-input";
 
 import ClusterTotals from "./ClusterTotals";
 
+import getDockerImageTags from "../api/getDockerImageTags";
+
 const tagFloatingTextLabelStyle = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
@@ -40,17 +42,6 @@ export default class ClusterDialog extends React.Component {
         lifetimeHours: 10,
         idleTimeout: 15,
     };
-
-    getDockerImageTags = () => fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
-            .then(response => response.json())
-            .then((dockerImages) => {
-                const tags = R.map(R.prop("tag"), dockerImages);
-                const getImageNumber = R.compose(parseInt, R.join(""), R.takeLastWhile(x => x !== "-"));
-                const sortByImageNumberDesc = R.sortBy(R.compose(R.negate, getImageNumber));
-                const sortedTags = sortByImageNumberDesc(tags);
-                this.setState({ tags: sortedTags, tag: sortedTags[0] });
-                return sortedTags;
-            })
 
     launchCluster = () => {
         const {
@@ -95,7 +86,7 @@ export default class ClusterDialog extends React.Component {
     }
 
     componentWillMount() {
-        this.getDockerImageTags();
+        getDockerImageTags().then(sortedTags => this.setState({ tags: sortedTags, tag: sortedTags[0] }));
     }
 
     componentWillReceiveProps() {
