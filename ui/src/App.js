@@ -84,6 +84,14 @@ export default class App extends React.Component {
             .then(response => response.json())
             .then(instanceSpecs => this.setState({ instanceSpecs }))
 
+    handleClusterUpdate = cluster => (properties) => {
+        const { clusters } = this.state;
+        const clusterToUpdate = R.prop(cluster.id, clusters);
+        const updatedCluster = R.merge(clusterToUpdate, properties);
+        const updatedClusters = R.assoc(updatedCluster.id, updatedCluster, clusters);
+        this.setState({ clusters: updatedClusters });
+    };
+
     handleInstanceUpdateMessage = (message, propToUpdate) => {
         const clusters = this.state.clusters;
         const instanceId = message.instanceId;
@@ -237,6 +245,7 @@ export default class App extends React.Component {
                                         <div className="cluster" key={cluster.id}>
                                              <Cluster
                                                 data={cluster}
+                                                handleClusterUpdate={this.handleClusterUpdate(cluster)}
                                                 instanceSpecs={this.state.instanceSpecs}
                                                 socket={this.state.socket} />
                                         </div>,
