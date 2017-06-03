@@ -1,0 +1,48 @@
+scalaVersion = "[2.11,2.12)"
+
+classpathEntries = [
+  "/etc/hadoop/conf"
+  "/etc/hive/conf"
+]
+
+dependencies = [
+  {
+    module = {
+      organization = "com.github.alexarchambault.ammonium",
+      name = "spark_2.0.2_${scala.version}"
+    },
+    version = "0.4.0-SNAPSHOT"
+  }
+]
+
+codePreambles = [
+  {
+    name = "logging"
+    code = [
+      """|_root_.org.apache.log4j.Logger.getRootLogger
+         |  .setLevel(_root_.org.apache.log4j.Level.toLevel("ERROR"))"""
+    ]
+  }
+  {
+    name = "Spark"
+    code = [
+      """|object Hadoop {
+         |  import _root_.org.apache.hadoop.conf.Configuration
+         |  import _root_.org.apache.hadoop.fs.FileContext
+         |  def init(): Unit = {
+         |    Configuration.addDefaultResource("hive-site.xml")
+         |    FileContext.getFileContext
+         |  }
+         |}"""
+      """Hadoop.init"""
+      """@transient val Spark = new _root_.ammonite.spark.Spark"""
+      """@transient val sparkConf = Spark.sparkConf"""
+      """Spark.enableHiveSupport"""
+      """@transient lazy val spark = Spark.spark"""
+      """@transient lazy val sc = spark.sparkContext"""
+      """@transient lazy val sql = spark.sql _"""
+    ]
+  }
+]
+
+preamble = "Adjust the Spark config via `sparkConf`. Then access the `SparkSession` at `spark` or the `SparkContext` at `sc`."
