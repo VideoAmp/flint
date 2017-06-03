@@ -46,17 +46,6 @@ export default class ClusterDialog extends React.Component {
         workerBidPriceString: "",
     };
 
-    getDockerImageTags = () => fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
-            .then(response => response.json())
-            .then((dockerImages) => {
-                const tags = R.map(R.prop("tag"), dockerImages);
-                const getImageNumber = R.compose(parseInt, R.join(""), R.takeLastWhile(x => x !== "-"));
-                const sortByImageNumberDesc = R.sortBy(R.compose(R.negate, getImageNumber));
-                const sortedTags = sortByImageNumberDesc(tags);
-                this.setState({ tags: sortedTags, tag: sortedTags[0] });
-                return sortedTags;
-            })
-
     getBidPrice = (workerInstanceType) => {
         const getBidPrice = R.compose(
             parseFloat,
