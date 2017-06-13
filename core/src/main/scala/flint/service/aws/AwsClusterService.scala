@@ -318,34 +318,52 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       Future.successful(())
     }
 
-  private[aws] def terminateCluster(cluster: Cluster, isSpot: Boolean): Future[Unit] =
-    terminateInstances(cluster.id, (cluster.master +: cluster.workers.now), isSpot)
+  private[aws] def terminateCluster(cluster: Cluster, isSpot: Boolean): Future[Unit] = {
+    val spotRequestCancellation = if (isSpot) {
+      cancelSpotRequests(cluster.id, None)
+    } else { Future.successful(()) }
+    spotRequestCancellation.flatMap(_ =>
+      terminateInstances(cluster.id, (cluster.master +: cluster.workers.now), false))
+  }
+
+  private def cancelSpotRequests(
+      clusterId: ClusterId,
+      instancesFilterOpt: Option[Seq[Instance]]): Future[Unit] = {
+    val clusterIdFilter =
+      new Filter(s"tag:${Tags.ClusterId}").withValues(clusterId.toString)
+    val describeSpotInstanceRequestsRequest =
+      new DescribeSpotInstanceRequestsRequest().withFilters(clusterIdFilter)
+    ec2Client
+      .describeSpotInstanceRequests(describeSpotInstanceRequestsRequest)
+      .map { spotInstanceRequests =>
+        instancesFilterOpt.map { instances =>
+          val instanceIds = instances.map(_.id)
+          spotInstanceRequests.filter(spotInstanceRequest =>
+            instanceIds.contains(spotInstanceRequest.getInstanceId))
+        }.getOrElse(spotInstanceRequests)
+      }
+      .flatMap { spotInstanceRequests =>
+        val spotInstanceRequestIds = spotInstanceRequests.map(_.getSpotInstanceRequestId)
+        if (spotInstanceRequestIds.nonEmpty) {
+          val cancelSpotInstanceRequestsRequest = new CancelSpotInstanceRequestsRequest()
+            .withSpotInstanceRequestIds(spotInstanceRequestIds: _*)
+          ec2Client.cancelSpotInstanceRequests(cancelSpotInstanceRequestsRequest)
+        } else {
+          Future.successful(())
+        }
+      }
+  }
 
   private def terminateInstances(
       clusterId: ClusterId,
       instances: Seq[Instance],
-      areSpot: Boolean): Future[Unit] =
+      cancelSpotRequests: Boolean): Future[Unit] =
     if (instances.nonEmpty) {
       val instanceIds = instances.map(_.id)
-      (if (areSpot) {
-         val clusterIdFilter =
-           new Filter(s"tag:${Tags.ClusterId}").withValues(clusterId.toString)
-         val request = new DescribeSpotInstanceRequestsRequest().withFilters(clusterIdFilter)
-         ec2Client.describeSpotInstanceRequests(request).flatMap { spotInstanceRequests =>
-           val spotInstanceRequestIds =
-             spotInstanceRequests
-               .filter(spotInstanceRequest =>
-                 instanceIds.contains(spotInstanceRequest.getInstanceId))
-               .map(_.getSpotInstanceRequestId)
-           if (spotInstanceRequestIds.nonEmpty) {
-             val request = new CancelSpotInstanceRequestsRequest()
-               .withSpotInstanceRequestIds(spotInstanceRequestIds: _*)
-             ec2Client.cancelSpotInstanceRequests(request)
-           } else {
-             Future.successful(())
-           }
-         }
-       } else { Future.successful(Seq.empty) }).flatMap { _ =>
+      val spotRequestCancellation = if (cancelSpotRequests) {
+        this.cancelSpotRequests(clusterId, Some(instances))
+      } else { Future.successful(()) }
+      spotRequestCancellation.flatMap { _ =>
         val terminateInstancesRequest =
           new TerminateInstancesRequest().withInstanceIds(instanceIds: _*)
         ec2Client
