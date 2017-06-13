@@ -113,7 +113,7 @@ export default class Cluster extends React.Component {
                         title={clusterTitle}
                         titleStyle={{ "fontSize": "24px" }}
                         textStyle={{ paddingRight: "0px" }}
-                        style={{ paddingBottom: "0px", paddingRight: "0px" }}>
+                        style={{ paddingBottom: "0px", paddingRight: "0px", whiteSpace: "normal" }}>
                         <div style={{ float: "right", marginTop: "-11px" }}>
                             <IconButton onTouchTap={this.handleClusterTerminateDialogOpen}>
                                 <Trash />
@@ -124,7 +124,7 @@ export default class Cluster extends React.Component {
                                 <Add />
                             </IconButton>
                         </div>
-                        <div>
+                        <div style={{ display: "flex", alignItems: "center" }}>
                           <IconButton
                               iconStyle={{ width: "20px", height: "20px" }}
                               style={{ width: "20px", height: "20px", padding: "0px" }}
