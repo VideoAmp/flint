@@ -44,6 +44,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   override def launchSpotCluster(
       spec: ClusterSpec,
       workerBidPrice: BigDecimal): Future[ManagedCluster] =
-    throw new RuntimeException(
-      "Spot clusters are unsupported by the mock cluster service. Use launchCluster() instead")
+    Future.failed(
+      new RuntimeException(
+        "Spot clusters are unsupported by the mock cluster service. Use launchCluster() instead"))
 }
