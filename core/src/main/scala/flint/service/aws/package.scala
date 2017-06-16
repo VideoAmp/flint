@@ -24,7 +24,8 @@ package object aws {
       128,
       GiB(1940),
       InstanceStorageSpec(2, GiB(1920)),
-      "13.338"))
+      "13.338")
+  )
 
   private[aws] val instanceSpecsMap =
     instanceSpecs.map(specs => specs.instanceType -> specs).toMap

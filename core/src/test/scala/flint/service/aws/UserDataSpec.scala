@@ -12,7 +12,7 @@ class UserDataSpec extends FlatSpec {
 
   private val extraInstanceTags = Map("foo" -> "bar", "biz" -> "baz")
 
-  behavior of "createUserData"
+  behavior.of("createUserData")
 
   it should "create user data without local storage" in {
     createUserData(
@@ -24,7 +24,8 @@ class UserDataSpec extends FlatSpec {
       Nil,
       extraInstanceTags,
       testAwsConfig,
-      testDockerConfig)
+      testDockerConfig
+    )
   }
 
   it should "create user data with local storage" in {
@@ -38,7 +39,8 @@ class UserDataSpec extends FlatSpec {
       blockDeviceMappings,
       extraInstanceTags,
       testAwsConfig,
-      testDockerConfig)
+      testDockerConfig
+    )
   }
 }
 

@@ -1,4 +1,4 @@
-scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf"))
+scalafmtVersion in ThisBuild := "1.0.0-RC3"
 
 lazy val scalafmtScope = ScopeFilter(
   inAnyProject,

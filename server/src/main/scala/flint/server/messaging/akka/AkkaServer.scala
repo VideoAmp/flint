@@ -136,7 +136,8 @@ class AkkaServer(
         Future.successful(HttpResponse(404).withHeaders(`Access-Control-Allow-Origin`.*))
     }
     val requestHandler: HttpRequest => Future[HttpResponse] =
-      (syncRequestHandler andThen Future.successful)
+      syncRequestHandler
+        .andThen(Future.successful)
         .orElse(asyncRequestHandler)
         .orElse(notFoundHandler)
 

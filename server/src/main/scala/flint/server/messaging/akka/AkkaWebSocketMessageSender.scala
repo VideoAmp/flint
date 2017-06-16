@@ -25,7 +25,7 @@ private[akka] class AkkaWebSocketMessageSender[Send <: Message](
 
     sourceQueue.synchronized {
       sourceQueue.offer(wsMessage)
-    } flatMap {
+    }.flatMap {
       case QueueOfferResult.Enqueued =>
         logger.trace("Enqueued message " + message)
         Future.successful(message)
@@ -34,12 +34,12 @@ private[akka] class AkkaWebSocketMessageSender[Send <: Message](
         Future.failed(ex)
       case QueueOfferResult.Dropped =>
         val errorMessage = "Dropped message when attempting to enqueue message " +
-            message
+          message
         logger.error(errorMessage)
         Future.failed(new RuntimeException(errorMessage))
       case QueueOfferResult.QueueClosed =>
         val errorMessage = "Attempted to enqueue message for closed connection: " +
-            message
+          message
         logger.error(errorMessage)
         Future.failed(new RuntimeException(errorMessage))
     }

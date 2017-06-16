@@ -5,7 +5,7 @@ package messaging
 import org.scalatest.FlatSpec
 
 class MessageCodecSpec extends FlatSpec {
-  behavior of "MessageCodec"
+  behavior.of("MessageCodec")
 
   TestMessages.testMessages.foreach { message =>
     it should s"roundtrip ${message.getClass.getSimpleName}" in {

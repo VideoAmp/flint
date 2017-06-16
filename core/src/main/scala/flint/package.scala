@@ -31,7 +31,7 @@ package object flint extends Collections {
       val promise = Promise[U]()
       val obs = rx.trigger {
         rx.toTry match {
-          case Success(x) if pf isDefinedAt x =>
+          case Success(x) if pf.isDefinedAt(x) =>
             Try(pf(x)) match {
               case Success(value) => promise.success(value)
               case Failure(ex)    => promise.failure(ex)

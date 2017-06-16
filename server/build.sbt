@@ -33,11 +33,11 @@ resolvers += "vamp repo" at "https://videoamp.artifactoryonline.com/videoamp/rep
 resolvers += Resolver.bintrayRepo("commercetools", "maven")
 libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.4" % Schema
 
-inConfig(Schema)(ScalaFmtPlugin.configScalafmtSettings)
+inConfig(Schema)(scalafmtSettings)
 
 lazy val scalafmtScope = ScopeFilter(
   inProjects(ThisProject),
-  inConfigurations(Compile, Test, Schema)
+  inConfigurations(Schema)
 )
 
 scalafmt := scalafmt.all(scalafmtScope).value

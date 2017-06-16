@@ -29,11 +29,15 @@ object ConcurrencyUtils {
         // when retries == maxRetries
         val delaySeconds = ((1 << (maxRetries - retries + 1)) / 2).toLong
         val promise      = Promise[T]
-        scheduledExecutorService.schedule(new Runnable {
-          override def run() =
-            promise.completeWith(
-              retryFuture(retries - 1, maxRetries)(f)(executor, scheduledExecutorService))
-        }, delaySeconds, TimeUnit.SECONDS)
+        scheduledExecutorService.schedule(
+          new Runnable {
+            override def run() =
+              promise.completeWith(
+                retryFuture(retries - 1, maxRetries)(f)(executor, scheduledExecutorService))
+          },
+          delaySeconds,
+          TimeUnit.SECONDS
+        )
         promise.future
     }(executor)
   }

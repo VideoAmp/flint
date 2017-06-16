@@ -48,7 +48,7 @@ private[messaging] final class MessagingProtocol(
   private def sendMessage(messageFun: (String, Int) => ServerMessage): Future[ServerMessage] = {
     val message = messageFun(serverId, nextMessageNo)
     logger.trace(s"Sending message $message")
-    messageSender.sendMessage(message) andThen {
+    messageSender.sendMessage(message).andThen {
       case Success(message) =>
         logger.trace(s"Sent message $message")
       case Failure(ex) =>

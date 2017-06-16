@@ -12,13 +12,13 @@ trait MessageTypeMappings extends DefaultTypeMappings {
 
   private val schemaTypes =
     Map(
-      "java.time.Duration"      ->
-        Json.obj("type"         -> "string", "description" -> "An ISO-8601 duration"),
+      "java.time.Duration" ->
+        Json.obj("type" -> "string", "description" -> "An ISO-8601 duration"),
       "java.time.ZonedDateTime" -> Json.obj("type" -> "string", "format" -> "date-time"),
       "java.util.UUID" ->
         Json.obj(
-          "type"          -> "string",
-          "pattern"       -> "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
+          "type"    -> "string",
+          "pattern" -> "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"),
       "scala.Int"         -> Json.obj("type" -> "integer"),
       "scala.Long"        -> Json.obj("type" -> "integer"),
       "scala.Float"       -> Json.obj("type" -> "number"),
@@ -28,8 +28,12 @@ trait MessageTypeMappings extends DefaultTypeMappings {
         Json.obj(
           "type" -> "string",
           "enum" ->
-            Json.arr("ContainerPending", "ContainerRunning", "ContainerStarting",
-              "ContainerStopped", "ContainerStopping")),
+            Json.arr(
+              "ContainerPending",
+              "ContainerRunning",
+              "ContainerStarting",
+              "ContainerStopped",
+              "ContainerStopping")),
       "flint.LifecycleState" ->
         Json.obj(
           "type" -> "string",

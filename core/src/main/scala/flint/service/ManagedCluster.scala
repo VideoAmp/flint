@@ -53,7 +53,8 @@ trait ManagedCluster extends Killable {
             stoppedInstances,
             s"Flint: start docker container ${dockerImage.canonicalName}",
             s"""/sbin/start-spark-container.sh "${dockerImage.canonicalName}"""",
-            FiniteDuration(5, "min"))
+            FiniteDuration(5, "min")
+          )
           .map(_ => ())
       }
   }

@@ -98,7 +98,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         spec.idleTimeout,
         spec.numWorkers,
         spec.workerInstanceType,
-        workerBidPrice).map(workers => (master, workers))
+        workerBidPrice
+      ).map(workers => (master, workers))
     }.map {
       case (master, workers) =>
         val managedCluster =
@@ -145,7 +146,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         // network bandwidth requirement is effectively zilch
         placementGroup = None,
         masterUserData,
-        awsConfig)
+        awsConfig
+      )
 
     ec2Client
       .runInstances(masterRequest)
@@ -220,7 +222,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         dockerImage,
         extraInstanceTags,
         awsConfig,
-        dockerConfig)
+        dockerConfig
+      )
     val workersRequest =
       createRunInstancesRequest(
         clientToken,
@@ -261,7 +264,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         dockerImage,
         extraInstanceTags,
         awsConfig,
-        dockerConfig)
+        dockerConfig
+      )
     val workersRequest =
       createRequestSpotInstancesRequest(
         clientToken,
@@ -461,12 +465,12 @@ private[aws] object AwsClusterService {
 
     val withClientToken = clientToken.map { clientToken =>
       request.withClientToken(clientToken)
-    } getOrElse request
+    }.getOrElse(request)
 
     placementGroup.map { placementGroup =>
       val placement = new Placement().withGroupName(placementGroup)
       withClientToken.withPlacement(placement)
-    } getOrElse withClientToken
+    }.getOrElse(withClientToken)
   }
 
   private def createRequestSpotInstancesRequest(
@@ -504,7 +508,7 @@ private[aws] object AwsClusterService {
     val withPlacement = placementGroup.map { placementGroup =>
       val placement = new SpotPlacement().withGroupName(placementGroup)
       launchSpec.withPlacement(placement)
-    } getOrElse launchSpec
+    }.getOrElse(launchSpec)
 
     val request = new RequestSpotInstancesRequest(bidPrice.toString)
       .withInstanceCount(numInstances)
@@ -513,7 +517,7 @@ private[aws] object AwsClusterService {
 
     clientToken.map { clientToken =>
       request.withClientToken(clientToken)
-    } getOrElse request
+    }.getOrElse(request)
   }
 
   private def createBlockDeviceMapping(

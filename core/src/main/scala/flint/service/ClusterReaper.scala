@@ -18,9 +18,9 @@ class ClusterReaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOw
 
   override def run(): Unit =
     clusters.now.values.foreach { managedCluster =>
-      managedCluster.cluster.ttl foreach { ttl =>
+      managedCluster.cluster.ttl.foreach { ttl =>
         val clusterLaunchedAt = managedCluster.cluster.launchedAt
-        if (Instant.now.isAfter(clusterLaunchedAt plus (ttl.toSeconds, ChronoUnit.SECONDS))) {
+        if (Instant.now.isAfter(clusterLaunchedAt.plus(ttl.toSeconds, ChronoUnit.SECONDS))) {
           hasRunningApps(managedCluster.cluster).filter(_ == false).foreach { _ =>
             managedCluster.terminate()
           }

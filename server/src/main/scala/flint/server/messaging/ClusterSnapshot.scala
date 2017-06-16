@@ -30,6 +30,7 @@ private[messaging] object ClusterSnapshot {
       InstanceSnapshot(master),
       workers.now.toList.map(InstanceSnapshot(_)),
       managedCluster.workerInstanceType,
-      managedCluster.workerBidPrice)
+      managedCluster.workerBidPrice
+    )
   }
 }

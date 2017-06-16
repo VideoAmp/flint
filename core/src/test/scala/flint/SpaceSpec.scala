@@ -3,7 +3,7 @@ package flint
 import org.scalatest.{ FlatSpec, Matchers }
 
 class SpaceSpec extends FlatSpec with Matchers {
-  behavior of "fromBytes"
+  behavior.of("fromBytes")
 
   import Space.Implicits._
   import Space.fromBytes

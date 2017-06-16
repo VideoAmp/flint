@@ -42,7 +42,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
     Future.successful(cluster.dockerImage.asVar() = dockerImage)
 
   private def registerInstanceTerminationHandler(instance: Instance) =
-    instance.state collectFirst {
+    instance.state.collectFirst {
       case Terminated =>
         val stripIpAddress = new Runnable {
           override def run() = {
@@ -55,7 +55,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
 
   private def registerWorkerTerminationHandler(worker: Instance) = {
     registerInstanceTerminationHandler(worker)
-    worker.state collectFirst {
+    worker.state.collectFirst {
       case Terminated =>
         val removeWorker = new Runnable {
           override def run() = {
