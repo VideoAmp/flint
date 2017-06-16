@@ -11,7 +11,7 @@ import rx._
 class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   override val managementService = MockManagementService
 
-  override val clusterSystem = new MockClusterSystem(this)
+  override val clusterSystem = new MockClusterSystem()
 
   override val instanceSpecs = mock.instanceSpecs
 

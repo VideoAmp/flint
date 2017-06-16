@@ -62,7 +62,7 @@ class AkkaServer(
   private val protocol =
     new MessagingProtocol(serverId, clusterService, messageSender, messageReceiver)
 
-  private val connectionFlowFactory = new ConnectionFlowFactory(messageSender, messageReceiver)
+  private val connectionFlowFactory = new ConnectionFlowFactory(messageReceiver)
 
   override def bindTo(interface: String, port: Int, apiRoot: String): Future[Binding] = {
     val messagingPath     = apiRoot + "/messaging"
@@ -80,14 +80,14 @@ class AkkaServer(
           case None =>
             HttpResponse(400, entity = "Not a valid websocket request!")
         }
-      case req @ HttpRequest(GET, Uri.Path(`clustersPath`), _, _, _) =>
+      case HttpRequest(GET, Uri.Path(`clustersPath`), _, _, _) =>
         logger.info("Received GET request for clusters")
         val managedClusters  = clusterService.clusterSystem.clusters.now.values
         val clusterSnapshots = managedClusters.map(ClusterSnapshot(_)).toList
         val responseBody     = compactJson(toJValue(clusterSnapshots))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
           .withHeaders(`Access-Control-Allow-Origin`.*)
-      case req @ HttpRequest(GET, Uri.Path(`dockerImagesPath`), _, _, _) =>
+      case HttpRequest(GET, Uri.Path(`dockerImagesPath`), _, _, _) =>
         logger.info("Received GET request for docker images")
         dockerTags(dockerImageRepo, Some(dockerCreds)) match {
           case Success(dockerImages) =>
@@ -99,14 +99,14 @@ class AkkaServer(
             HttpResponse(400, entity = HttpEntity(ContentTypes.`application/json`, responseBody))
               .withHeaders(`Access-Control-Allow-Origin`.*)
         }
-      case req @ HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
+      case HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
         logger.info("Received GET request for instance specs")
         val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
           .withHeaders(`Access-Control-Allow-Origin`.*)
     }
     val asyncRequestHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
-      case req @ HttpRequest(GET, uri @ Uri.Path(`spotPricesPath`), _, _, _) =>
+      case HttpRequest(GET, uri @ Uri.Path(`spotPricesPath`), _, _, _) =>
         uri
           .query()
           .get("instanceTypes")

@@ -10,10 +10,9 @@ import scala.io.Source.fromInputStream
 
 import com.typesafe.scalalogging.LazyLogging
 
-import rx.{ Ctx, Rx }
+import rx.Rx
 
-class ClusterReaper(clusters: Rx[Map[ClusterId, ManagedCluster]])(implicit ctxOwner: Ctx.Owner)
-    extends Runnable {
+class ClusterReaper(clusters: Rx[Map[ClusterId, ManagedCluster]]) extends Runnable {
   import ClusterReaper._
 
   override def run(): Unit =

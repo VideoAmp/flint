@@ -24,7 +24,7 @@ object ConcurrencyUtils {
       retries <= maxRetries,
       s"Retries $retries must be less than or equal to maximum retries $maxRetries")
     f.recoverWith {
-      case ex if retries > 0 =>
+      case _ if retries > 0 =>
         // Computes delay as a power of 2 based on how many retries we've performed, starting with 1
         // when retries == maxRetries
         val delaySeconds = ((1 << (maxRetries - retries + 1)) / 2).toLong

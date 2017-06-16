@@ -13,8 +13,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import rx._
 
-private[mock] class MockClusterSystem(clusterService: MockClusterService)(
-    implicit protected val ctx: Ctx.Owner)
+private[mock] class MockClusterSystem()(implicit protected val ctx: Ctx.Owner)
     extends ClusterSystem
     with LazyLogging {
   override val clusters = Var(Map.empty[ClusterId, MockManagedCluster])

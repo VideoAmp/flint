@@ -15,12 +15,8 @@ import com.typesafe.scalalogging.LazyLogging
 
 import rx._
 
-private[akka] class ConnectionFlowFactory(
-    messageSender: MessageSender[ServerMessage],
-    messageReceiver: MessageReceiver)(
-    implicit ctx: Ctx.Owner,
-    actorSystem: ActorSystem,
-    materializer: Materializer)
+private[akka] class ConnectionFlowFactory(messageReceiver: MessageReceiver)(
+    implicit actorSystem: ActorSystem)
     extends LazyLogging {
   def newConnectionFlow()(
       implicit ctx: Ctx.Owner,

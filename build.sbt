@@ -2,7 +2,7 @@ import FlintKeys._
 
 lazy val commonSettings = Seq(
   organization := "com.videoamp",
-  scalaVersion := "2.11.8",
+  scalaVersion := "2.12.2",
   javacOptions := Seq("-g"),
   scalacOptions := Seq(
     "-deprecation",

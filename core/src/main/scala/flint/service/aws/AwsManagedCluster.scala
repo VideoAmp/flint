@@ -31,8 +31,6 @@ private[aws] class AwsManagedCluster(
         cluster.id,
         cluster.dockerImage.now,
         cluster.owner,
-        cluster.ttl,
-        cluster.idleTimeout,
         count,
         workerInstanceType,
         workerBidPrice)
