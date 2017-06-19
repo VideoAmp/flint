@@ -1,7 +1,9 @@
 package flint
 package docker
 
-import io.sphere.json.{ fromJSON, JSON }
+import com.typesafe.scalalogging.LazyLogging
+
+import io.sphere.json.{ fromJSON, JSON, JSONError }
 import io.sphere.json.generic.deriveJSON
 
 import org.apache.http.auth.UsernamePasswordCredentials
@@ -13,7 +15,7 @@ import org.apache.http.protocol.BasicHttpContext
 
 import better.files.InputStreamOps
 
-import scalaz.{ Failure, Success, ValidationNel }
+import scalaz.{ Failure, NonEmptyList, Success, ValidationNel }
 import scalaz.Validation.FlatMap.ValidationFlatMapRequested
 
 case class TagResponse(name: String, tags: List[String])
@@ -30,9 +32,9 @@ sealed trait Credentials
 case class UserPass(username: String, password: String) extends Credentials
 case class Token(key: String)                           extends Credentials
 
-class Tags(
-    client: HttpClient
-) {
+class Tags(client: HttpClient) extends LazyLogging {
+  import Tags._
+
   def apply(
       repo: String,
       auth: Option[Credentials] = None
@@ -53,14 +55,25 @@ class Tags(
             new BasicHttpContext()))
     }
 
-    val tokenJSON = client.execute(tokenRequest).getEntity.getContent.lines.mkString
+    logger.trace(s"Requesting docker registry auth token with request $tokenRequest")
+
+    val tokenJSON =
+      try {
+        client.execute(tokenRequest).getEntity.getContent.lines.mkString
+      } catch {
+        case ex: Exception =>
+          logger.error("Docker registry auth token request failed", ex)
+          throw ex
+      }
 
     val authToken: ValidationNel[String, String] = fromJSON[TokenResponse](tokenJSON) match {
-      case Success(TokenResponse(token)) => Success(token).toValidationNel
+      case Success(TokenResponse(token)) =>
+        logger.trace(s"Received docker registry auth token $token")
+        Success(token).toValidationNel
       case Failure(errors) =>
-        Failure(
-          s"Failed to extract token from Docker registry response JSON: $tokenJSON"
-            <:: errors.map(_.toString))
+        failWithErrors(
+          s"Failed to extract token from Docker registry response JSON: $tokenJSON",
+          errors)
     }
 
     authToken.flatMap { authToken =>
@@ -74,10 +87,20 @@ class Tags(
         case Success(TagResponse(name, tags)) =>
           Success(tags.map(DockerImage(name, _))).toValidationNel
         case Failure(errors) =>
-          Failure(
-            s"Failed to extract tags from Docker registry response JSON: $tagJSON"
-              <:: errors.map(_.toString))
+          failWithErrors(
+            s"Failed to extract tags from Docker registry response JSON: $tagJSON",
+            errors)
       }
     }
+  }
+}
+
+private object Tags extends LazyLogging {
+  def failWithErrors[A](
+      message: String,
+      errors: NonEmptyList[JSONError]): ValidationNel[String, A] = {
+    val failureMessage = message <:: errors.map(_.toString)
+    logger.error(failureMessage.list.toList.mkString(", "))
+    Failure(failureMessage)
   }
 }

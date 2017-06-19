@@ -2,7 +2,7 @@ package flint
 package server
 package messaging
 
-import service.ClusterSpec
+import service.{ ClusterSpec, ClusterTerminationReason }
 
 import java.net.InetAddress
 
@@ -14,24 +14,6 @@ private[messaging] sealed trait ServerMessage extends Message {
   val serverId: String
   val messageNo: Int
 }
-
-private[messaging] sealed trait TerminationReason {
-  protected val name = toString
-}
-
-object TerminationReason {
-  def apply(name: String): TerminationReason = name match {
-    case ClientRequested.name => ClientRequested
-    case IdleTimeout.name     => IdleTimeout
-    case TTLExpired.name      => TTLExpired
-  }
-}
-
-private[messaging] case object ClientRequested extends TerminationReason
-
-private[messaging] case object IdleTimeout extends TerminationReason
-
-private[messaging] case object TTLExpired extends TerminationReason
 
 private[messaging] final case class AddWorkers(clusterId: ClusterId, count: Int)
     extends ClientMessage
@@ -52,7 +34,7 @@ private[messaging] final case class ClusterTerminationAttempt(
     serverId: String,
     messageNo: Int,
     clusterId: ClusterId,
-    reason: TerminationReason,
+    reason: ClusterTerminationReason,
     error: Option[String])
     extends ServerMessage
 
@@ -134,7 +116,6 @@ private[messaging] final case class WorkerTerminationAttempt(
     serverId: String,
     messageNo: Int,
     instanceId: String,
-    reason: TerminationReason,
     error: Option[String])
     extends ServerMessage
 

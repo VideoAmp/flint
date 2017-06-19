@@ -2,7 +2,7 @@ package flint
 package server
 package messaging
 
-import service.ClusterSpec
+import service.{ ClientRequested, ClusterSpec }
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -43,7 +43,7 @@ object TestMessages {
       TerminateCluster(clusterId),
       TerminateWorker(instanceId),
       WorkerAdditionAttempt(serverId, 0, clusterId, 3, error),
-      WorkerTerminationAttempt(serverId, 0, instanceId, IdleTimeout, error)
+      WorkerTerminationAttempt(serverId, 0, instanceId, error)
     )
 
   def main(args: Array[String]): Unit = {

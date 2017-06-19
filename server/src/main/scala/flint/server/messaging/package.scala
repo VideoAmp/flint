@@ -1,7 +1,7 @@
 package flint
 package server
 
-import service.ClusterSpec
+import service.{ ClusterSpec, ClusterTerminationReason }
 
 import java.net.InetAddress
 import java.time.{ Instant, OffsetDateTime, ZoneOffset }
@@ -136,8 +136,10 @@ package object messaging {
   private[messaging] implicit val containerStateJson =
     createCaseObjectJson[ContainerState]("Container state", ContainerState.apply)
 
-  private[messaging] implicit val terminationReasonJson =
-    createCaseObjectJson[TerminationReason]("Termination reason", TerminationReason.apply)
+  private[messaging] implicit val clusterTerminationReasonJson =
+    createCaseObjectJson[ClusterTerminationReason](
+      "Cluster termination reason",
+      ClusterTerminationReason.apply)
 
   private[messaging] implicit val clusterSpecJson = deriveJSON[ClusterSpec]
 

@@ -7,11 +7,12 @@ import scala.util.Try
 
 import rx._
 
-trait ManagedCluster extends Killable {
+trait ManagedCluster {
   val cluster: Cluster
 
-  final val newWorkers: Rx[Seq[Instance]]   = Var(Seq.empty[Instance])
-  final val removedWorkers: Rx[Seq[String]] = Var(Seq.empty[String])
+  final val newWorkers: Rx[Seq[Instance]]                           = Var(Seq.empty[Instance])
+  final val removedWorkers: Rx[Seq[String]]                         = Var(Seq.empty[String])
+  final val terminationReason: Rx[Option[ClusterTerminationReason]] = Var(None)
 
   val workerInstanceType: String
   val workerBidPrice: Option[BigDecimal]
@@ -59,12 +60,17 @@ trait ManagedCluster extends Killable {
       }
   }
 
-  final def terminate(): Future[Unit] =
+  final def terminate(reason: ClusterTerminationReason): Future[Unit] =
     Future
       .fromTry(Try {
+        terminationReason.now.foreach { terminationReason =>
+          throw new RuntimeException(
+            s"cluster termination is already underway because of $terminationReason")
+        }
         require(cluster.master.state.now != Terminating, "cluster is already terminating")
         require(cluster.master.state.now != Terminated, "cluster is already terminated")
       })
+      .map(_ => terminationReason.asVar() = Some(reason))
       .flatMap(_ => terminate0)
 
   protected def terminate0(): Future[Unit]

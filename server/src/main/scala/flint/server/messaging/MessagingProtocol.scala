@@ -2,7 +2,7 @@ package flint
 package server
 package messaging
 
-import service.{ ClusterService, ManagedCluster }
+import service.{ ClientRequested, ClusterService, ManagedCluster }
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
@@ -57,6 +57,12 @@ private[messaging] final class MessagingProtocol(
   }
 
   private def addClusterObservers(cluster: ManagedCluster) = {
+    cluster.terminationReason.foreach {
+      _.foreach { terminationReason =>
+        sendMessage(ClusterTerminationAttempt(_, _, cluster.cluster.id, terminationReason, None))
+        logger.debug(s"Cluster termination requested for ${terminationReason.name}")
+      }
+    }
     cluster.cluster.instances.now.foreach(addInstanceObservers)
     cluster.newWorkers.foreach { workers =>
       if (workers.nonEmpty) {
@@ -192,7 +198,7 @@ private[messaging] final class MessagingProtocol(
       case Some(TerminateCluster(clusterId)) =>
         clusterService.clusterSystem.clusters.now
           .get(clusterId)
-          .map(_.terminate)
+          .map(_.terminate(ClientRequested))
           .map { optTermination =>
             optTermination.map(_ => None).recover {
               case ex =>
@@ -228,8 +234,7 @@ private[messaging] final class MessagingProtocol(
             logger.error(error)
             Future.successful(Some(error))
           }
-          .flatMap(error =>
-            sendMessage(WorkerTerminationAttempt(_, _, instanceId, ClientRequested, error)))
+          .flatMap(error => sendMessage(WorkerTerminationAttempt(_, _, instanceId, error)))
           .map(Some(_))
       case Some(clientMessage: ClientMessage) =>
         logger.error(s"Don't know how to handle client message $clientMessage")
