@@ -3,11 +3,11 @@
   <Appenders>
     <Console name="FlintConsole" target="SYSTEM_OUT">
       <PatternLayout
-        pattern="%d{HH:mm:ss.SSS} [%t] %-5level Flint %logger{1} - %msg%n" />
+        pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level Flint %logger{1} - %msg%n" />
     </Console>
     <Console name="Console" target="SYSTEM_OUT">
       <PatternLayout
-        pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
+        pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n" />
     </Console>
   </Appenders>
   <Loggers>
