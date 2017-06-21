@@ -70,6 +70,7 @@ class AkkaServer(
     val dockerImagesPath  = apiRoot + "/dockerImages"
     val instanceSpecsPath = apiRoot + "/instanceSpecs"
     val spotPricesPath    = apiRoot + "/spotPrices"
+    val versionPath       = "/version"
 
     val syncRequestHandler: PartialFunction[HttpRequest, HttpResponse] = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
@@ -102,6 +103,11 @@ class AkkaServer(
       case HttpRequest(GET, Uri.Path(`instanceSpecsPath`), _, _, _) =>
         logger.info("Received GET request for instance specs")
         val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
+        HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+          .withHeaders(`Access-Control-Allow-Origin`.*)
+      case HttpRequest(GET, Uri.Path(`versionPath`), _, _, _) =>
+        logger.info("Received GET request for build info")
+        val responseBody = flint.BuildInfo.toJson + "\n"
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
           .withHeaders(`Access-Control-Allow-Origin`.*)
     }
