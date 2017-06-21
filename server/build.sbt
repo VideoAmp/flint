@@ -29,7 +29,7 @@ lazy val Schema = config("schema").extend(Compile).hide
 ivyConfigurations += Schema
 inConfig(Schema)(Defaults.configSettings)
 
-resolvers += "vamp repo" at "https://videoamp.artifactoryonline.com/videoamp/repo/"
+resolvers += "vamp repo" at "https://videoamp.jfrog.io/videoamp/repo/"
 resolvers += Resolver.bintrayRepo("commercetools", "maven")
 libraryDependencies += "com.sauldhernandez" %% "autoschema" % "1.0.4" % Schema
 
