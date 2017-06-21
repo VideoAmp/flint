@@ -41,7 +41,7 @@ export default class ClusterDialog extends React.Component {
         workerInstanceType: "",
         numWorkers: 1,
         lifetimeHours: 10,
-        idleTimeout: null,
+        idleTimeout: 60,
         workerBidPriceString: "",
     };
 
@@ -72,8 +72,6 @@ export default class ClusterDialog extends React.Component {
             this.setState({ ownerErrorText: "Please enter an owner" });
             return;
         }
-
-        console.log(workerBidPriceErrorText);
 
         if (isSpotCluster && workerBidPriceErrorText !== "") {
             return;
@@ -132,8 +130,12 @@ export default class ClusterDialog extends React.Component {
     onWorkerCountValid = numWorkers => this.setState({ numWorkers });
 
     onIdleTimeoutCountError = (error) => {
-        const idleTimeoutCountErrorText = (error === "none") ? "" : "Please enter a valid idle timeout amount";
+        const idleTimeoutCountErrorText =
+            (error === "none" || error === "clean") ? "" : "Please enter a valid idle timeout amount";
         this.setState({ idleTimeoutCountErrorText });
+        if (error === "clean") {
+            this.setState({ idleTimeout: null });
+        }
     };
     onIdleTimeoutCountValid = idleTimeout => this.setState({ idleTimeout });
 
@@ -240,7 +242,7 @@ export default class ClusterDialog extends React.Component {
                                 floatingLabelText="Lifetime Hours"
                                 defaultValue={this.state.lifetimeHours}
                                 min={1}
-                                max={12}
+                                max={24}
                                 strategy="allow"
                                 errorText={this.state.lifetimeHoursErrorText}
                                 onError={this.onLifetimeHoursCountError}
@@ -286,16 +288,16 @@ export default class ClusterDialog extends React.Component {
                         </Cell>
                         <Cell>
                             <NumberInput
-                                id="worker-count-amount-input"
+                                id="idle-timeout-amount-input"
                                 floatingLabelText="Idle Timeout (mins)"
                                 defaultValue={this.state.idleTimeout}
                                 min={1}
-                                max={10000}
+                                max={180}
                                 strategy="allow"
                                 errorText={this.state.idleTimeoutCountErrorText}
                                 onError={this.onIdleTimeoutCountError}
                                 onValid={this.onIdleTimeoutCountValid}
-                                style={R.merge(fieldStyles, { display: "none" })}
+                                style={fieldStyles}
                             />
                         </Cell>
                     </Grid>
