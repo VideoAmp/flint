@@ -9,9 +9,9 @@ InstanceType._
 
 package object aws {
   private[aws] val instanceSpecs = Seq(
-    InstanceSpecs(T2Micro.toString, 1, GiB(1), "0.013"),
+    InstanceSpecs(T2Micro.toString, 1, GiB(1), "0.012"),
     InstanceSpecs(C38xlarge.toString, 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
-    InstanceSpecs(M4Large.toString, 2, GiB(6), "0.12"),
+    InstanceSpecs(M4Large.toString, 2, GiB(6), "0.1"),
     InstanceSpecs(P2Xlarge.toString, 4, GiB(52), "0.9"),
     InstanceSpecs(P28xlarge.toString, 32, GiB(460), "7.2"),
     InstanceSpecs(P216xlarge.toString, 64, GiB(716), "14.4"),
