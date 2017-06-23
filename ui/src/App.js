@@ -13,6 +13,8 @@ import getMuiTheme from "material-ui/styles/getMuiTheme";
 
 import "./App.css";
 
+import getDockerImageTags from "./api/getDockerImageTags";
+
 import Cluster from "./components/Cluster";
 import ClusterDialog from "./components/ClusterDialog";
 
@@ -73,6 +75,7 @@ export default class App extends React.Component {
         clusterDialogOpen: false,
         clusters: {},
         instanceSpecs: [],
+        tags: [],
         socket: null,
         ownerDataSource: Store.get("ownerDataSource"),
         lastOwner: Store.get("lastOwner"),
@@ -235,7 +238,10 @@ export default class App extends React.Component {
     componentDidMount() {
         const socket = new ReconnectingWebSocket(`${this.baseWebsocketUrl}/messaging`);
         socket.onopen = () => {
-            this.getInstanceSpecs().then(this.getClusters);
+            getDockerImageTags()
+                .then(sortedTags => this.setState({ tags: sortedTags }))
+                .then(this.getInstanceSpecs)
+                .then(this.getClusters);
         };
         socket.onmessage = ({ data }) => {
             const message = JSON.parse(data);
@@ -278,6 +284,7 @@ export default class App extends React.Component {
                                                 data={cluster}
                                                 handleClusterUpdate={this.handleClusterUpdate(cluster)}
                                                 instanceSpecs={this.state.instanceSpecs}
+                                                tags={this.state.tags}
                                                 socket={this.state.socket} />
                                         </div>,
                                         this.state.clusters
@@ -290,6 +297,7 @@ export default class App extends React.Component {
                             close={this.handleClusterDialogClose}
                             socket={this.state.socket}
                             instanceSpecs={this.state.instanceSpecs}
+                            tags={this.state.tags}
                             ownerDataSource={this.state.ownerDataSource}
                             defaultOwner={this.state.lastOwner}
                         />

@@ -17,8 +17,6 @@ import ClusterInstanceDialog from "./ClusterInstanceDialog";
 import ClusterTerminateDialog from "./ClusterTerminateDialog";
 import Instance from "./Instance";
 
-import getDockerImageTags from "../api/getDockerImageTags";
-
 const getInstanceMapper = (socket, master, isSpotCluster) =>
     instance => (
         <div key={instance.id}>
@@ -38,15 +36,10 @@ const getActiveWorkerCount = workers =>
 
 export default class Cluster extends React.Component {
     state = {
-        tags: [],
         clusterInstanceDialogOpen: false,
         clusterTerminateDialogOpen: false,
         imageChangeLocked: true,
     };
-
-    componentWillMount() {
-        getDockerImageTags().then(sortedTags => this.setState({ tags: sortedTags, tag: sortedTags[0] }));
-    }
 
     handleClusterInstanceDialogOpen = () => {
         this.setState({ clusterInstanceDialogOpen: true });
@@ -87,7 +80,7 @@ export default class Cluster extends React.Component {
 
     render() {
         const { imageChangeLocked } = this.state;
-        const { socket, instanceSpecs, data: cluster } = this.props;
+        const { socket, instanceSpecs, data: cluster, tags } = this.props;
         const { owner, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
         const isSpotCluster = !R.isNil(workerBidPrice);
         // TODO: return short-form image tag
@@ -140,7 +133,7 @@ export default class Cluster extends React.Component {
                               value={dockerImage.tag}
                               onChange={this.handleImageChange}>
                               {
-                                  this.state.tags.map((tag, key) =>
+                                  tags.map((tag, key) =>
                                       <MenuItem key={key} value={tag} primaryText={tag} />
                                   )
                               }
