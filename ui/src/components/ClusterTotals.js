@@ -33,17 +33,17 @@ export default class ClusterTotals extends React.Component {
         return totalStorageBytes / (2 ** 30);
     }
 
-    calculateTotalCostPerHour = (masterInstanceTypeInfo, workerInstanceTypeInfo, numWorkers) => {
+    calculateTotalCostPerHour = (masterInstanceTypeInfo, workerInstanceTypeInfo, numMasters, numWorkers) => {
         const { hourlyPrice: masterInstanceTypeCostPerHour } = masterInstanceTypeInfo;
         const { hourlyPrice: workerInstanceTypeCostPerHour } = workerInstanceTypeInfo;
 
         const totalCost =
-            masterInstanceTypeCostPerHour + (workerInstanceTypeCostPerHour * numWorkers);
+            (masterInstanceTypeCostPerHour * numMasters) + (workerInstanceTypeCostPerHour * numWorkers);
 
         return totalCost.toFixed(2);
     }
 
-    updateClusterTotals = ({ instanceSpecs, masterInstanceType, workerInstanceType, numWorkers }) => {
+    updateClusterTotals = ({ instanceSpecs, masterInstanceType, workerInstanceType, numMasters, numWorkers }) => {
         const masterInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, masterInstanceType);
         const workerInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, workerInstanceType);
 
@@ -63,6 +63,7 @@ export default class ClusterTotals extends React.Component {
             totalCostPerHour: this.calculateTotalCostPerHour(
                 masterInstanceTypeInfo,
                 workerInstanceTypeInfo,
+                numMasters,
                 numWorkers,
             ),
         });
@@ -87,14 +88,14 @@ export default class ClusterTotals extends React.Component {
     }
 
     render() {
-        const { active } =  this.props;
+        const { isSpotCluster } =  this.props;
         const { numberOfCores, ramAmount, storageAmount, totalCostPerHour } = this.state;
         return (
             <Toolbar style={{ backgroundColor: "#F5F5F5" }}>
                 <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
                     <p>
                         {numberOfCores} cores, {ramAmount} GiB RAM, {storageAmount} GiB Scratch
-                        {active ? `, $${totalCostPerHour}/hour` : "" }
+                        {isSpotCluster ? "" : `, $${totalCostPerHour}/hour` }
                     </p>
                 </ToolbarGroup>
             </Toolbar>

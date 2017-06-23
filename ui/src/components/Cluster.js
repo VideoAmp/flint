@@ -157,8 +157,9 @@ export default class Cluster extends React.Component {
                             instanceSpecs={instanceSpecs}
                             masterInstanceType={master.instanceType}
                             workerInstanceType={workerInstanceType}
+                            numMasters={master.containerState === "ContainerRunning" ? 1 : 0}
                             numWorkers={getActiveWorkerCount(workers)}
-                            active={true}
+                            isSpotCluster={isSpotCluster}
                         />
                     </CardActions>
                 </Card>
