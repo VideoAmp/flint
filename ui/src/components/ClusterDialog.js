@@ -17,8 +17,6 @@ import NumberInput from "material-ui-number-input";
 
 import ClusterTotals from "./ClusterTotals";
 
-import getDockerImageTags from "../api/getDockerImageTags";
-
 const tagFloatingTextLabelStyle = {
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
@@ -31,7 +29,7 @@ const generateInstanceSpec =
 export default class ClusterDialog extends React.Component {
     state = {
         owner: this.props.defaultOwner,
-        tags: [],
+        tag: "",
         lifetimeHoursErrorText: "",
         workerCountErrorText: "",
         idleTimeoutCountErrorText: "",
@@ -98,15 +96,12 @@ export default class ClusterDialog extends React.Component {
         this.props.close(owner);
     }
 
-    componentWillMount() {
-        getDockerImageTags().then(sortedTags => this.setState({ tags: sortedTags, tag: sortedTags[0] }));
-    }
-
     componentWillReceiveProps() {
         const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], this.props);
         const defaultWorkerBidPrice =
             parseFloat(R.pathOr("", ["instanceSpecs", 0, "hourlyPrice"], this.props));
         this.setState({
+            tag: this.props.tags[0],
             masterInstanceType: defaultInstance,
             workerInstanceType: defaultInstance,
             workerBidPriceString: defaultWorkerBidPrice.toString(),
@@ -167,7 +162,7 @@ export default class ClusterDialog extends React.Component {
         }
 
     render() {
-        const { instanceSpecs, ownerDataSource = [], openState, close } = this.props;
+        const { instanceSpecs, ownerDataSource = [], openState, close, tags } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
@@ -216,7 +211,7 @@ export default class ClusterDialog extends React.Component {
                                 onChange={this.handleFieldChange("tag")}
                                 floatingLabelText="Build">
                                 {
-                                    this.state.tags.map((tag, key) =>
+                                    tags.map((tag, key) =>
                                         <MenuItem key={key} value={tag} primaryText={tag} />
                                     )
                                 }
