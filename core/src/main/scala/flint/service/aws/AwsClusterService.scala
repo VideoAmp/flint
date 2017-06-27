@@ -2,6 +2,8 @@ package flint
 package service
 package aws
 
+import flint.service.aws.InstanceTagExtractor.asAwsTag
+
 import java.net.InetAddress
 import java.time.Instant
 import java.time.temporal.ChronoUnit.HOURS
@@ -39,8 +41,12 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
   private val dockerConfig = flintConfig.get[Config]("docker").value
   private val awsConfig    = flintConfig.get[Config]("aws").value
 
-  private val extraInstanceTags = awsConfig.get[Map[String, String]]("extra_instance_tags").value
-  private val tags              = new Tags(extraInstanceTags)
+  private val extraConfigTags = {
+    val extraConfigInstanceTags = awsConfig
+      .get[Map[String, String]]("extra_instance_tags")
+      .value
+    ExtraTags(extraConfigInstanceTags)
+  }
 
   private lazy val ssmClient                        = createSsmClient(awsConfig)
   override val managementService: ManagementService = new AwsManagementService(ssmClient)
@@ -76,12 +82,21 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     }
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] =
-    launchCluster(spec, workerBidPrice = None)
+    validateAndLaunchCluster(spec, workerBidPrice = None)
 
   override def launchSpotCluster(
       spec: ClusterSpec,
       workerBidPrice: BigDecimal): Future[ManagedCluster] =
-    launchCluster(spec, Some(workerBidPrice))
+    validateAndLaunchCluster(spec, Some(workerBidPrice))
+
+  private def validateAndLaunchCluster(
+      spec: ClusterSpec,
+      workerBidPrice: Option[BigDecimal]): Future[ManagedCluster] =
+    FlintTags.validateUserTags(spec.extraInstanceTags) match {
+      case Left(errors) =>
+        Future.failed(new RuntimeException(s"Invalid instance tags: ${errors.mkString(", ")}"))
+      case Right(()) => launchCluster(spec, workerBidPrice)
+    }
 
   private def launchCluster(
       spec: ClusterSpec,
@@ -95,6 +110,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         spec.owner,
         spec.numWorkers,
         spec.workerInstanceType,
+        extraConfigTags.extend(spec.extraInstanceTags),
         workerBidPrice
       ).map(workers => (master, workers))
     }.map {
@@ -112,7 +128,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
               Instant.now),
             this,
             spec.workerInstanceType,
-            workerBidPrice)
+            extraConfigTags.extend(spec.extraInstanceTags),
+            workerBidPrice
+          )
         clusterSystem.addCluster(managedCluster)
         managedCluster
     }
@@ -129,9 +147,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         InstanceProvisioning.Normal,
         spec.dockerImage,
         blockDeviceMappings,
-        extraInstanceTags,
+        extraConfigTags.extend(spec.extraInstanceTags),
         awsConfig,
-        dockerConfig)
+        dockerConfig
+      )
     val masterRequest =
       createRunInstancesRequest(
         Some(s"${spec.id}-master"),
@@ -153,7 +172,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         flintInstance(spec.id, masterAwsInstance, false)
       }
       .flatMap { master =>
-        val masterTags = tags.masterTags(spec, workerBidPrice)
+        val masterTags = FlintTags(extraConfigTags.extend(spec.extraInstanceTags))
+          .masterTags(spec, workerBidPrice)
+          .map(asAwsTag)
         tagResources(Seq(master.id), masterTags).map(_ => master)
       }
   }
@@ -166,6 +187,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       owner: String,
       numWorkers: Int,
       instanceType: String,
+      extraInstanceTags: ExtraTags,
       workerBidPrice: Option[BigDecimal]): Future[Seq[Instance]] =
     if (numWorkers > 0) {
       workerBidPrice
@@ -178,6 +200,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
             owner,
             numWorkers,
             instanceType,
+            extraInstanceTags,
             _))
         .getOrElse(
           launchNormallyProvisionedWorkers(
@@ -187,7 +210,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
             dockerImage,
             owner,
             numWorkers,
-            instanceType))
+            instanceType,
+            extraInstanceTags))
     } else {
       Future.successful(Seq.empty)
     }
@@ -199,7 +223,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       dockerImage: DockerImage,
       owner: String,
       numWorkers: Int,
-      instanceType: String): Future[Seq[Instance]] = {
+      instanceType: String,
+      extraInstanceTags: ExtraTags): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
     val workerUserData =
       createWorkerUserData(
@@ -226,7 +251,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         reservation.getInstances.asScala
           .map(instance => flintInstance(clusterId, instance, false))
           .toIndexedSeq
-      val workerTags = tags.workerTags(clusterId, owner)
+      val workerTags = FlintTags(extraInstanceTags).workerTags(clusterId, owner).map(asAwsTag)
       tagResources(workers.map(_.id), workerTags).map(_ => workers)
     }
   }
@@ -239,6 +264,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       owner: String,
       numWorkers: Int,
       instanceType: String,
+      extraInstanceTags: ExtraTags,
       bidPrice: BigDecimal): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
     val workerUserData =
@@ -263,14 +289,16 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         bidPrice,
         awsConfig)
     ec2Client.requestSpotInstances(workersRequest).flatMap { spotInstancesRequests =>
-      val spotInstanceRequestIds  = spotInstancesRequests.map(_.getSpotInstanceRequestId)
-      val spotInstanceRequestTags = Tags.spotInstanceRequestTags(clusterId, owner)
+      val spotInstanceRequestIds = spotInstancesRequests.map(_.getSpotInstanceRequestId)
+      val spotInstanceRequestTags = InstanceTagExtractor
+        .spotInstanceRequestTags(clusterId, owner)
+        .map(asAwsTag)
       tagResources(spotInstanceRequestIds, spotInstanceRequestTags).map(_ => Seq.empty)
     }
   }
 
   private[aws] def describeFlintInstances(): Future[Seq[Reservation]] = {
-    val clusterIdTagFilter = new Filter("tag-key").withValues(Tags.ClusterId)
+    val clusterIdTagFilter = new Filter("tag-key").withValues(FlintTags.ClusterId)
     val request            = new DescribeInstancesRequest().withFilters(clusterIdTagFilter)
     ec2Client.describeInstances(request)
   }
@@ -284,10 +312,10 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
     val lifecycleState: LifecycleState = awsInstance.getState
     val containerState =
-      Tags.getContainerState(awsInstance).getOrElse(ContainerPending)
+      InstanceTagExtractor.getContainerState(awsInstance).getOrElse(ContainerPending)
     val instanceSpecs =
       instanceSpecsMap(awsInstance.getInstanceType)
-    val dockerImage    = Tags.getDockerImage(awsInstance)
+    val dockerImage    = InstanceTagExtractor.getDockerImage(awsInstance)
     val placementGroup = Option(awsInstance.getPlacement.getGroupName).filterNot(_.isEmpty)
 
     Instance(
@@ -321,7 +349,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       clusterId: ClusterId,
       instancesFilterOpt: Option[Seq[Instance]]): Future[Unit] = {
     val clusterIdFilter =
-      new Filter(s"tag:${Tags.ClusterId}").withValues(clusterId.toString)
+      new Filter(s"tag:${FlintTags.ClusterId}").withValues(clusterId.toString)
     val describeSpotInstanceRequestsRequest =
       new DescribeSpotInstanceRequestsRequest().withFilters(clusterIdFilter)
     ec2Client
@@ -366,7 +394,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
             terminatingInstances.foreach { terminatingInstance =>
               tagResources(
                 instanceIds.toStream,
-                Seq(new Tag(Tags.ContainerState, ContainerStopped.toString))).foreach { _ =>
+                Seq(new Tag(FlintTags.ContainerState, ContainerStopped.toString))).foreach { _ =>
                 clusterSystem.updateInstanceState(
                   terminatingInstance.getInstanceId,
                   terminatingInstance.getCurrentState)
@@ -529,7 +557,7 @@ private[aws] object AwsClusterService {
       provisioning: InstanceProvisioning,
       dockerImage: DockerImage,
       blockDeviceMappings: Seq[BlockDeviceMapping],
-      extraInstanceTags: Map[String, String],
+      extraInstanceTags: ExtraTags,
       awsConfig: Config,
       dockerConfig: Config
   ): String = {
@@ -568,7 +596,7 @@ private[aws] object AwsClusterService {
     def replaceContainerTagMacros(text: String): String =
       text
         .replaceMacro("AWS_REGION", awsConfig.getString("region"))
-        .replaceMacro("CONTAINER_STATE_TAG_KEY", Tags.ContainerState)
+        .replaceMacro("CONTAINER_STATE_TAG_KEY", FlintTags.ContainerState)
         .replaceMacro("CONTAINER_PENDING_STATE_TAG_VALUE", ContainerPending)
         .replaceMacro("CONTAINER_RUNNING_STATE_TAG_VALUE", ContainerRunning)
         .replaceMacro("CONTAINER_STARTING_STATE_TAG_VALUE", ContainerStarting)
@@ -578,20 +606,20 @@ private[aws] object AwsClusterService {
         .replaceMacro("DOCKER_EMAIL", dockerConfig.getString("email"))
         .replaceMacro("SCRATCH_VOLUMES", sparkLocalDirs.map(x => s"-v $x:$x").mkString(" "))
         .replaceMacro("SPARK_LOCAL_DIRS", sparkLocalDirs.mkString(","))
-        .replaceMacro("CLUSTER_ID_TAG_KEY", Tags.ClusterId)
+        .replaceMacro("CLUSTER_ID_TAG_KEY", FlintTags.ClusterId)
         .replaceMacro("CLUSTER_ID_TAG_VALUE", clusterId)
-        .replaceMacro("DOCKER_IMAGE_KEY", Tags.DockerImage)
+        .replaceMacro("DOCKER_IMAGE_KEY", FlintTags.DockerImage)
         .replaceMacro("DOCKER_IMAGE_VALUE", dockerImage.canonicalName)
         .replaceMacro("NAME_TAG_VALUE", instanceName)
-        .replaceMacro("OWNER_TAG_KEY", Tags.Owner)
+        .replaceMacro("OWNER_TAG_KEY", FlintTags.Owner)
         .replaceMacro("OWNER_TAG_VALUE", owner)
-        .replaceMacro("SPARK_ROLE_TAG_KEY", Tags.SparkRole)
+        .replaceMacro("SPARK_ROLE_TAG_KEY", FlintTags.SparkRole)
         .replaceMacro("SPARK_ROLE_TAG_VALUE", clusterRole.name)
 
     val baseTemplate = readTextResource("user_data-common.sh.template")
 
     val extraInstanceTagsString =
-      extraInstanceTags.map {
+      extraInstanceTags.tags.map {
         case (name, value) =>
           s"""Key="$name",Value="$value""""
       }.mkString(" ")
@@ -615,7 +643,7 @@ private[aws] object AwsClusterService {
       masterIpAddress: InetAddress,
       workerSpecs: InstanceSpecs,
       dockerImage: DockerImage,
-      extraInstanceTags: Map[String, String],
+      extraInstanceTags: ExtraTags,
       awsConfig: Config,
       dockerConfig: Config): String = {
     val blockDeviceMappings = createBlockDeviceMappings(workerSpecs.storage)

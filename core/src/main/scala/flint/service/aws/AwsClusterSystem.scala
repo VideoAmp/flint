@@ -32,7 +32,7 @@ private[aws] class AwsClusterSystem private[aws] (
             .flatMap(_.getInstances.asScala)
             .map { instance =>
               val optClusterId = instance.getTags.asScala
-                .find(_.getKey == Tags.ClusterId)
+                .find(_.getKey == FlintTags.ClusterId)
                 .map(_.getValue)
                 .map(ClusterId(_))
               (optClusterId, instance)

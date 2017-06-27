@@ -1,7 +1,7 @@
 package flint
 package server
 
-import service.{ ClusterSpec, ClusterTerminationReason }
+import service.{ ClusterSpec, ClusterTerminationReason, ExtraTags }
 
 import java.net.InetAddress
 import java.time.{ Instant, OffsetDateTime, ZoneOffset }
@@ -116,6 +116,8 @@ package object messaging {
   }
 
   private[messaging] implicit val dockerImageJson = deriveJSON[DockerImage]
+
+  private[messaging] implicit val extraTagsJson = deriveJSON[ExtraTags]
 
   private[messaging] def createCaseObjectJson[T](
       typeDescription: String,
