@@ -22,7 +22,7 @@ class UserDataSpec extends FlatSpec {
       InstanceProvisioning.Normal,
       DockerImage("test", "me"),
       Nil,
-      extraInstanceTags,
+      ExtraTags(extraInstanceTags),
       testAwsConfig,
       testDockerConfig
     )
@@ -37,7 +37,7 @@ class UserDataSpec extends FlatSpec {
       InstanceProvisioning.Normal,
       DockerImage("test", "me"),
       blockDeviceMappings,
-      extraInstanceTags,
+      ExtraTags(extraInstanceTags),
       testAwsConfig,
       testDockerConfig
     )

@@ -2,6 +2,8 @@ package flint
 package service
 package aws
 
+import flint.service.aws.InstanceTagExtractor.asAwsTag
+
 import java.net.InetAddress
 
 import scala.concurrent.Future
@@ -15,6 +17,7 @@ private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
     clusterService: AwsClusterService,
     override val workerInstanceType: String,
+    override val extraInstanceTags: ExtraTags,
     override val workerBidPrice: Option[BigDecimal])
     extends ManagedCluster
     with LazyLogging {
@@ -33,6 +36,7 @@ private[aws] class AwsManagedCluster(
         cluster.owner,
         count,
         workerInstanceType,
+        extraInstanceTags,
         workerBidPrice)
       .map { newWorkers =>
         logger.debug(s"Adding ${newWorkers.size} new worker(s)")
@@ -43,26 +47,30 @@ private[aws] class AwsManagedCluster(
 
   override protected def changeDockerImage0(dockerImage: DockerImage): Future[Unit] =
     super.changeDockerImage0(dockerImage).flatMap { _ =>
-      val dockerImageTags = Tags.dockerImageTags(dockerImage)
+      val dockerImageTags = FlintTags.dockerImageTags(dockerImage).map(asAwsTag)
       clusterService.tagResources(Seq(cluster.master.id), dockerImageTags)
     }
 
   private[aws] def update(instances: Seq[AwsInstance]): Unit =
-    Tags.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
+    InstanceTagExtractor.findMaster(cluster.id, instances).foreach { masterAwsInstance =>
       def updateInstance(instance: Instance, awsInstance: AwsInstance) = {
         instance.ipAddress.asVar() =
           Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
-        instance.dockerImage.asVar() = Tags.getDockerImage(awsInstance)
+        instance.dockerImage.asVar() = InstanceTagExtractor.getDockerImage(awsInstance)
         instance.state.asVar() = awsInstance.getState
-        Tags.getContainerState(awsInstance).foreach(instance.containerState.asVar() = _)
+        InstanceTagExtractor
+          .getContainerState(awsInstance)
+          .foreach(instance.containerState.asVar() = _)
       }
 
-      Tags.getClusterDockerImage(masterAwsInstance).foreach(cluster.dockerImage.asVar() = _)
+      InstanceTagExtractor
+        .getClusterDockerImage(masterAwsInstance)
+        .foreach(cluster.dockerImage.asVar() = _)
 
       updateInstance(cluster.master, masterAwsInstance)
 
       val workerAwsInstances =
-        Tags
+        InstanceTagExtractor
           .filterWorkers(cluster.id, instances)
           .map(workerInstance => workerInstance.getInstanceId -> workerInstance)
           .toMap
@@ -108,35 +116,45 @@ private[aws] object AwsManagedCluster {
       clusterId: ClusterId,
       instances: Seq[AwsInstance],
       clusterService: AwsClusterService)(implicit ctx: Ctx.Owner): Option[AwsManagedCluster] =
-    Tags.findMaster(clusterId, instances).flatMap { masterAwsInstance =>
-      Tags.getClusterDockerImage(masterAwsInstance).flatMap { clusterDockerImage =>
-        Tags.getOwner(masterAwsInstance).flatMap { owner =>
-          Tags.getWorkerInstanceType(masterAwsInstance).map { workerInstanceType =>
-            val ttl            = Tags.getClusterTTL(masterAwsInstance)
-            val idleTimeout    = Tags.getClusterIdleTimeout(masterAwsInstance)
-            val workerBidPrice = Tags.getWorkerBidPrice(masterAwsInstance)
-            val master =
-              clusterService.flintInstance(clusterId, masterAwsInstance, false)
-            val workers =
-              Tags
-                .filterWorkers(clusterId, instances)
-                .map(instance =>
-                  clusterService.flintInstance(clusterId, instance, workerBidPrice.isDefined))
+    InstanceTagExtractor.findMaster(clusterId, instances).flatMap { masterAwsInstance =>
+      InstanceTagExtractor.getClusterDockerImage(masterAwsInstance).flatMap {
+        clusterDockerImage =>
+          InstanceTagExtractor.getOwner(masterAwsInstance).flatMap { owner =>
+            InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).map {
+              workerInstanceType =>
+                val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
+                val idleTimeout    = InstanceTagExtractor.getClusterIdleTimeout(masterAwsInstance)
+                val workerBidPrice = InstanceTagExtractor.getWorkerBidPrice(masterAwsInstance)
+                val extraInstanceTags =
+                  InstanceTagExtractor.getExtraInstanceTags(masterAwsInstance)
+                val master =
+                  clusterService.flintInstance(clusterId, masterAwsInstance, false)
+                val workers =
+                  InstanceTagExtractor
+                    .filterWorkers(clusterId, instances)
+                    .map(instance =>
+                      clusterService.flintInstance(clusterId, instance, workerBidPrice.isDefined))
 
-            val cluster =
-              Cluster(
-                clusterId,
-                clusterDockerImage,
-                owner,
-                ttl,
-                idleTimeout,
-                master,
-                workers,
-                masterAwsInstance.getLaunchTime.toInstant)
+                val cluster =
+                  Cluster(
+                    clusterId,
+                    clusterDockerImage,
+                    owner,
+                    ttl,
+                    idleTimeout,
+                    master,
+                    workers,
+                    masterAwsInstance.getLaunchTime.toInstant)
 
-            new AwsManagedCluster(cluster, clusterService, workerInstanceType, workerBidPrice)
+                new AwsManagedCluster(
+                  cluster,
+                  clusterService,
+                  workerInstanceType,
+                  ExtraTags(extraInstanceTags),
+                  workerBidPrice
+                )
+            }
           }
-        }
       }
     }
 }

@@ -12,7 +12,8 @@ case class ClusterSpec(
     masterInstanceType: String,
     workerInstanceType: String,
     numWorkers: Int,
-    placementGroup: Option[String] = None)
+    placementGroup: Option[String] = None,
+    extraInstanceTags: ExtraTags = ExtraTags())
 
 object ClusterSpec {
   // Convenience constructors

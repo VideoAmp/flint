@@ -33,8 +33,10 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         clusterSystem,
         workers,
         workerInstanceType,
+        ExtraTags(),
         None,
-        spec.placementGroup)
+        spec.placementGroup
+      )
 
     clusterSystem.newClusters.asVar() = Seq(cluster)
     clusterSystem.clusters() = clusterSystem.clusters.now.updated(id, cluster)

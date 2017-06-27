@@ -14,6 +14,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
     clusterSystem: MockClusterSystem,
     workers: Var[Seq[Instance]],
     override val workerInstanceType: String,
+    override val extraInstanceTags: ExtraTags,
     override val workerBidPrice: Option[BigDecimal],
     placementGroup: Option[String])(implicit protected val ctx: Ctx.Owner)
     extends ManagedCluster
