@@ -17,12 +17,12 @@ export default class ClusterInstanceDialog extends React.Component {
         const instanceDialogActions = [
             <FlatButton
                 label="Cancel"
-                onTouchTap={close}
+                onClick={close}
             />,
             <FlatButton
                 label="Kill"
                 primary={true}
-                onTouchTap={this.terminateCluster}
+                onClick={this.terminateCluster}
             />,
         ];
 

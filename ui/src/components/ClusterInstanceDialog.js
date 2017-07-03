@@ -31,12 +31,12 @@ export default class ClusterInstanceDialog extends React.Component {
         const instanceDialogActions = [
             <FlatButton
                 label="Cancel"
-                onTouchTap={close}
+                onClick={close}
             />,
             <FlatButton
                 label="Launch"
                 primary={true}
-                onTouchTap={this.launchWorkers}
+                onClick={this.launchWorkers}
             />,
         ];
 
