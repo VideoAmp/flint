@@ -74,11 +74,12 @@ export default class ClusterTotals extends React.Component {
     }
 
     componentWillReceiveProps(nextProps) {
-        const { instanceSpecs, masterInstanceType, workerInstanceType, numWorkers } = this.props;
+        const { instanceSpecs, masterInstanceType, workerInstanceType, numMasters, numWorkers } = this.props;
         const equalsOldProps = R.where({
             instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
             masterInstanceType: R.equals(masterInstanceType),
             workerInstanceType: R.equals(workerInstanceType),
+            numMasters: R.equals(numMasters),
             numWorkers: R.equals(numWorkers),
         });
 

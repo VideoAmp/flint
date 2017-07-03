@@ -196,8 +196,9 @@ export default class ClusterDialog extends React.Component {
                     instanceSpecs={instanceSpecs}
                     masterInstanceType={this.state.masterInstanceType}
                     workerInstanceType={this.state.workerInstanceType}
+                    numMasters={1}
                     numWorkers={this.state.numWorkers}
-                    active={false}
+                    isSpotCluster={this.state.isSpotCluster}
                 />
                 <Divider />
                 <div style={{ padding: "24px" }}>
