@@ -301,7 +301,7 @@ export default class App extends React.Component {
                             ownerDataSource={this.state.ownerDataSource}
                             defaultOwner={this.state.lastOwner}
                         />
-                        <FloatingActionButton className="fab" onTouchTap={this.handleClusterDialogOpen}>
+                        <FloatingActionButton className="fab" onClick={this.handleClusterDialogOpen}>
                             <ContentAdd />
                         </FloatingActionButton>
                     </div>

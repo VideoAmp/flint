@@ -167,12 +167,12 @@ export default class ClusterDialog extends React.Component {
         const clusterDialogActions = [
             <FlatButton
                 label="Cancel"
-                onTouchTap={close}
+                onClick={close}
             />,
             <FlatButton
                 label="Launch"
                 primary={true}
-                onTouchTap={this.launchCluster}
+                onClick={this.launchCluster}
             />,
         ];
 

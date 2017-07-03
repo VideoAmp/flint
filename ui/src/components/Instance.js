@@ -65,7 +65,7 @@ export default class Instance extends React.Component {
     getRightIconButton = (data, master) => {
         if (this.isTerminatable(data, master)) {
             return (
-                <IconButton onTouchTap={this.onRightIconButtonClick} touch={true}>
+                <IconButton onClick={this.onRightIconButtonClick} touch={true}>
                     <Trash />
                 </IconButton>
             );

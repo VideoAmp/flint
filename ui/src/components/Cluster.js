@@ -108,12 +108,12 @@ export default class Cluster extends React.Component {
                         textStyle={{ paddingRight: "0px" }}
                         style={{ paddingBottom: "0px", paddingRight: "0px", whiteSpace: "normal" }}>
                         <div style={{ float: "right", marginTop: "-11px" }}>
-                            <IconButton onTouchTap={this.handleClusterTerminateDialogOpen}>
+                            <IconButton onClick={this.handleClusterTerminateDialogOpen}>
                                 <Trash />
                             </IconButton>
                             <IconButton
                                 style={{ marginRight: "4px" }}
-                                onTouchTap={this.handleClusterInstanceDialogOpen}>
+                                onClick={this.handleClusterInstanceDialogOpen}>
                                 <Add />
                             </IconButton>
                         </div>
@@ -121,7 +121,7 @@ export default class Cluster extends React.Component {
                           <IconButton
                               iconStyle={{ width: "20px", height: "20px" }}
                               style={{ width: "20px", height: "20px", padding: "0px" }}
-                              onTouchTap={this.handleImageChangeLockChange}
+                              onClick={this.handleImageChangeLockChange}
                               disabled={imageChangeForbidden}>
                               { getImageLockIcon() }
                           </IconButton>
