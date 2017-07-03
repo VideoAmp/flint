@@ -11,13 +11,15 @@ package object aws {
   private[aws] val instanceSpecs = Seq(
     InstanceSpecs(T2Micro.toString, 1, GiB(1), "0.012"),
     InstanceSpecs(C38xlarge.toString, 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
+    InstanceSpecs(D28xlarge.toString, 36, GiB(236), InstanceStorageSpec(24, GiB(2000)), "5.52"),
+    InstanceSpecs(I38xlarge.toString, 32, GiB(236), InstanceStorageSpec(4, GiB(1900)), "2.496"),
+    InstanceSpecs(I316xlarge.toString, 64, GiB(460), InstanceStorageSpec(8, GiB(1900)), "4.992"),
     InstanceSpecs(M4Large.toString, 2, GiB(6), "0.1"),
     InstanceSpecs(P2Xlarge.toString, 4, GiB(52), "0.9"),
     InstanceSpecs(P28xlarge.toString, 32, GiB(460), "7.2"),
     InstanceSpecs(P216xlarge.toString, 64, GiB(716), "14.4"),
     InstanceSpecs(R3Large.toString, 2, GiB(13), InstanceStorageSpec(1, GiB(32)), "0.166"),
     InstanceSpecs(R38xlarge.toString, 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"),
-    InstanceSpecs(D28xlarge.toString, 36, GiB(236), InstanceStorageSpec(24, GiB(2000)), "5.52"),
     InstanceSpecs(X116xlarge.toString, 64, GiB(960), InstanceStorageSpec(1, GiB(1920)), "6.669"),
     InstanceSpecs(
       X132xlarge.toString,
