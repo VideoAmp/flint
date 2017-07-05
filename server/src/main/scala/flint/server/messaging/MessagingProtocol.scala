@@ -130,7 +130,6 @@ private[messaging] final class MessagingProtocol(
           .get(clusterId)
           .map(_.addWorkers(count))
           .map { optAddWorkers =>
-            logger.debug(optAddWorkers.toString)
             optAddWorkers.map(_ => None).recover {
               case ex =>
                 val error = s"Failed to add workers to cluster with id $clusterId: " + ex.getMessage
