@@ -169,7 +169,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       .runInstances(masterRequest)
       .map { reservation =>
         val masterAwsInstance = reservation.getInstances.asScala.head
-        flintInstance(spec.id, masterAwsInstance, false)
+        flintInstance(spec.id, masterAwsInstance)
       }
       .flatMap { master =>
         val masterTags = FlintTags(extraConfigTags.extend(spec.extraInstanceTags))
@@ -249,7 +249,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     ec2Client.runInstances(workersRequest).flatMap { reservation =>
       val workers =
         reservation.getInstances.asScala
-          .map(instance => flintInstance(clusterId, instance, false))
+          .map(instance => flintInstance(clusterId, instance))
           .toIndexedSeq
       val workerTags = FlintTags(extraInstanceTags).workerTags(clusterId, owner).map(asAwsTag)
       tagResources(workers.map(_.id), workerTags).map(_ => workers)
@@ -303,10 +303,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     ec2Client.describeInstances(request)
   }
 
-  private[aws] def flintInstance(
-      clusterId: ClusterId,
-      awsInstance: AwsInstance,
-      isSpot: Boolean): Instance = {
+  private[aws] def flintInstance(clusterId: ClusterId, awsInstance: AwsInstance): Instance = {
     val instanceId = awsInstance.getInstanceId
     val ipAddress =
       Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
@@ -317,6 +314,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       instanceSpecsMap(awsInstance.getInstanceType)
     val dockerImage    = InstanceTagExtractor.getDockerImage(awsInstance)
     val placementGroup = Option(awsInstance.getPlacement.getGroupName).filterNot(_.isEmpty)
+    val isSpot         = awsInstance.getInstanceLifecycle == "spot"
 
     Instance(
       instanceId,

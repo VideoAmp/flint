@@ -94,7 +94,7 @@ private[aws] class AwsManagedCluster(
           workersNow.map(_.id).contains(workerId)
       }.map {
         case (_, workerInstance) =>
-          clusterService.flintInstance(cluster.id, workerInstance, workerBidPrice.isDefined)
+          clusterService.flintInstance(cluster.id, workerInstance)
       }
 
       if (newWorkers.nonEmpty) {
@@ -128,12 +128,11 @@ private[aws] object AwsManagedCluster {
                 val extraInstanceTags =
                   InstanceTagExtractor.getExtraInstanceTags(masterAwsInstance)
                 val master =
-                  clusterService.flintInstance(clusterId, masterAwsInstance, false)
+                  clusterService.flintInstance(clusterId, masterAwsInstance)
                 val workers =
                   InstanceTagExtractor
                     .filterWorkers(clusterId, instances)
-                    .map(instance =>
-                      clusterService.flintInstance(clusterId, instance, workerBidPrice.isDefined))
+                    .map(instance => clusterService.flintInstance(clusterId, instance))
 
                 val cluster =
                   Cluster(
