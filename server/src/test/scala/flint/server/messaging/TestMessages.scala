@@ -2,7 +2,7 @@ package flint
 package server
 package messaging
 
-import service.{ ClientRequested, ClusterSpec }
+import service.{ ClientRequested, ClusterSpec, ExtraTags }
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -24,7 +24,9 @@ object TestMessages {
       "r3.xlarge",
       "c3.8xlarge",
       4,
-      Some("Placement Group"))
+      "subnet_1",
+      Some("Placement Group"),
+      ExtraTags())
   private val error      = Some("Something went wrong")
   private val instanceId = "instance123"
 

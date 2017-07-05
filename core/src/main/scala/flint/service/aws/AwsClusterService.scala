@@ -11,7 +11,8 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration.Duration
 import scala.util.Success
 
 import com.amazonaws.{ ClientConfiguration, PredefinedClientConfigurations }
@@ -22,6 +23,7 @@ import com.amazonaws.services.ec2.model.{
   Instance => AwsInstance,
   SpotPrice => _,
   Storage => _,
+  Subnet => _,
   _
 }
 import com.amazonaws.services.simplesystemsmanagement.{
@@ -30,12 +32,15 @@ import com.amazonaws.services.simplesystemsmanagement.{
 }
 import com.amazonaws.util.Base64
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 
 import configs.syntax._
 
 import rx._
 
-class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends ClusterService {
+class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
+    extends ClusterService
+    with LazyLogging {
   import AwsClusterService._
 
   private val dockerConfig = flintConfig.get[Config]("docker").value
@@ -63,6 +68,24 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 
   override def getPlacementGroups(): Future[Seq[String]] =
     ec2Client.describePlacementGroups(new DescribePlacementGroupsRequest)
+
+  override lazy val subnets = {
+    val subnetIds = awsConfig.get[Seq[String]]("subnet_ids").value
+    val request   = new DescribeSubnetsRequest().withSubnetIds(subnetIds: _*)
+    logger.info(s"Fetching metadata for subnets ${subnetIds.mkString(", ")}")
+
+    // Blocking, ewwww. But we need subnets to be initialized before first access
+    val awsSubnets = Await.result(ec2Client.describeSubnets(request), Duration("10s"))
+    logger.trace(s"Fetched metadata for subnets ${subnetIds.mkString(", ")}")
+
+    // Build a map so that we can return the subnets in the same order in which the ids are
+    // specified in the configuration
+    val subnetAzMap =
+      awsSubnets.map(awsSubnet => awsSubnet.getSubnetId -> awsSubnet.getAvailabilityZone).toMap
+    subnetIds.map(id => Subnet(id, subnetAzMap(id)))
+  }
+
+  private lazy val subnetsMap = subnets.map(subnet => subnet.id -> subnet).toMap
 
   override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] =
     if (instanceTypes.isEmpty) { Future.successful(Seq.empty) } else {
@@ -165,6 +188,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         // limited variety of instance types to be placed in a placement group. Attempting to place
         // an unsupported instance type in a placement group will fail. For another, the master's
         // network bandwidth requirement is effectively zilch
+        spec.subnetId,
         placementGroup = None,
         masterUserData,
         awsConfig
@@ -252,6 +276,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         clientToken,
         workerSpecs,
         numWorkers,
+        master.subnet.now.get.id,
         placementGroup,
         workerUserData,
         awsConfig)
@@ -294,6 +319,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         clientToken,
         workerSpecs,
         numWorkers,
+        master.subnet.now.get.id,
         placementGroup,
         workerUserData,
         bidPrice,
@@ -317,6 +343,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     val instanceId = awsInstance.getInstanceId
     val ipAddress =
       Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
+    val subnet                         = Option(awsInstance.getSubnetId).map(subnetsMap.apply)
     val lifecycleState: LifecycleState = awsInstance.getState
     val containerState =
       InstanceTagExtractor.getContainerState(awsInstance).getOrElse(ContainerPending)
@@ -329,6 +356,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
     Instance(
       instanceId,
       ipAddress,
+      subnet,
       placementGroup,
       dockerImage,
       lifecycleState,
@@ -460,6 +488,7 @@ private[aws] object AwsClusterService {
       clientToken: Option[String],
       instanceSpecs: InstanceSpecs,
       numInstances: Int,
+      subnetId: String,
       placementGroup: Option[String],
       userData: String,
       awsConfig: Config) = {
@@ -483,7 +512,7 @@ private[aws] object AwsClusterService {
       .withKeyName(awsConfig.get[String]("key_name").value)
       .withMonitoring(false)
       .withSecurityGroupIds(awsConfig.get[Seq[String]]("security_groups").value: _*)
-      .withSubnetId(awsConfig.get[String]("subnet_id").value)
+      .withSubnetId(subnetId)
       .withUserData(Base64.encodeAsString(userData.getBytes("UTF-8"): _*))
 
     val withClientToken = clientToken.map { clientToken =>
@@ -500,6 +529,7 @@ private[aws] object AwsClusterService {
       clientToken: Option[String],
       instanceSpecs: InstanceSpecs,
       numInstances: Int,
+      subnetId: String,
       placementGroup: Option[String],
       userData: String,
       bidPrice: BigDecimal,
@@ -525,7 +555,7 @@ private[aws] object AwsClusterService {
       .withImageId(amiId)
       .withInstanceType(instanceSpecs.instanceType)
       .withKeyName(awsConfig.get[String]("key_name").value)
-      .withSubnetId(awsConfig.get[String]("subnet_id").value)
+      .withSubnetId(subnetId)
       .withUserData(Base64.encodeAsString(userData.getBytes("UTF-8"): _*))
 
     val withPlacement = placementGroup.map { placementGroup =>

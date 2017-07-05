@@ -18,6 +18,10 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   override def getPlacementGroups(): Future[Seq[String]] =
     Future.successful("group 1" :: "group 2" :: Nil)
 
+  override val subnets = Subnet("subnet_1", "az_1") :: Subnet("subnet_2", "az_2") :: Subnet(
+    "subnet_3",
+    "az_3") :: Nil
+
   override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] = ???
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {

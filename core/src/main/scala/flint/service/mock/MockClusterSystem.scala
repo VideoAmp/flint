@@ -38,6 +38,7 @@ private[mock] class MockClusterSystem()(implicit protected val ctx: Ctx.Owner)
     Instance(
       id,
       Var(Some(InetAddress.getLoopbackAddress)),
+      Var(Some(Subnet("subnet_1", "az_1"))),
       placementGroup,
       Var(dockerImage),
       lifecycleState,

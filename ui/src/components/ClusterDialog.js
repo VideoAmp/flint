@@ -23,16 +23,20 @@ const tagFloatingTextLabelStyle = {
     overflow: "hidden",
 };
 
-const generateInstanceSpec =
+const generateInstanceSpecMenuItem =
     ({ instanceType }, key) => <MenuItem key={key} value={instanceType} primaryText={instanceType} />;
 
-const generatePlacementGroup =
+const generatePlacementGroupMenuItem =
     (placementGroup, key) => <MenuItem key={key} value={placementGroup} primaryText={placementGroup} />;
+
+const generateSubnetMenuItem =
+    ({ id, availabilityZone }, key) => <MenuItem key={key} value={id} primaryText={`${id} (${availabilityZone})`} />;
 
 export default class ClusterDialog extends React.Component {
     state = {
         owner: this.props.defaultOwner,
         tag: "",
+        subnetId: "",
         lifetimeHoursErrorText: "",
         workerCountErrorText: "",
         idleTimeoutCountErrorText: "",
@@ -64,6 +68,7 @@ export default class ClusterDialog extends React.Component {
             masterInstanceType,
             workerInstanceType,
             numWorkers,
+            subnetId,
             placementGroup,
             tag,
             isSpotCluster,
@@ -93,12 +98,14 @@ export default class ClusterDialog extends React.Component {
             masterInstanceType,
             workerInstanceType,
             numWorkers,
+            subnetId,
             placementGroup,
         };
 
         const workerBidPrice = parseFloat(workerBidPriceString);
-        const launchMessage = JSON.stringify({ "bidPrice": workerBidPrice, clusterSpec, "$type": messageType });
-        this.props.socket.send(launchMessage);
+        const launchMessage = { "bidPrice": workerBidPrice, clusterSpec, "$type": messageType };
+        console.log(launchMessage);
+        // this.props.socket.send(JSON.stringify(launchMessage));
         this.props.close(owner);
     }
 
@@ -106,8 +113,10 @@ export default class ClusterDialog extends React.Component {
         const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], this.props);
         const defaultWorkerBidPrice =
             parseFloat(R.pathOr("", ["instanceSpecs", 0, "hourlyPrice"], this.props));
+        const subnetId = this.props.subnets[0] ? this.props.subnets[0].id : null;
         this.setState({
             tag: this.props.tags[0],
+            subnetId,
             masterInstanceType: defaultInstance,
             workerInstanceType: defaultInstance,
             workerBidPriceString: defaultWorkerBidPrice.toString(),
@@ -168,7 +177,7 @@ export default class ClusterDialog extends React.Component {
         }
 
     render() {
-        const { instanceSpecs, ownerDataSource = [], openState, close, tags } = this.props;
+        const { instanceSpecs, ownerDataSource = [], subnets, openState, close, tags } = this.props;
 
         const clusterDialogActions = [
             <FlatButton
@@ -260,7 +269,7 @@ export default class ClusterDialog extends React.Component {
                                 onChange={this.handleFieldChange("masterInstanceType")}
                                 floatingLabelText="Master Type"
                                 fullWidth={true}>
-                                {this.props.instanceSpecs.map(generateInstanceSpec)}
+                                {instanceSpecs.map(generateInstanceSpecMenuItem)}
                             </SelectField>
                         </Cell>
                         <Cell>
@@ -269,7 +278,7 @@ export default class ClusterDialog extends React.Component {
                                 onChange={this.handleWorkerInstanceTypeChange("workerInstanceType")}
                                 floatingLabelText="Worker Type"
                                 fullWidth={true}>
-                                {this.props.instanceSpecs.map(generateInstanceSpec)}
+                                {instanceSpecs.map(generateInstanceSpecMenuItem)}
                             </SelectField>
                         </Cell>
                     </Grid>
@@ -304,14 +313,22 @@ export default class ClusterDialog extends React.Component {
                         </Cell>
                     </Grid>
                     <Grid style={gridStyles}>
-                        <Cell/>
+                        <Cell>
+                            <SelectField
+                                value={this.state.subnetId}
+                                onChange={this.handleFieldChange("subnetId")}
+                                floatingLabelText="Subnet"
+                                fullWidth={true}>
+                                {subnets.map(generateSubnetMenuItem)}
+                            </SelectField>
+                        </Cell>
                         <Cell>
                             <SelectField
                                 value={this.state.placementGroup}
                                 onChange={this.handleFieldChange("placementGroup")}
                                 floatingLabelText="Placement Group"
                                 fullWidth={true}>
-                                {this.props.placementGroups.map(generatePlacementGroup)}
+                                {this.props.placementGroups.map(generatePlacementGroupMenuItem)}
                             </SelectField>
                         </Cell>
                     </Grid>
