@@ -96,16 +96,21 @@ export default class ClusterDialog extends React.Component {
         this.props.close(owner);
     }
 
-    componentWillReceiveProps() {
-        const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], this.props);
-        const defaultWorkerBidPrice =
-            parseFloat(R.pathOr("", ["instanceSpecs", 0, "hourlyPrice"], this.props));
-        this.setState({
-            tag: this.props.tags[0],
-            masterInstanceType: defaultInstance,
-            workerInstanceType: defaultInstance,
-            workerBidPriceString: defaultWorkerBidPrice.toString(),
-        });
+    componentWillReceiveProps(nextProps) {
+        if (this.state.tag === "" ||
+            this.state.masterInstanceType === "" ||
+            this.state.workerInstanceType === "" ||
+            this.state.workerBidPriceString === "") {
+            const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], nextProps);
+            const defaultWorkerBidPrice =
+                parseFloat(R.pathOr("", ["instanceSpecs", 0, "hourlyPrice"], nextProps));
+            this.setState({
+                tag: nextProps.tags[0],
+                masterInstanceType: defaultInstance,
+                workerInstanceType: defaultInstance,
+                workerBidPriceString: defaultWorkerBidPrice.toString(),
+            });
+        }
     }
 
     onLifetimeHoursCountError = (error) => {
