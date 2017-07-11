@@ -6,7 +6,7 @@ import flint.service.aws.InstanceTagExtractor.asAwsTag
 
 import java.net.InetAddress
 import java.time.Instant
-import java.time.temporal.ChronoUnit.HOURS
+import java.time.temporal.ChronoUnit.SECONDS
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -87,14 +87,14 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
 
   private lazy val subnetsMap = subnets.map(subnet => subnet.id -> subnet).toMap
 
-  override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] =
+  override def getSpotPrices(subnet: Subnet, instanceTypes: String*): Future[Seq[SpotPrice]] =
     if (instanceTypes.isEmpty) { Future.successful(Seq.empty) } else {
-      val oneHourAgo = Instant.now.minus(1, HOURS)
+      val oneHourAgo = Instant.now.minus(0, SECONDS)
       val describeSpotPriceHistoryRequest =
         new DescribeSpotPriceHistoryRequest()
           .withInstanceTypes(instanceTypes: _*)
           .withProductDescriptions(RIProductDescription.LinuxUNIX.toString)
-          .withAvailabilityZone(awsConfig.get[String]("availability_zone").value)
+          .withAvailabilityZone(subnet.availabilityZone)
           .withStartTime(new Date(oneHourAgo.toEpochMilli))
       ec2Client
         .describeSpotPriceHistory(describeSpotPriceHistoryRequest)
@@ -103,8 +103,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
             awsSpotPrice =>
               SpotPrice(
                 awsSpotPrice.getInstanceType,
+                awsSpotPrice.getAvailabilityZone,
                 BigDecimal(awsSpotPrice.getSpotPrice),
-                awsSpotPrice.getTimestamp.toInstant)))
+                awsSpotPrice.getTimestamp.toInstant)).sortBy(_.timestamp))
     }
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] =

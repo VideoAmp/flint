@@ -5,7 +5,8 @@ case class InstanceSpecs(
     cores: Int,
     memory: Space,
     storage: InstanceStorageSpec,
-    hourlyPrice: BigDecimal)
+    hourlyPrice: BigDecimal,
+    isSpotEligible: Boolean)
 
 case class InstanceStorageSpec(devices: Int, storagePerDevice: Space) {
   def totalStorage: Space = storagePerDevice * devices
@@ -13,7 +14,27 @@ case class InstanceStorageSpec(devices: Int, storagePerDevice: Space) {
 
 object InstanceSpecs {
   def apply(instanceType: String, cores: Int, memory: Space, hourlyPrice: String): InstanceSpecs =
-    InstanceSpecs(instanceType, cores, memory, InstanceStorageSpec(0, GiB(0)), hourlyPrice)
+    InstanceSpecs(
+      instanceType,
+      cores,
+      memory,
+      InstanceStorageSpec(0, GiB(0)),
+      BigDecimal(hourlyPrice),
+      true)
+
+  def apply(
+      instanceType: String,
+      cores: Int,
+      memory: Space,
+      hourlyPrice: String,
+      isSpotEligible: Boolean): InstanceSpecs =
+    InstanceSpecs(
+      instanceType,
+      cores,
+      memory,
+      InstanceStorageSpec(0, GiB(0)),
+      BigDecimal(hourlyPrice),
+      isSpotEligible)
 
   def apply(
       instanceType: String,
@@ -21,5 +42,5 @@ object InstanceSpecs {
       memory: Space,
       storage: InstanceStorageSpec,
       hourlyPrice: String): InstanceSpecs =
-    InstanceSpecs(instanceType.toString, cores, memory, storage, BigDecimal(hourlyPrice))
+    InstanceSpecs(instanceType.toString, cores, memory, storage, BigDecimal(hourlyPrice), true)
 }

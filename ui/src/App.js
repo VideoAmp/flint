@@ -314,6 +314,7 @@ export default class App extends React.Component {
                             tags={this.state.tags}
                             ownerDataSource={this.state.ownerDataSource}
                             defaultOwner={this.state.lastOwner}
+                            baseUrl={this.baseUrl}
                         />
                         <FloatingActionButton className="fab" onClick={this.handleClusterDialogOpen}>
                             <ContentAdd />

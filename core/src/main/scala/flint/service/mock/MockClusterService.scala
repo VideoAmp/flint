@@ -22,7 +22,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
     "subnet_3",
     "az_3") :: Nil
 
-  override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] = ???
+  override def getSpotPrices(subnet: Subnet, instanceTypes: String*): Future[Seq[SpotPrice]] = ???
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._

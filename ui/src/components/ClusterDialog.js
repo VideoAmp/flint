@@ -24,7 +24,8 @@ const tagFloatingTextLabelStyle = {
 };
 
 const generateInstanceSpecMenuItem =
-    ({ instanceType }, key) => <MenuItem key={key} value={instanceType} primaryText={instanceType} />;
+    ({ instanceType, hourlyPrice }, key) =>
+        <MenuItem key={key} value={instanceType} primaryText={`${instanceType} ($${hourlyPrice}/hr)`} />;
 
 const generatePlacementGroupMenuItem =
     (placementGroup, key) => <MenuItem key={key} value={placementGroup} primaryText={placementGroup} />;
@@ -41,23 +42,32 @@ export default class ClusterDialog extends React.Component {
         workerCountErrorText: "",
         idleTimeoutCountErrorText: "",
         ownerErrorText: "",
-        workerBidPriceErrorText: "",
+        workerBidPriceRatioErrorText: "",
+        workerSpecs: [],
         masterInstanceType: "",
         workerInstanceType: "",
+        spotPrice: null,
         numWorkers: 1,
         lifetimeHours: 10,
         idleTimeout: 60,
-        workerBidPriceString: "",
         placementGroup: null,
+        workerBidPriceRatioString: "",
     };
 
-    getBidPrice = (workerInstanceType) => {
-        const getBidPrice = R.compose(
+    getHourlyPrice = (workerInstanceType) => {
+        const getHourlyPrice = R.compose(
             parseFloat,
             R.prop("hourlyPrice"),
             R.find(R.propEq("instanceType", workerInstanceType))
         );
-        return getBidPrice(this.props.instanceSpecs);
+        return getHourlyPrice(this.props.instanceSpecs);
+    }
+
+    getSpotPrice = (subnetId, instanceType) => {
+        this.setState({ spotPrice: "(fetching)" });
+        fetch(`${this.props.baseUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
+            .then(response => response.json())
+            .then(spotPrices => this.setState({ spotPrice: spotPrices[0] ? spotPrices[0].price : 0.0 }));
     }
 
     launchCluster = () => {
@@ -72,8 +82,8 @@ export default class ClusterDialog extends React.Component {
             placementGroup,
             tag,
             isSpotCluster,
-            workerBidPriceErrorText,
-            workerBidPriceString,
+            workerBidPriceRatioErrorText,
+            workerBidPriceRatioString,
         } = this.state;
 
         if (!owner) {
@@ -81,7 +91,7 @@ export default class ClusterDialog extends React.Component {
             return;
         }
 
-        if (isSpotCluster && workerBidPriceErrorText !== "") {
+        if (isSpotCluster && workerBidPriceRatioErrorText !== "") {
             return;
         }
 
@@ -102,25 +112,40 @@ export default class ClusterDialog extends React.Component {
             placementGroup,
         };
 
-        const workerBidPrice = parseFloat(workerBidPriceString);
+        const workerHourlyPrice = this.getHourlyPrice(workerInstanceType);
+        const workerBidPrice = parseFloat(workerBidPriceRatioString) * workerHourlyPrice;
         const launchMessage = { "bidPrice": workerBidPrice, clusterSpec, "$type": messageType };
-        console.log(launchMessage);
-        // this.props.socket.send(JSON.stringify(launchMessage));
+        this.props.socket.send(JSON.stringify(launchMessage));
         this.props.close(owner);
     }
 
-    componentWillReceiveProps() {
-        const defaultInstance = R.pathOr("", ["instanceSpecs", 0, "instanceType"], this.props);
-        const defaultWorkerBidPrice =
-            parseFloat(R.pathOr("", ["instanceSpecs", 0, "hourlyPrice"], this.props));
-        const subnetId = this.props.subnets[0] ? this.props.subnets[0].id : null;
-        this.setState({
-            tag: this.props.tags[0],
-            subnetId,
-            masterInstanceType: defaultInstance,
-            workerInstanceType: defaultInstance,
-            workerBidPriceString: defaultWorkerBidPrice.toString(),
-        });
+    componentWillReceiveProps(nextProps) {
+        const propsToState = (props) => {
+            const tag = R.pathOr("", ["tags", 0], props);
+            const instanceSpecs = props.instanceSpecs ? props.instanceSpecs : [];
+            const workerSpecs = R.filter(spec => spec.isSpotEligible, instanceSpecs);
+            const masterInstanceType = R.pathOr("", [0, "instanceType"], instanceSpecs);
+            const workerInstanceType = R.pathOr("", [0, "instanceType"], workerSpecs);
+            const subnetId = R.pathOr("", ["subnets", 0, "id"], props);
+            const workerBidPriceRatioString =
+                this.state.workerBidPriceRatioString !== "" ? this.state.workerBidPriceRatioString : "1.1";
+            return {
+                tag,
+                instanceSpecs,
+                workerSpecs,
+                masterInstanceType,
+                workerInstanceType,
+                subnetId,
+                workerBidPriceRatioString,
+            };
+        };
+
+        const currentState = propsToState(this.props);
+        const newState = propsToState(nextProps);
+
+        if (!R.equals(currentState, newState)) {
+            this.setState(newState);
+        }
     }
 
     onLifetimeHoursCountError = (error) => {
@@ -149,35 +174,44 @@ export default class ClusterDialog extends React.Component {
     };
     onIdleTimeoutCountValid = idleTimeout => this.setState({ idleTimeout });
 
-    onWorkerBidPriceChange = (event, workerBidPriceString) => this.setState({ workerBidPriceString });
+    onWorkerBidPriceChange = (event, workerBidPriceRatioString) => this.setState({ workerBidPriceRatioString });
     onWorkerBidPriceError = (error) => {
-        const workerBidPriceErrorText = (error === "none") ? "" : "Please enter a valid worker bid price";
-        this.setState({ workerBidPriceErrorText });
+        const workerBidPriceRatioErrorText = (error === "none") ? "" : "Please enter a valid worker bid price ratio";
+        this.setState({ workerBidPriceRatioErrorText });
     };
 
     handleFieldChange = stateName =>
         (event, index, value) => this.setState(R.objOf(stateName, value))
 
-    handleCheckboxChange = stateName =>
-        (event, isInputChecked) =>
-            this.setState(R.objOf(stateName, isInputChecked))
+    handleWorkerInstanceTypeChange = (event, index, value) => {
+        this.setState(R.objOf("workerInstanceType", value));
+        this.refreshSpotPrice(this.state.isSpotCluster, value, this.state.subnetId);
+    }
+
+    handleSubnetIdChange = (event, index, value) => {
+        this.setState(R.objOf("subnetId", value));
+        this.refreshSpotPrice(this.state.isSpotCluster, this.state.workerInstanceType, value);
+    }
+
+    handleSpotClusterCheckboxChange = (event, isInputChecked) => {
+        this.setState(R.objOf("isSpotCluster", isInputChecked));
+        this.refreshSpotPrice(isInputChecked, this.state.workerInstanceType, this.state.subnetId);
+    }
+
+    refreshSpotPrice = (isInputChecked, workerInstanceType, subnetId) => {
+        if (isInputChecked && workerInstanceType !== "" && subnetId !== "") {
+            this.getSpotPrice(subnetId, workerInstanceType);
+        }
+    }
 
     handleOwnerChange = (owner) => {
         const ownerErrorText = owner ? "" : "Please enter an owner";
         this.setState({ ownerErrorText, owner });
     }
 
-    handleWorkerInstanceTypeChange = stateName =>
-        (event, index, value) => {
-            const bidPrice = this.getBidPrice(value);
-            this.setState({
-                workerBidPriceString: bidPrice.toString(),
-                [stateName]: value,
-            });
-        }
-
     render() {
         const { instanceSpecs, ownerDataSource = [], subnets, openState, close, tags } = this.props;
+        const { workerSpecs } = this.state;
 
         const clusterDialogActions = [
             <FlatButton
@@ -193,7 +227,7 @@ export default class ClusterDialog extends React.Component {
 
         const fieldStyles = { width: "100%" };
         const gridStyles = { marginBottom: "0px" };
-        const workerBidPriceStyles = {
+        const workerBidPriceRatioStyles = {
             visibility: this.state.isSpotCluster ? "visible" : "hidden",
         };
 
@@ -275,10 +309,10 @@ export default class ClusterDialog extends React.Component {
                         <Cell>
                             <SelectField
                                 value={this.state.workerInstanceType}
-                                onChange={this.handleWorkerInstanceTypeChange("workerInstanceType")}
+                                onChange={this.handleWorkerInstanceTypeChange}
                                 floatingLabelText="Worker Type"
                                 fullWidth={true}>
-                                {instanceSpecs.map(generateInstanceSpecMenuItem)}
+                                {workerSpecs.map(generateInstanceSpecMenuItem)}
                             </SelectField>
                         </Cell>
                     </Grid>
@@ -316,7 +350,7 @@ export default class ClusterDialog extends React.Component {
                         <Cell>
                             <SelectField
                                 value={this.state.subnetId}
-                                onChange={this.handleFieldChange("subnetId")}
+                                onChange={this.handleSubnetIdChange}
                                 floatingLabelText="Subnet"
                                 fullWidth={true}>
                                 {subnets.map(generateSubnetMenuItem)}
@@ -337,22 +371,23 @@ export default class ClusterDialog extends React.Component {
                             <Checkbox
                                 label="Use Spot Cluster"
                                 defaultChecked={this.state.isSpotCluster}
-                                onCheck={this.handleCheckboxChange("isSpotCluster")}
+                                onCheck={this.handleSpotClusterCheckboxChange}
                             />
                         </Cell>
-                        <Cell>
+                        <Cell style={workerBidPriceRatioStyles}>
                             <NumberInput
                                 id="worker-bid-price-input"
-                                floatingLabelText="Spot Worker Bid Price"
-                                value={this.state.workerBidPriceString}
+                                floatingLabelText="Spot Worker Bid Price Ratio"
+                                value={this.state.workerBidPriceRatioString}
                                 min={0}
-                                max={50}
+                                max={10}
                                 strategy="allow"
-                                errorText={this.state.workerBidPriceErrorText}
+                                errorText={this.state.workerBidPriceRatioErrorText}
                                 onChange={this.onWorkerBidPriceChange}
                                 onError={this.onWorkerBidPriceError}
-                                style={R.merge(fieldStyles, workerBidPriceStyles)}
+                                style={R.merge(fieldStyles, workerBidPriceRatioStyles)}
                             />
+                            Current spot price: {this.state.spotPrice}
                         </Cell>
                     </Grid>
                 </div>
