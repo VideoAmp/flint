@@ -15,6 +15,9 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
 
   override val instanceSpecs = mock.instanceSpecs
 
+  override def getPlacementGroups(): Future[Seq[String]] =
+    Future.successful("group 1" :: "group 2" :: Nil)
+
   override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] = ???
 
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
@@ -33,9 +36,9 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         clusterSystem,
         workers,
         workerInstanceType,
+        spec.placementGroup,
         ExtraTags(),
-        None,
-        spec.placementGroup
+        None
       )
 
     clusterSystem.newClusters.asVar() = Seq(cluster)

@@ -17,6 +17,7 @@ private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
     clusterService: AwsClusterService,
     override val workerInstanceType: String,
+    override val placementGroup: Option[String],
     override val extraInstanceTags: ExtraTags,
     override val workerBidPrice: Option[BigDecimal])
     extends ManagedCluster
@@ -36,6 +37,7 @@ private[aws] class AwsManagedCluster(
         cluster.owner,
         count,
         workerInstanceType,
+        placementGroup,
         extraInstanceTags,
         workerBidPrice)
       .map { newWorkers =>
@@ -122,6 +124,7 @@ private[aws] object AwsManagedCluster {
           InstanceTagExtractor.getOwner(masterAwsInstance).flatMap { owner =>
             InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).map {
               workerInstanceType =>
+                val placementGroup = InstanceTagExtractor.getPlacementGroup(masterAwsInstance)
                 val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
                 val idleTimeout    = InstanceTagExtractor.getClusterIdleTimeout(masterAwsInstance)
                 val workerBidPrice = InstanceTagExtractor.getWorkerBidPrice(masterAwsInstance)
@@ -149,6 +152,7 @@ private[aws] object AwsManagedCluster {
                   cluster,
                   clusterService,
                   workerInstanceType,
+                  placementGroup,
                   ExtraTags(extraInstanceTags),
                   workerBidPrice
                 )

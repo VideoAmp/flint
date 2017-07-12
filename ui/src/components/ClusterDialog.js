@@ -26,6 +26,9 @@ const tagFloatingTextLabelStyle = {
 const generateInstanceSpec =
     ({ instanceType }, key) => <MenuItem key={key} value={instanceType} primaryText={instanceType} />;
 
+const generatePlacementGroup =
+    (placementGroup, key) => <MenuItem key={key} value={placementGroup} primaryText={placementGroup} />;
+
 export default class ClusterDialog extends React.Component {
     state = {
         owner: this.props.defaultOwner,
@@ -41,6 +44,7 @@ export default class ClusterDialog extends React.Component {
         lifetimeHours: 10,
         idleTimeout: 60,
         workerBidPriceString: "",
+        placementGroup: null,
     };
 
     getBidPrice = (workerInstanceType) => {
@@ -60,6 +64,7 @@ export default class ClusterDialog extends React.Component {
             masterInstanceType,
             workerInstanceType,
             numWorkers,
+            placementGroup,
             tag,
             isSpotCluster,
             workerBidPriceErrorText,
@@ -88,6 +93,7 @@ export default class ClusterDialog extends React.Component {
             masterInstanceType,
             workerInstanceType,
             numWorkers,
+            placementGroup,
         };
 
         const workerBidPrice = parseFloat(workerBidPriceString);
@@ -295,6 +301,18 @@ export default class ClusterDialog extends React.Component {
                                 onValid={this.onIdleTimeoutCountValid}
                                 style={fieldStyles}
                             />
+                        </Cell>
+                    </Grid>
+                    <Grid style={gridStyles}>
+                        <Cell/>
+                        <Cell>
+                            <SelectField
+                                value={this.state.placementGroup}
+                                onChange={this.handleFieldChange("placementGroup")}
+                                floatingLabelText="Placement Group"
+                                fullWidth={true}>
+                                {this.props.placementGroups.map(generatePlacementGroup)}
+                            </SelectField>
                         </Cell>
                     </Grid>
                     <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>

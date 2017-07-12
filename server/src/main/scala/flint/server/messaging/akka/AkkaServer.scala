@@ -65,12 +65,13 @@ class AkkaServer(
   private val connectionFlowFactory = new ConnectionFlowFactory(messageReceiver)
 
   override def bindTo(interface: String, port: Int, apiRoot: String): Future[Binding] = {
-    val messagingPath     = apiRoot + "/messaging"
-    val clustersPath      = apiRoot + "/clusters"
-    val dockerImagesPath  = apiRoot + "/dockerImages"
-    val instanceSpecsPath = apiRoot + "/instanceSpecs"
-    val spotPricesPath    = apiRoot + "/spotPrices"
-    val versionPath       = "/version"
+    val messagingPath       = apiRoot + "/messaging"
+    val clustersPath        = apiRoot + "/clusters"
+    val dockerImagesPath    = apiRoot + "/dockerImages"
+    val instanceSpecsPath   = apiRoot + "/instanceSpecs"
+    val placementGroupsPath = apiRoot + "/placementGroups"
+    val spotPricesPath      = apiRoot + "/spotPrices"
+    val versionPath         = "/version"
 
     val syncRequestHandler: PartialFunction[HttpRequest, HttpResponse] = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
@@ -112,6 +113,13 @@ class AkkaServer(
           .withHeaders(`Access-Control-Allow-Origin`.*)
     }
     val asyncRequestHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
+      case HttpRequest(GET, Uri.Path(`placementGroupsPath`), _, _, _) =>
+        logger.info("Received GET request for placement groups")
+        clusterService.getPlacementGroups().map { placementGroups =>
+          val responseBody = compactJson(toJValue(placementGroups.toList))
+          HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+            .withHeaders(`Access-Control-Allow-Origin`.*)
+        }
       case HttpRequest(GET, uri @ Uri.Path(`spotPricesPath`), _, _, _) =>
         uri
           .query()

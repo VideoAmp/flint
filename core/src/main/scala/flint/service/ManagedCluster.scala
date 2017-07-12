@@ -15,6 +15,7 @@ trait ManagedCluster {
   final val terminationReason: Rx[Option[ClusterTerminationReason]] = Var(None)
 
   val workerInstanceType: String
+  val placementGroup: Option[String]
   val extraInstanceTags: ExtraTags
   val workerBidPrice: Option[BigDecimal]
 
