@@ -36,6 +36,19 @@ private[aws] class Ec2Client(awsEc2Client: AmazonEC2Async) {
     handler.future.map(_.getReservations.asScala.toIndexedSeq)
   }
 
+  def describePlacementGroups(
+      request: DescribePlacementGroupsRequest,
+      retries: Int = 3): Future[Seq[String]] = retryFuture(retries) {
+    val handler =
+      new AwsRequestHandler[DescribePlacementGroupsRequest, DescribePlacementGroupsResult]
+    awsEc2Client.describePlacementGroupsAsync(request, handler)
+    handler.future.map(
+      _.getPlacementGroups.asScala
+        .filter(_.getState == "available")
+        .map(_.getGroupName)
+        .toIndexedSeq)
+  }
+
   def describeSpotInstanceRequests(
       request: DescribeSpotInstanceRequestsRequest,
       retries: Int = 3): Future[Seq[SpotInstanceRequest]] = retryFuture(retries) {

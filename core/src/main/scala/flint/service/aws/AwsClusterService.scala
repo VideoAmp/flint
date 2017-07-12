@@ -61,6 +61,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
 
   override val instanceSpecs = aws.instanceSpecs
 
+  override def getPlacementGroups(): Future[Seq[String]] =
+    ec2Client.describePlacementGroups(new DescribePlacementGroupsRequest)
+
   override def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]] =
     if (instanceTypes.isEmpty) { Future.successful(Seq.empty) } else {
       val oneHourAgo = Instant.now.minus(1, HOURS)
@@ -110,6 +113,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         spec.owner,
         spec.numWorkers,
         spec.workerInstanceType,
+        spec.placementGroup,
         extraConfigTags.extend(spec.extraInstanceTags),
         workerBidPrice
       ).map(workers => (master, workers))
@@ -128,6 +132,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
               Instant.now),
             this,
             spec.workerInstanceType,
+            spec.placementGroup,
             extraConfigTags.extend(spec.extraInstanceTags),
             workerBidPrice
           )
@@ -187,6 +192,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       owner: String,
       numWorkers: Int,
       instanceType: String,
+      placementGroup: Option[String],
       extraInstanceTags: ExtraTags,
       workerBidPrice: Option[BigDecimal]): Future[Seq[Instance]] =
     if (numWorkers > 0) {
@@ -200,6 +206,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
             owner,
             numWorkers,
             instanceType,
+            placementGroup,
             extraInstanceTags,
             _))
         .getOrElse(
@@ -211,6 +218,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
             owner,
             numWorkers,
             instanceType,
+            placementGroup,
             extraInstanceTags))
     } else {
       Future.successful(Seq.empty)
@@ -224,6 +232,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       owner: String,
       numWorkers: Int,
       instanceType: String,
+      placementGroup: Option[String],
       extraInstanceTags: ExtraTags): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
     val workerUserData =
@@ -243,7 +252,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         clientToken,
         workerSpecs,
         numWorkers,
-        master.placementGroup,
+        placementGroup,
         workerUserData,
         awsConfig)
     ec2Client.runInstances(workersRequest).flatMap { reservation =>
@@ -264,6 +273,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
       owner: String,
       numWorkers: Int,
       instanceType: String,
+      placementGroup: Option[String],
       extraInstanceTags: ExtraTags,
       bidPrice: BigDecimal): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
@@ -284,7 +294,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner) extends Cl
         clientToken,
         workerSpecs,
         numWorkers,
-        master.placementGroup,
+        placementGroup,
         workerUserData,
         bidPrice,
         awsConfig)

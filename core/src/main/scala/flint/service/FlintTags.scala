@@ -18,6 +18,10 @@ private[service] class FlintTags(extraTags: ExtraTags) {
       ClusterDockerImage -> dockerImage.canonicalName,
       WorkerInstanceType -> workerInstanceType)
 
+    val placementGroupTags = placementGroup
+      .map(placementGroup => Map(PlacementGroup -> placementGroup))
+      .getOrElse(noTags)
+
     val ttlTags =
       ttl.map(ttl => Map(ClusterTTL -> s"${ttl.toHours}h")).getOrElse(noTags)
     val idleTimeoutTags =
@@ -30,6 +34,7 @@ private[service] class FlintTags(extraTags: ExtraTags) {
 
     commonResourceTags ++
       (commonTags ++
+        placementGroupTags ++
         ttlTags ++
         idleTimeoutTags ++
         workerBidPriceTags ++
@@ -52,6 +57,7 @@ private[service] object FlintTags {
   val ContainerState     = "flint:container_state"
   val DockerImage        = "flint:docker_image"
   val Owner              = "flint:owner"
+  val PlacementGroup     = "flint:placement_group"
   val SparkRole          = "flint:spark_cluster_role"
   val WorkerInstanceType = "flint:worker_instance_type"
   val WorkerBidPrice     = "flint:worker_bid_price"

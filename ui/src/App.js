@@ -75,6 +75,7 @@ export default class App extends React.Component {
         clusterDialogOpen: false,
         clusters: {},
         instanceSpecs: [],
+        placementGroups: [],
         tags: [],
         socket: null,
         ownerDataSource: Store.get("ownerDataSource"),
@@ -88,6 +89,10 @@ export default class App extends React.Component {
     getInstanceSpecs = () => fetch(`${this.baseUrl}/instanceSpecs`)
             .then(response => response.json())
             .then(instanceSpecs => this.setState({ instanceSpecs }))
+
+    getPlacementGroups = () => fetch(`${this.baseUrl}/placementGroups`)
+            .then(response => response.json())
+            .then(placementGroups => this.setState({ placementGroups: [null].concat(placementGroups) }))
 
     handleClusterUpdate = cluster => (properties) => {
         const { clusters } = this.state;
@@ -241,6 +246,7 @@ export default class App extends React.Component {
             getDockerImageTags()
                 .then(sortedTags => this.setState({ tags: sortedTags }))
                 .then(this.getInstanceSpecs)
+                .then(this.getPlacementGroups)
                 .then(this.getClusters);
         };
         socket.onmessage = ({ data }) => {
@@ -297,6 +303,7 @@ export default class App extends React.Component {
                             close={this.handleClusterDialogClose}
                             socket={this.state.socket}
                             instanceSpecs={this.state.instanceSpecs}
+                            placementGroups={this.state.placementGroups}
                             tags={this.state.tags}
                             ownerDataSource={this.state.ownerDataSource}
                             defaultOwner={this.state.lastOwner}

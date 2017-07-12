@@ -64,6 +64,9 @@ private[aws] object InstanceTagExtractor {
   def getWorkerInstanceType(instance: AwsInstance): Option[String] =
     getTag(instance, FlintTags.WorkerInstanceType)
 
+  def getPlacementGroup(instance: AwsInstance): Option[String] =
+    getTag(instance, FlintTags.PlacementGroup)
+
   def getWorkerBidPrice(instance: AwsInstance): Option[BigDecimal] =
     getTag(instance, FlintTags.WorkerBidPrice).map(BigDecimal(_))
 
