@@ -42,5 +42,5 @@ object InstanceSpecs {
       memory: Space,
       storage: InstanceStorageSpec,
       hourlyPrice: String): InstanceSpecs =
-    InstanceSpecs(instanceType.toString, cores, memory, storage, BigDecimal(hourlyPrice), true)
+    InstanceSpecs(instanceType, cores, memory, storage, BigDecimal(hourlyPrice), true)
 }

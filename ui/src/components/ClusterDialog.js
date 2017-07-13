@@ -67,7 +67,7 @@ export default class ClusterDialog extends React.Component {
         this.setState({ spotPrice: "(fetching)" });
         fetch(`${this.props.baseUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
             .then(response => response.json())
-            .then(spotPrices => this.setState({ spotPrice: spotPrices[0] ? spotPrices[0].price : 0.0 }));
+            .then(([{ price: spotPrice = 0.0 }]) => this.setState({ spotPrice }));
     }
 
     launchCluster = () => {
@@ -183,19 +183,22 @@ export default class ClusterDialog extends React.Component {
     handleFieldChange = stateName =>
         (event, index, value) => this.setState(R.objOf(stateName, value))
 
-    handleWorkerInstanceTypeChange = (event, index, value) => {
-        this.setState(R.objOf("workerInstanceType", value));
-        this.refreshSpotPrice(this.state.isSpotCluster, value, this.state.subnetId);
+    handleWorkerInstanceTypeChange = (event, index, workerInstanceType) => {
+        const { isSpotCluster, subnetId } = this.state;
+        this.setState({ workerInstanceType });
+        this.refreshSpotPrice(isSpotCluster, workerInstanceType, subnetId);
     }
 
-    handleSubnetIdChange = (event, index, value) => {
-        this.setState(R.objOf("subnetId", value));
-        this.refreshSpotPrice(this.state.isSpotCluster, this.state.workerInstanceType, value);
+    handleSubnetIdChange = (event, index, subnetId) => {
+        const { workerInstanceType, isSpotCluster } = this.state;
+        this.setState({ subnetId });
+        this.refreshSpotPrice(isSpotCluster, workerInstanceType, subnetId);
     }
 
-    handleSpotClusterCheckboxChange = (event, isInputChecked) => {
-        this.setState(R.objOf("isSpotCluster", isInputChecked));
-        this.refreshSpotPrice(isInputChecked, this.state.workerInstanceType, this.state.subnetId);
+    handleSpotClusterCheckboxChange = (event, isSpotCluster) => {
+        const { workerInstanceType, subnetId } = this.state;
+        this.setState({ isSpotCluster });
+        this.refreshSpotPrice(isSpotCluster, workerInstanceType, subnetId);
     }
 
     refreshSpotPrice = (isInputChecked, workerInstanceType, subnetId) => {
