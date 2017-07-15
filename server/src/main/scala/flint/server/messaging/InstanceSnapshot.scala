@@ -5,6 +5,7 @@ package messaging
 private[messaging] case class InstanceSnapshot(
     id: String,
     ipAddress: Option[String],
+    subnet: Option[Subnet],
     placementGroup: Option[String],
     dockerImage: Option[DockerImage],
     state: LifecycleState,
@@ -18,6 +19,7 @@ private[messaging] object InstanceSnapshot {
     InstanceSnapshot(
       id,
       ipAddress.now.map(_.getHostAddress),
+      subnet.now,
       placementGroup,
       dockerImage.now,
       state.now,

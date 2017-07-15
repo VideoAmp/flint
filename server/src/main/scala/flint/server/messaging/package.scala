@@ -145,6 +145,8 @@ package object messaging {
 
   private[messaging] implicit val clusterSpecJson = deriveJSON[ClusterSpec]
 
+  private[messaging] implicit val subnetJson = deriveJSON[Subnet]
+
   private[messaging] implicit val instanceStorageSpecJson = deriveJSON[InstanceStorageSpec]
 
   private[messaging] implicit val instanceSpecsJson = deriveJSON[InstanceSpecs]

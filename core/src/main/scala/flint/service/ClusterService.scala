@@ -8,11 +8,13 @@ trait ClusterService {
 
   val instanceSpecs: Seq[InstanceSpecs]
 
+  val subnets: Seq[Subnet]
+
   val managementService: ManagementService
 
   def getPlacementGroups(): Future[Seq[String]]
 
-  def getSpotPrices(instanceTypes: String*): Future[Seq[SpotPrice]]
+  def getSpotPrices(subnet: Subnet, instanceTypes: String*): Future[Seq[SpotPrice]]
 
   def launchCluster(spec: ClusterSpec): Future[ManagedCluster]
 

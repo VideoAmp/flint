@@ -54,5 +54,5 @@ lazy val server =
     .dependsOn(core % "compile;test->test")
     .settings(commonSettings: _*)
     .settings(disablePublishing: _*)
-    .settings(flintServerAPIVersion := 1)
+    .settings(flintServerAPIVersion := 2)
     .addSbtFiles(scalastyleSbt)

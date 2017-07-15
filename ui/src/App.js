@@ -76,6 +76,7 @@ export default class App extends React.Component {
         clusters: {},
         instanceSpecs: [],
         placementGroups: [],
+        subnets: [],
         tags: [],
         socket: null,
         ownerDataSource: Store.get("ownerDataSource"),
@@ -93,6 +94,10 @@ export default class App extends React.Component {
     getPlacementGroups = () => fetch(`${this.baseUrl}/placementGroups`)
             .then(response => response.json())
             .then(placementGroups => this.setState({ placementGroups: [null].concat(placementGroups) }))
+
+    getSubnets = () => fetch(`${this.baseUrl}/subnets`)
+            .then(response => response.json())
+            .then(subnets => this.setState({ subnets }))
 
     handleClusterUpdate = cluster => (properties) => {
         const { clusters } = this.state;
@@ -247,6 +252,7 @@ export default class App extends React.Component {
                 .then(sortedTags => this.setState({ tags: sortedTags }))
                 .then(this.getInstanceSpecs)
                 .then(this.getPlacementGroups)
+                .then(this.getSubnets)
                 .then(this.getClusters);
         };
         socket.onmessage = ({ data }) => {
@@ -304,9 +310,11 @@ export default class App extends React.Component {
                             socket={this.state.socket}
                             instanceSpecs={this.state.instanceSpecs}
                             placementGroups={this.state.placementGroups}
+                            subnets={this.state.subnets}
                             tags={this.state.tags}
                             ownerDataSource={this.state.ownerDataSource}
                             defaultOwner={this.state.lastOwner}
+                            baseUrl={this.baseUrl}
                         />
                         <FloatingActionButton className="fab" onClick={this.handleClusterDialogOpen}>
                             <ContentAdd />

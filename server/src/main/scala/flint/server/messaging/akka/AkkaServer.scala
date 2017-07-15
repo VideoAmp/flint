@@ -65,13 +65,14 @@ class AkkaServer(
   private val connectionFlowFactory = new ConnectionFlowFactory(messageReceiver)
 
   override def bindTo(interface: String, port: Int, apiRoot: String): Future[Binding] = {
-    val messagingPath       = apiRoot + "/messaging"
-    val clustersPath        = apiRoot + "/clusters"
-    val dockerImagesPath    = apiRoot + "/dockerImages"
-    val instanceSpecsPath   = apiRoot + "/instanceSpecs"
+    val messagingPath     = apiRoot + "/messaging"
+    val clustersPath      = apiRoot + "/clusters"
+    val dockerImagesPath  = apiRoot + "/dockerImages"
+    val instanceSpecsPath = apiRoot + "/instanceSpecs"
     val placementGroupsPath = apiRoot + "/placementGroups"
-    val spotPricesPath      = apiRoot + "/spotPrices"
-    val versionPath         = "/version"
+    val spotPricesPath    = apiRoot + "/spotPrices"
+    val subnetsPath       = apiRoot + "/subnets"
+    val versionPath       = "/version"
 
     val syncRequestHandler: PartialFunction[HttpRequest, HttpResponse] = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
@@ -106,6 +107,11 @@ class AkkaServer(
         val responseBody = compactJson(toJValue(clusterService.instanceSpecs.toList))
         HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
           .withHeaders(`Access-Control-Allow-Origin`.*)
+      case HttpRequest(GET, Uri.Path(`subnetsPath`), _, _, _) =>
+        logger.info("Received GET request for subnets")
+        val responseBody = compactJson(toJValue(clusterService.subnets.toList))
+        HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+          .withHeaders(`Access-Control-Allow-Origin`.*)
       case HttpRequest(GET, Uri.Path(`versionPath`), _, _, _) =>
         logger.info("Received GET request for build info")
         val responseBody = flint.BuildInfo.toJson + "\n"
@@ -121,27 +127,42 @@ class AkkaServer(
             .withHeaders(`Access-Control-Allow-Origin`.*)
         }
       case HttpRequest(GET, uri @ Uri.Path(`spotPricesPath`), _, _, _) =>
-        uri
-          .query()
-          .get("instanceTypes")
-          .map { rawInstanceTypes =>
-            val instanceTypes = rawInstanceTypes.split(",", -1)
-            logger.info(
-              "Received GET request for spot prices for instance types: " + instanceTypes
-                .mkString(", "))
-            clusterService.getSpotPrices(instanceTypes: _*).map { spotPrices =>
-              val responseBody = compactJson(toJValue(spotPrices.toList))
-              HttpResponse(entity = HttpEntity(ContentTypes.`application/json`, responseBody))
-                .withHeaders(`Access-Control-Allow-Origin`.*)
+        (uri.query().get("subnetId") match {
+          case Some(subnetId) =>
+            clusterService.subnets.find(_.id == subnetId) match {
+              case Some(subnet) =>
+                uri.query().get("instanceTypes") match {
+                  case Some(rawInstanceTypes) =>
+                    val instanceTypes = rawInstanceTypes.split(",", -1)
+                    logger.info(
+                      "Received GET request for spot prices for subnet " + subnetId +
+                        " and instance types: " + instanceTypes
+                        .mkString(", "))
+                    Right(
+                      clusterService.getSpotPrices(subnet, instanceTypes: _*).map { spotPrices =>
+                        val responseBody = compactJson(toJValue(spotPrices.toList))
+                        HttpResponse(
+                          entity = HttpEntity(ContentTypes.`application/json`, responseBody))
+                          .withHeaders(`Access-Control-Allow-Origin`.*)
+                      })
+                  case None =>
+                    Left("Missing query parameter: instanceTypes")
+                }
+              case None =>
+                Left(s"Unknown subnet: $subnetId")
             }
-          }
-          .getOrElse {
-            logger.info("Received GET request for spot prices without specifying instance types")
+          case None =>
+            Left("Missing query parameter: subnetId")
+        }) match {
+          case Right(response) => response
+          case Left(errorMessage) =>
+            logger.info(s"Client error for GET request for spot prices: $errorMessage")
             Future.successful(
               HttpResponse(400)
                 .withHeaders(`Access-Control-Allow-Origin`.*)
-                .withEntity("No instance types specified\n"))
-          }
+                .withEntity(errorMessage + "\n"))
+
+        }
     }
     val notFoundHandler: PartialFunction[HttpRequest, Future[HttpResponse]] = {
       case req @ HttpRequest(_, Uri.Path(requestPath), _, _, _) =>

@@ -6,7 +6,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
 import com.amazonaws.services.ec2.AmazonEC2Async
-import com.amazonaws.services.ec2.model._
+import com.amazonaws.services.ec2.model.{ Subnet => AwsSubnet, _ }
 
 private[aws] class Ec2Client(awsEc2Client: AmazonEC2Async) {
   import ConcurrencyUtils.retryFuture
@@ -67,6 +67,14 @@ private[aws] class Ec2Client(awsEc2Client: AmazonEC2Async) {
     awsEc2Client.describeSpotPriceHistoryAsync(request, handler)
     handler.future.map(_.getSpotPriceHistory.asScala.toIndexedSeq)
   }
+
+  def describeSubnets(request: DescribeSubnetsRequest, retries: Int = 3): Future[Seq[AwsSubnet]] =
+    retryFuture(retries) {
+      val handler =
+        new AwsRequestHandler[DescribeSubnetsRequest, DescribeSubnetsResult]
+      awsEc2Client.describeSubnetsAsync(request, handler)
+      handler.future.map(_.getSubnets.asScala.toIndexedSeq)
+    }
 
   def requestSpotInstances(
       request: RequestSpotInstancesRequest,
