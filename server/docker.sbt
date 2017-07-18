@@ -30,6 +30,7 @@ dockerfile in docker := {
       "-Dakka.loglevel=error",
       "-Dlog4j.configurationFile=conf/log4j2.xml",
       "-jar",
-      artifactTargetPath)
+      artifactTargetPath
+    )
   }
 }

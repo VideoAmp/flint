@@ -39,7 +39,7 @@ yarnBuild := {
             case false => ("http", "ws")
           }
         val flintURLSuffix = "://" + flintServerHost + "/api/version/" +
-            flintClientAPIVersion.value
+          flintClientAPIVersion.value
         (flintServiceScheme + flintURLSuffix, flintMessagingScheme + flintURLSuffix)
       }
 

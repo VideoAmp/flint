@@ -18,7 +18,8 @@ lazy val commonSettings = Seq(
     "-Ywarn-nullary-unit",
     "-Ywarn-numeric-widen",
     "-Ywarn-unused",
-    "-Ywarn-unused-import"),
+    "-Ywarn-unused-import"
+  ),
   scalacOptions in (Compile, console) := Seq("-language:_"),
   publishTo := {
     val vamp = "https://videoamp.jfrog.io/videoamp/"
