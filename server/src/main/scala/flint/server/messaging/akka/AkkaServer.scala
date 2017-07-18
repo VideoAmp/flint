@@ -65,14 +65,14 @@ class AkkaServer(
   private val connectionFlowFactory = new ConnectionFlowFactory(messageReceiver)
 
   override def bindTo(interface: String, port: Int, apiRoot: String): Future[Binding] = {
-    val messagingPath     = apiRoot + "/messaging"
-    val clustersPath      = apiRoot + "/clusters"
-    val dockerImagesPath  = apiRoot + "/dockerImages"
-    val instanceSpecsPath = apiRoot + "/instanceSpecs"
+    val messagingPath       = apiRoot + "/messaging"
+    val clustersPath        = apiRoot + "/clusters"
+    val dockerImagesPath    = apiRoot + "/dockerImages"
+    val instanceSpecsPath   = apiRoot + "/instanceSpecs"
     val placementGroupsPath = apiRoot + "/placementGroups"
-    val spotPricesPath    = apiRoot + "/spotPrices"
-    val subnetsPath       = apiRoot + "/subnets"
-    val versionPath       = "/version"
+    val spotPricesPath      = apiRoot + "/spotPrices"
+    val subnetsPath         = apiRoot + "/subnets"
+    val versionPath         = "/version"
 
     val syncRequestHandler: PartialFunction[HttpRequest, HttpResponse] = {
       case req @ HttpRequest(GET, Uri.Path(`messagingPath`), _, _, _) =>
