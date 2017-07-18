@@ -29,13 +29,13 @@ private[aws] class AwsManagementService(ssmClient: SsmClient)
               .mapValues(value => Seq(value).asJava)
               .asJava)
 
-      ssmClient.sendCommand(sendCommandRequest).map(waitForCommandCompletion(_, instances))
+      ssmClient.sendCommand(sendCommandRequest).map(awaitCommandCompletion(_, instances))
     } else {
       Future.successful(Nil)
     }
 
   @annotation.tailrec
-  private def waitForCommandCompletion(command: Command, instances: Seq[Instance]): Seq[Instance] = {
+  private def awaitCommandCompletion(command: Command, instances: Seq[Instance]): Seq[Instance] = {
     val commandId = command.getCommandId
     val listCommandInvocationsRequest =
       new ListCommandInvocationsRequest().withCommandId(commandId)
@@ -71,7 +71,7 @@ private[aws] class AwsManagementService(ssmClient: SsmClient)
 
     if ((commandInvocationInstanceIds.size - otherInvocationInstanceIds.size) != instances.size) {
       Thread.sleep(5000)
-      waitForCommandCompletion(command, instances)
+      awaitCommandCompletion(command, instances)
     } else {
       val successfulInvocationInstanceIds =
         completedInvocationInstanceIds
