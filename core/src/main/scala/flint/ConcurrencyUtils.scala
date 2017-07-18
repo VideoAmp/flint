@@ -6,8 +6,7 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.Try
 
 object ConcurrencyUtils {
-  def loop[T, U](future: => Future[T])(f: Try[T] => U)(
-      implicit executor: ExecutionContext): Unit =
+  def loop[T, U](future: => Future[T])(f: Try[T] => U)(implicit executor: ExecutionContext): Unit =
     future
       .andThen(PartialFunction(f))(executor)
       .onComplete(_ => loop(future)(f)(executor))(executor)

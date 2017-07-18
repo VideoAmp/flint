@@ -1,4 +1,4 @@
-scalafmtVersion in ThisBuild := "1.0.0-RC4"
+scalafmtVersion in ThisBuild := "1.1.0"
 
 lazy val scalafmtScope = ScopeFilter(
   inAnyProject,

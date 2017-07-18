@@ -73,9 +73,10 @@ object ClusterReaper extends LazyLogging {
       val completedApps = masterInfo.get("completedapps").asScala
 
       val lastActivity = if (completedApps.nonEmpty) {
-        Instant.ofEpochMilli(completedApps
-          .map(appInfo => appInfo.get("starttime").longValue + appInfo.get("duration").longValue)
-          .max)
+        Instant.ofEpochMilli(
+          completedApps
+            .map(appInfo => appInfo.get("starttime").longValue + appInfo.get("duration").longValue)
+            .max)
       } else {
         cluster.launchedAt
       }

@@ -119,45 +119,43 @@ private[aws] object AwsManagedCluster {
       instances: Seq[AwsInstance],
       clusterService: AwsClusterService)(implicit ctx: Ctx.Owner): Option[AwsManagedCluster] =
     InstanceTagExtractor.findMaster(clusterId, instances).flatMap { masterAwsInstance =>
-      InstanceTagExtractor.getClusterDockerImage(masterAwsInstance).flatMap {
-        clusterDockerImage =>
-          InstanceTagExtractor.getOwner(masterAwsInstance).flatMap { owner =>
-            InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).map {
-              workerInstanceType =>
-                val placementGroup = InstanceTagExtractor.getPlacementGroup(masterAwsInstance)
-                val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
-                val idleTimeout    = InstanceTagExtractor.getClusterIdleTimeout(masterAwsInstance)
-                val workerBidPrice = InstanceTagExtractor.getWorkerBidPrice(masterAwsInstance)
-                val extraInstanceTags =
-                  InstanceTagExtractor.getExtraInstanceTags(masterAwsInstance)
-                val master =
-                  clusterService.flintInstance(clusterId, masterAwsInstance)
-                val workers =
-                  InstanceTagExtractor
-                    .filterWorkers(clusterId, instances)
-                    .map(instance => clusterService.flintInstance(clusterId, instance))
+      InstanceTagExtractor.getClusterDockerImage(masterAwsInstance).flatMap { clusterDockerImage =>
+        InstanceTagExtractor.getOwner(masterAwsInstance).flatMap { owner =>
+          InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).map { workerInstanceType =>
+            val placementGroup = InstanceTagExtractor.getPlacementGroup(masterAwsInstance)
+            val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
+            val idleTimeout    = InstanceTagExtractor.getClusterIdleTimeout(masterAwsInstance)
+            val workerBidPrice = InstanceTagExtractor.getWorkerBidPrice(masterAwsInstance)
+            val extraInstanceTags =
+              InstanceTagExtractor.getExtraInstanceTags(masterAwsInstance)
+            val master =
+              clusterService.flintInstance(clusterId, masterAwsInstance)
+            val workers =
+              InstanceTagExtractor
+                .filterWorkers(clusterId, instances)
+                .map(instance => clusterService.flintInstance(clusterId, instance))
 
-                val cluster =
-                  Cluster(
-                    clusterId,
-                    clusterDockerImage,
-                    owner,
-                    ttl,
-                    idleTimeout,
-                    master,
-                    workers,
-                    masterAwsInstance.getLaunchTime.toInstant)
+            val cluster =
+              Cluster(
+                clusterId,
+                clusterDockerImage,
+                owner,
+                ttl,
+                idleTimeout,
+                master,
+                workers,
+                masterAwsInstance.getLaunchTime.toInstant)
 
-                new AwsManagedCluster(
-                  cluster,
-                  clusterService,
-                  workerInstanceType,
-                  placementGroup,
-                  ExtraTags(extraInstanceTags),
-                  workerBidPrice
-                )
-            }
+            new AwsManagedCluster(
+              cluster,
+              clusterService,
+              workerInstanceType,
+              placementGroup,
+              ExtraTags(extraInstanceTags),
+              workerBidPrice
+            )
           }
+        }
       }
     }
 }

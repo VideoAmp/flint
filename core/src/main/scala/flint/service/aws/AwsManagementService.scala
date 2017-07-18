@@ -35,9 +35,7 @@ private[aws] class AwsManagementService(ssmClient: SsmClient)
     }
 
   @annotation.tailrec
-  private def waitForCommandCompletion(
-      command: Command,
-      instances: Seq[Instance]): Seq[Instance] = {
+  private def waitForCommandCompletion(command: Command, instances: Seq[Instance]): Seq[Instance] = {
     val commandId = command.getCommandId
     val listCommandInvocationsRequest =
       new ListCommandInvocationsRequest().withCommandId(commandId)
