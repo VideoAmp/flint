@@ -2,6 +2,8 @@ package flint
 package server
 package messaging
 
+import java.time.Instant
+
 private[messaging] case class InstanceSnapshot(
     id: String,
     ipAddress: Option[String],
@@ -10,7 +12,9 @@ private[messaging] case class InstanceSnapshot(
     dockerImage: Option[DockerImage],
     state: LifecycleState,
     containerState: ContainerState,
-    instanceType: String)
+    instanceType: String,
+    launchedAt: Instant,
+    terminatedAt: Option[Instant])
 
 private[messaging] object InstanceSnapshot {
   def apply(instance: Instance): InstanceSnapshot = {
@@ -24,6 +28,9 @@ private[messaging] object InstanceSnapshot {
       dockerImage.now,
       state.now,
       effectiveContainerState.now,
-      specs.instanceType)
+      specs.instanceType,
+      launchedAt,
+      terminatedAt.now
+    )
   }
 }

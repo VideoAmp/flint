@@ -102,6 +102,14 @@ private[messaging] final class MessagingProtocol(
           s"ip address ${ipAddress.orNull}")
     }
 
+    instance.subnet.foreach { subnet =>
+      sendMessage(InstanceSubnet(_, _, instance.id, subnet))
+      logger.debug(
+        s"Instance subnet change. " +
+          s"Instance $instanceName, " +
+          s"subnet ${subnet.orNull}")
+    }
+
     instance.state.foreach { state =>
       sendMessage(InstanceState(_, _, instance.id, state))
       logger.debug(
@@ -117,6 +125,14 @@ private[messaging] final class MessagingProtocol(
           s"Instance $instanceName, " +
           s"state ${state}")
     }
+
+    instance.terminatedAt.foreach(_.foreach { terminatedAt =>
+      sendMessage(InstanceTerminatedAt(_, _, instance.id, terminatedAt))
+      logger.debug(
+        s"Instance termination time change. " +
+          s"Instance $instanceName, " +
+          s"terminated at ${terminatedAt}")
+    })
   }
 
   private val response: Rx[Future[Option[ServerMessage]]] = Rx {

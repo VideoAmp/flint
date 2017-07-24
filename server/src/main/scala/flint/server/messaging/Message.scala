@@ -5,6 +5,7 @@ package messaging
 import service.{ ClusterSpec, ClusterTerminationReason }
 
 import java.net.InetAddress
+import java.time.Instant
 
 private[messaging] sealed trait Message
 
@@ -91,6 +92,20 @@ private[messaging] final case class InstanceState(
     messageNo: Int,
     instanceId: String,
     state: LifecycleState)
+    extends ServerMessage
+
+private[messaging] final case class InstanceSubnet(
+    serverId: String,
+    messageNo: Int,
+    instanceId: String,
+    subnet: Option[Subnet])
+    extends ServerMessage
+
+private[messaging] final case class InstanceTerminatedAt(
+    serverId: String,
+    messageNo: Int,
+    instanceId: String,
+    terminatedAt: Instant)
     extends ServerMessage
 
 private[messaging] final case class LaunchCluster(clusterSpec: ClusterSpec) extends ClientMessage
