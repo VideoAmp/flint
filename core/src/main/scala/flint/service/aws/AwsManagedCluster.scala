@@ -17,6 +17,7 @@ private[aws] class AwsManagedCluster(
     override val cluster: Cluster,
     clusterService: AwsClusterService,
     override val workerInstanceType: String,
+    override val subnet: Subnet,
     override val placementGroup: Option[String],
     override val extraInstanceTags: ExtraTags,
     override val workerBidPrice: Option[BigDecimal])
@@ -37,9 +38,11 @@ private[aws] class AwsManagedCluster(
         cluster.dockerImage.now,
         count,
         workerInstanceType,
+        subnet.id,
         placementGroup,
         extraInstanceTags,
-        workerBidPrice)
+        workerBidPrice
+      )
       .map { newWorkers =>
         logger.debug(s"Adding ${newWorkers.size} new worker(s)")
         this.newWorkers.asVar() = newWorkers
@@ -58,8 +61,15 @@ private[aws] class AwsManagedCluster(
       def updateInstance(instance: Instance, awsInstance: AwsInstance) = {
         instance.ipAddress.asVar() =
           Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
+        instance.subnet.asVar() = Option(awsInstance.getSubnetId).map(clusterService.subnetsMap)
         instance.dockerImage.asVar() = InstanceTagExtractor.getDockerImage(awsInstance)
         instance.state.asVar() = awsInstance.getState
+        awsInstance match {
+          case TerminationTime(instant) =>
+            instance.terminatedAt.asVar() = Some(instant)
+          case _ =>
+        }
+
         InstanceTagExtractor
           .getContainerState(awsInstance)
           .foreach(instance.containerState.asVar() = _)
@@ -121,39 +131,44 @@ private[aws] object AwsManagedCluster {
     InstanceTagExtractor.findMaster(clusterId, instances).flatMap { masterAwsInstance =>
       InstanceTagExtractor.getClusterDockerImage(masterAwsInstance).flatMap { clusterDockerImage =>
         InstanceTagExtractor.getClusterName(masterAwsInstance).flatMap { clusterName =>
-          InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).map { workerInstanceType =>
-            val placementGroup = InstanceTagExtractor.getPlacementGroup(masterAwsInstance)
-            val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
-            val idleTimeout    = InstanceTagExtractor.getClusterIdleTimeout(masterAwsInstance)
-            val workerBidPrice = InstanceTagExtractor.getWorkerBidPrice(masterAwsInstance)
-            val extraInstanceTags =
-              InstanceTagExtractor.getExtraInstanceTags(masterAwsInstance)
-            val master =
-              clusterService.flintInstance(clusterId, masterAwsInstance)
-            val workers =
-              InstanceTagExtractor
-                .filterWorkers(clusterId, instances)
-                .map(instance => clusterService.flintInstance(clusterId, instance))
+          InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).flatMap {
+            workerInstanceType =>
+              InstanceTagExtractor.getSubnetId(masterAwsInstance).map { subnetId =>
+                val subnet         = clusterService.subnetsMap(subnetId) // Unsafe
+                val placementGroup = InstanceTagExtractor.getPlacementGroup(masterAwsInstance)
+                val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
+                val idleTimeout    = InstanceTagExtractor.getClusterIdleTimeout(masterAwsInstance)
+                val workerBidPrice = InstanceTagExtractor.getWorkerBidPrice(masterAwsInstance)
+                val extraInstanceTags =
+                  InstanceTagExtractor.getExtraInstanceTags(masterAwsInstance)
+                val master =
+                  clusterService.flintInstance(clusterId, masterAwsInstance)
+                val workers =
+                  InstanceTagExtractor
+                    .filterWorkers(clusterId, instances)
+                    .map(instance => clusterService.flintInstance(clusterId, instance))
 
-            val cluster =
-              Cluster(
-                clusterId,
-                clusterName,
-                clusterDockerImage,
-                ttl,
-                idleTimeout,
-                master,
-                workers,
-                masterAwsInstance.getLaunchTime.toInstant)
+                val cluster =
+                  Cluster(
+                    clusterId,
+                    clusterName,
+                    clusterDockerImage,
+                    ttl,
+                    idleTimeout,
+                    master,
+                    workers,
+                    masterAwsInstance.getLaunchTime.toInstant)
 
-            new AwsManagedCluster(
-              cluster,
-              clusterService,
-              workerInstanceType,
-              placementGroup,
-              ExtraTags(extraInstanceTags),
-              workerBidPrice
-            )
+                new AwsManagedCluster(
+                  cluster,
+                  clusterService,
+                  workerInstanceType,
+                  subnet,
+                  placementGroup,
+                  ExtraTags(extraInstanceTags),
+                  workerBidPrice
+                )
+              }
           }
         }
       }

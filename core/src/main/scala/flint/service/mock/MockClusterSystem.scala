@@ -3,6 +3,7 @@ package service
 package mock
 
 import java.net.InetAddress
+import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -33,7 +34,9 @@ private[mock] class MockClusterSystem()(implicit protected val ctx: Ctx.Owner)
     val containerState = Var[ContainerState](ContainerPending)
     val stateSimulator = new InstanceStateSimulator(lifecycleState, containerState)
     instanceStateSimulatorMap(id) = stateSimulator
-    val specs = instanceSpecsMap(instanceType)
+    val specs        = instanceSpecsMap(instanceType)
+    val launchedAt   = Instant.now
+    val terminatedAt = Var(None)
 
     Instance(
       id,
@@ -43,7 +46,10 @@ private[mock] class MockClusterSystem()(implicit protected val ctx: Ctx.Owner)
       Var(dockerImage),
       lifecycleState,
       containerState,
-      specs)(instance => Future.successful(terminateInstances(instance.id)))
+      specs,
+      launchedAt,
+      terminatedAt
+    )(instance => Future.successful(terminateInstances(instance.id)))
   }
 
   def terminateCluster(managedCluster: MockManagedCluster): Unit = {

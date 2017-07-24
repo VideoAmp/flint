@@ -1,6 +1,7 @@
 package flint
 
 import java.net.InetAddress
+import java.time.Instant
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -15,7 +16,10 @@ case class Instance(
     dockerImage: Rx[Option[DockerImage]],
     state: Rx[LifecycleState],
     containerState: Rx[ContainerState],
-    specs: InstanceSpecs)(terminator: Instance => Future[Unit])(implicit ctx: Ctx.Owner)
+    specs: InstanceSpecs,
+    launchedAt: Instant,
+    terminatedAt: Rx[Option[Instant]])(terminator: Instance => Future[Unit])(
+    implicit ctx: Ctx.Owner)
     extends Killable {
 
   override def terminate(): Future[Unit] =
@@ -47,7 +51,9 @@ object Instance {
       dockerImage: Option[DockerImage],
       state: LifecycleState,
       containerState: ContainerState,
-      specs: InstanceSpecs)(terminator: Instance => Future[Unit])(
+      specs: InstanceSpecs,
+      launchedAt: Instant,
+      terminatedAt: Option[Instant])(terminator: Instance => Future[Unit])(
       implicit ctx: Ctx.Owner): Instance =
     new Instance(
       id,
@@ -57,5 +63,7 @@ object Instance {
       Var(dockerImage),
       Var(state),
       Var(containerState),
-      specs)(terminator)
+      specs,
+      launchedAt,
+      Var(terminatedAt))(terminator)
 }

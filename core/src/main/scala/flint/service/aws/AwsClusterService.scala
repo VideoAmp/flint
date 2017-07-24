@@ -85,7 +85,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     subnetIds.map(id => Subnet(id, subnetAzMap(id)))
   }
 
-  private lazy val subnetsMap = subnets.map(subnet => subnet.id -> subnet).toMap
+  private[aws] lazy val subnetsMap = subnets.map(subnet => subnet.id -> subnet).toMap
 
   override def getSpotPrices(subnet: Subnet, instanceTypes: String*): Future[Seq[SpotPrice]] =
     if (instanceTypes.isEmpty) { Future.successful(Seq.empty) } else {
@@ -137,6 +137,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
         spec.dockerImage,
         spec.numWorkers,
         spec.workerInstanceType,
+        spec.subnetId,
         spec.placementGroup,
         extraConfigTags.extend(spec.extraInstanceTags),
         workerBidPrice
@@ -156,6 +157,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
               Instant.now),
             this,
             spec.workerInstanceType,
+            subnetsMap(spec.subnetId), // Unsafe
             spec.placementGroup,
             extraConfigTags.extend(spec.extraInstanceTags),
             workerBidPrice
@@ -217,6 +219,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       dockerImage: DockerImage,
       numWorkers: Int,
       instanceType: String,
+      subnetId: String,
       placementGroup: Option[String],
       extraInstanceTags: ExtraTags,
       workerBidPrice: Option[BigDecimal]): Future[Seq[Instance]] =
@@ -231,6 +234,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
             dockerImage,
             numWorkers,
             instanceType,
+            subnetId,
             placementGroup,
             extraInstanceTags,
             _))
@@ -243,6 +247,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
             dockerImage,
             numWorkers,
             instanceType,
+            subnetId,
             placementGroup,
             extraInstanceTags))
     } else {
@@ -257,6 +262,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       dockerImage: DockerImage,
       numWorkers: Int,
       instanceType: String,
+      subnetId: String,
       placementGroup: Option[String],
       extraInstanceTags: ExtraTags): Future[Seq[Instance]] = {
     val workerSpecs = instanceSpecsMap(instanceType)
@@ -277,7 +283,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
         clientToken,
         workerSpecs,
         numWorkers,
-        master.subnet.now.get.id,
+        subnetId,
         placementGroup,
         workerUserData,
         awsConfig)
@@ -300,6 +306,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       dockerImage: DockerImage,
       numWorkers: Int,
       instanceType: String,
+      subnetId: String,
       placementGroup: Option[String],
       extraInstanceTags: ExtraTags,
       bidPrice: BigDecimal): Future[Seq[Instance]] = {
@@ -321,7 +328,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
         clientToken,
         workerSpecs,
         numWorkers,
-        master.subnet.now.get.id,
+        subnetId,
         placementGroup,
         workerUserData,
         bidPrice,
@@ -354,6 +361,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     val dockerImage    = InstanceTagExtractor.getDockerImage(awsInstance)
     val placementGroup = Option(awsInstance.getPlacement.getGroupName).filterNot(_.isEmpty)
     val isSpot         = awsInstance.getInstanceLifecycle == "spot"
+    val launchedAt     = awsInstance.getLaunchTime.toInstant
+    val terminatedAt   = TerminationTime.unapply(awsInstance)
 
     Instance(
       instanceId,
@@ -363,7 +372,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       dockerImage,
       lifecycleState,
       containerState,
-      instanceSpecs)(instance => terminateInstances(clusterId, Seq(instance), isSpot))
+      instanceSpecs,
+      launchedAt,
+      terminatedAt)(instance => terminateInstances(clusterId, Seq(instance), isSpot))
   }
 
   private[aws] def tagResources(resourceIds: Seq[String], tags: Seq[Tag]): Future[Unit] =
