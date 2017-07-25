@@ -23,7 +23,7 @@ private[aws] object TerminationTime extends LazyLogging {
 
     try {
       val unparsedDateTime = reason.dropRight(1).dropWhile(_ != '(').drop(1)
-      val zonedDateTime = ZonedDateTime.parse(unparsedDateTime, dateTimeFormatter)
+      val zonedDateTime    = ZonedDateTime.parse(unparsedDateTime, dateTimeFormatter)
       Instant.from(zonedDateTime)
     } catch {
       case ex: Exception =>
