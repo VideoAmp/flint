@@ -1,14 +1,19 @@
 import React from "react";
 import R from "ramda";
+import Moment from "moment";
+import { extendMoment } from "moment-range";
 
 import { Toolbar, ToolbarGroup } from "material-ui/Toolbar";
+
+const moment = extendMoment(Moment);
 
 export default class ClusterTotals extends React.Component {
     state = {
         numberOfCores: 1,
         ramAmount: 1,
         storageAmount: 1,
-        totalCostPerHour: 0.03,
+        totalCostPerHour: NaN,
+        totalCost: NaN,
     };
 
     getInstanceInfo = (instanceSpecs, instanceType) =>
@@ -43,7 +48,39 @@ export default class ClusterTotals extends React.Component {
         return totalCost.toFixed(2);
     }
 
-    updateClusterTotals = ({ instanceSpecs, masterInstanceType, workerInstanceType, numMasters, numWorkers }) => {
+    calculateTotalCost = (masterInstanceTypeInfo, master, workerInstanceTypeInfo, workers) => {
+        if (this.props.isSpotCluster) {
+            return NaN;
+        }
+
+        const calculateInstanceTotalCost = (instance, instanceTypeInfo) => {
+            const { terminatedAt } = instance;
+            const { hourlyPrice } = instanceTypeInfo;
+            const endTime = terminatedAt ? moment(terminatedAt) : moment();
+            const runInterval = moment.range(moment(instance.launchedAt), endTime);
+            const billableHours = runInterval.diff("hours") + 1;
+            return billableHours * hourlyPrice;
+        };
+
+        let totalMasterCost = 0.0;
+
+        if (master) {
+            totalMasterCost = calculateInstanceTotalCost(master, masterInstanceTypeInfo);
+        }
+
+        let totalWorkerCost = 0.0;
+
+        if (workers) {
+            totalWorkerCost = R.sum(R.map(x => calculateInstanceTotalCost(x, workerInstanceTypeInfo), workers));
+        }
+
+        const totalCost = totalMasterCost + totalWorkerCost;
+
+        return totalCost.toFixed(2);
+    }
+
+    updateClusterTotals = ({
+            instanceSpecs, master, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers }) => {
         const masterInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, masterInstanceType);
         const workerInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, workerInstanceType);
 
@@ -66,6 +103,12 @@ export default class ClusterTotals extends React.Component {
                 numMasters,
                 numWorkers,
             ),
+            totalCost: this.calculateTotalCost(
+                masterInstanceTypeInfo,
+                master,
+                workerInstanceTypeInfo,
+                workers
+            ),
         });
     }
 
@@ -74,10 +117,13 @@ export default class ClusterTotals extends React.Component {
     }
 
     componentWillReceiveProps(nextProps) {
-        const { instanceSpecs, masterInstanceType, workerInstanceType, numMasters, numWorkers } = this.props;
+        const { instanceSpecs, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers } = this.props;
+        const masterTerminatedAt = R.pathOr(null, ["master", "terminatedAt"], this.props);
         const equalsOldProps = R.where({
             instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
+            master: R.pathEq(["terminatedAt"], masterTerminatedAt),
             masterInstanceType: R.equals(masterInstanceType),
+            workers: R.eqBy(R.map(worker => worker.terminatedAt), workers),
             workerInstanceType: R.equals(workerInstanceType),
             numMasters: R.equals(numMasters),
             numWorkers: R.equals(numWorkers),
@@ -89,14 +135,15 @@ export default class ClusterTotals extends React.Component {
     }
 
     render() {
-        const { isSpotCluster } =  this.props;
-        const { numberOfCores, ramAmount, storageAmount, totalCostPerHour } = this.state;
+        const { isSpotCluster } = this.props;
+        const { numberOfCores, ramAmount, storageAmount, totalCostPerHour, totalCost } = this.state;
         return (
             <Toolbar style={{ backgroundColor: "#F5F5F5" }}>
                 <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
                     <p>
                         {numberOfCores} cores, {ramAmount} GiB RAM, {storageAmount} GiB Scratch
                         {isSpotCluster ? "" : `, $${totalCostPerHour}/hour` }
+                        {totalCost ? `, $${totalCost}` : "" }
                     </p>
                 </ToolbarGroup>
             </Toolbar>

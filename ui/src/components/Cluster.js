@@ -1,5 +1,7 @@
 import React from "react";
+import ReactTimeAgo from "react-time-ago";
 import R from "ramda";
+import moment from "moment";
 
 import { Card, CardActions, CardHeader, CardText } from "material-ui/Card";
 import CircularProgress from "material-ui/CircularProgress";
@@ -12,10 +14,16 @@ import Lock from "material-ui/svg-icons/action/lock";
 import LockOpen from "material-ui/svg-icons/action/lock-open";
 import Add from "material-ui/svg-icons/content/add";
 
+import javascriptTimeAgo from "javascript-time-ago";
+
 import ClusterTotals from "./ClusterTotals";
 import ClusterInstanceDialog from "./ClusterInstanceDialog";
 import ClusterTerminateDialog from "./ClusterTerminateDialog";
 import Instance from "./Instance";
+
+javascriptTimeAgo.locale(require("javascript-time-ago/locales/en"));
+require("javascript-time-ago/intl-messageformat-global");
+require("intl-messageformat/dist/locale-data/en");
 
 const getInstanceMapper = (socket, master, isSpotCluster) =>
     instance => (
@@ -80,7 +88,9 @@ export default class Cluster extends React.Component {
     render() {
         const { imageChangeLocked } = this.state;
         const { socket, instanceSpecs, data: cluster, dockerImages } = this.props;
-        const { name: clusterName, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
+        const { name: clusterName, dockerImage, master, workers = [], workerInstanceType,
+          workerBidPrice, ttl, idleTimeout, subnet, placementGroup, launchedAt } = cluster;
+        const { id: subnetId, availabilityZone } = subnet;
         const isSpotCluster = !R.isNil(workerBidPrice);
         // TODO: return short-form image tag
         const clusterTitle =
@@ -91,31 +101,44 @@ export default class Cluster extends React.Component {
                 return <CircularProgress size={20} />;
             }
 
-            const isLocked = imageChangeLocked || cluster.master.containerState !== "ContainerRunning";
+            const isLocked = imageChangeLocked || master.containerState !== "ContainerRunning";
             return isLocked ? <Lock /> : <LockOpen />;
         };
 
         const imageChangeForbidden =
-            cluster.imageChangeInProgress || cluster.master.containerState !== "ContainerRunning";
+            cluster.imageChangeInProgress || master.containerState !== "ContainerRunning";
 
         return (
             <div>
                 <Card>
                     <CardHeader
                         title={clusterTitle}
+                        actAsExpander={true}
                         titleStyle={{ "fontSize": "24px" }}
                         textStyle={{ paddingRight: "0px" }}
                         style={{ paddingBottom: "0px", paddingRight: "0px", whiteSpace: "normal" }}>
-                        <div style={{ float: "right", marginTop: "-11px" }}>
-                            <IconButton onClick={this.handleClusterTerminateDialogOpen}>
+                        { // Stop propagation of onTouchTap events to prevent clicks on the buttons
+                          // in the card header from expanding the card text
+                        }
+                        <div style={{ float: "right", marginTop: "-11px" }} onTouchTap={e => e.stopPropagation()}>
+                            <IconButton
+                                style={{ display:
+                                    master.state === "Terminating" ||
+                                    master.state === "Terminated" ||
+                                    master.containerState === "ContainerStopping" ||
+                                    master.containerState === "ContainerStopped" ? "none" : "inline-block" }}
+                                onClick={this.handleClusterTerminateDialogOpen}>
                                 <Trash />
                             </IconButton>
                             <IconButton
                                 style={{ marginRight: "4px" }}
+                                disabled={master.containerState !== "ContainerRunning"}
                                 onClick={this.handleClusterInstanceDialogOpen}>
                                 <Add />
                             </IconButton>
                         </div>
+                    </CardHeader>
+                    <CardText style={{ padding: "0px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center" }}>
                           <IconButton
                               iconStyle={{ width: "20px", height: "20px" }}
@@ -125,7 +148,8 @@ export default class Cluster extends React.Component {
                               { getImageLockIcon() }
                           </IconButton>
                           <SelectField
-                              style={{ width: "auto", paddingLeft: "10px" }}
+                              style={{ width: "auth", paddingLeft: "10px" }}
+                              autoWidth={true}
                               underlineDisabledStyle={{ display: "none" }}
                               labelStyle={{ fontSize: "14px" }}
                               disabled={imageChangeLocked || imageChangeForbidden}
@@ -138,7 +162,21 @@ export default class Cluster extends React.Component {
                               }
                           </SelectField>
                         </div>
-                    </CardHeader>
+                    </CardText>
+                    <CardText style={{ fontSize: "14px", paddingTop: "0px" }} expandable={ true }>
+                        <div>Launched <ReactTimeAgo locale="en-US">{
+                            new Date(launchedAt) }</ReactTimeAgo>
+                        </div>
+                        <div>{ ttl ? <div>Expires <ReactTimeAgo locale="en-US">{
+                            new Date(moment(launchedAt).add(moment.duration(ttl))) }</ReactTimeAgo></div> : "" }
+                        </div>
+                        <div>{ idleTimeout ? <div>Idle timeout is {
+                            moment.duration(idleTimeout).asMinutes() }m</div> : "" }
+                        </div>
+                        <div>Launched in { subnetId } in { availabilityZone }</div>
+                        <div>{ placementGroup ? <div>Placement group is { placementGroup }</div> : "" }</div>
+                        <div>{ workerBidPrice ? <div>Worker bid price is ${ workerBidPrice }/hr</div> : "" }</div>
+                    </CardText>
                     <CardText style={{ padding: "0px" }}>
                         <Divider />
                         { getInstanceMapper(socket, true, isSpotCluster)(master) }
@@ -147,9 +185,11 @@ export default class Cluster extends React.Component {
                     <CardActions style={{ padding: "0px" }}>
                         <ClusterTotals
                             instanceSpecs={instanceSpecs}
+                            master={master}
                             masterInstanceType={master.instanceType}
+                            workers={workers}
                             workerInstanceType={workerInstanceType}
-                            numMasters={master.containerState === "ContainerRunning" ? 1 : 0}
+                            numMasters={master.state !== "Terminated" ? 1 : 0}
                             numWorkers={getActiveWorkerCount(workers)}
                             isSpotCluster={isSpotCluster}
                         />

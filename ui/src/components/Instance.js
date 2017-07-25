@@ -24,17 +24,13 @@ const leftAvatarStyles = { margin: 12.5 };
 
 export default class Instance extends React.Component {
     state = {
-        isBeingTerminated: false,
         copied: false,
     }
 
     terminateWorker = (socket, { id }) => {
         const payload = JSON.stringify({ "instanceId": id, "$type": "TerminateWorker" });
         socket.send(payload);
-        this.setState({ isBeingTerminated: true });
     }
-
-    isTerminatable = (data, master) => data.state !== "Terminated" && !master && !this.state.isBeingTerminated
 
     getInstanceStatusElement = (instanceState, containerState) => {
         const avatar = backgroundColor =>
@@ -63,7 +59,9 @@ export default class Instance extends React.Component {
     onIPAddressCopy = () => this.setState({ copied: true })
 
     getRightIconButton = (data, master) => {
-        if (this.isTerminatable(data, master)) {
+        const { state, containerState } = data;
+        if (!master && state !== "Terminating" && state !== "Terminated" &&
+                containerState !== "ContainerStopping" && containerState !== "ContainerStopped") {
             return (
                 <IconButton onClick={this.onRightIconButtonClick} touch={true}>
                     <Trash />
@@ -71,15 +69,14 @@ export default class Instance extends React.Component {
             );
         }
 
-        const { ipAddress, containerState } = data;
+        const { ipAddress } = data;
 
-        if (master) {
+        if (master && containerState === "ContainerRunning") {
             return (
                 <IconButton
                     href={`http://${ipAddress}:8080`}
                     target="_blank"
-                    touch={true}
-                    disabled={this.state.isBeingTerminated || containerState !== "ContainerRunning"}>
+                    touch={true}>
                     <Link />
                 </IconButton>
             );
