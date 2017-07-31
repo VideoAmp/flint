@@ -1,25 +1,35 @@
 # Welcome to Flint!
 
-Flint is a Scala library for managing on-demand Spark clusters. It includes a WebSocket server for remote interaction.
+Flint is a Scala library, server and Web UI for managing on-demand Spark clusters.
 
-### Server Quickstart
+### Docker Image Build and Deployment
 
-1. Download [server-template.conf](conf/server-template.conf) to a file named `server.conf` and customize as desired.
-1. Download [aws_service-template.conf](conf/aws_service-template.conf) to a file named `aws_service.conf` and customize to your environment.
-1. Download [creds-template.conf](conf/creds-template.conf) to a file named `creds.conf` and put your Docker and AWS credentials inside.
-1. Download [docker-template.conf](conf/docker-template.conf) to a file named `docker.conf` and put the name of your Spark Docker repo inside, likely `videoamp/spark`.
-1. Download [log4j2-example.xml](conf/log4j2-example.xml) to a file named `log4j2.xml` and customize as desired.
-1. Run `sbt assembly`.
-1. Run the server with
+While the server can be built and deployed independently of the Web UI, we will focus on deploying the entire app. For this purpose you will need
+
+1. a trusted server to deploy to, with ports 80 and 8080 free,
+1. [sbt](https://github.com/paulp/sbt-extras),
+1. [Docker](https://www.docker.com), and
+1. push access to your Docker image repo.
+
+For the sake of these instructions, we will assume that the hostname of the server to which you plan to deploy Flint is `flint.foo.internal`. Flint does not support authentication or SSL connections out of the box, so it must be deployed to a trusted server. Build and push the Flint app Docker image by running
+```sh
+sbt 'set FlintKeys.flintServerHost := Some("flint.foo.internal:8080")' dockerBuildAndPush
 ```
-java -Dconfig.file=<path-to-server.conf> -Dakka.loglevel=error -Dlog4j.configurationFile=<path-to-log4j2.xml> -jar server/target/scala-2.11/flint-server-assembly-*.jar
+
+You will need to configure the Flint server before starting it. Copy the configuration template files from the [conf/](conf/) directory to a directory on your deployment server. For the sake of this example, we will assume that directory is `/root/flint-conf`. Rename each file by removing the `-template` string from its name and fill in the configuration settings. All of these files use the [HOCON](https://github.com/typesafehub/config/blob/master/HOCON.md) configuration syntax except for `log4j2.xml`. See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring logging.
+
+On the deployment server do a `docker pull videoamp/flint-app:<version>` to download the Flint app image. Then start Flint with
+```sh
+docker run -d --name flint-app -v /root/flint-conf:/conf -p 8080:8080 -p 80:80 videoamp/flint-app:<version>
 ```
 
-An example logging configuration file is provided in [conf/log4j2-example.xml](conf/log4j2-example.xml). See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring the logger.
+Browsing to `http://flint.foo.internal/` should bring up the Flint UI. If anything goes wrong, check the server logs with
+```sh
+docker logs flint-app
+```
+and check your browser's JavaScript console.
 
-The Flint server uses [Akka](http://akka.io/), which has its own logging configuration. For the sake of simplicity, you can adjust the default Akka log level by specifying the `akka.loglevel` system property, e.g. `-Dakka.loglevel=error`.
-
-### Scala Library Quickstart
+### Scala Library
 
 Add
 
@@ -31,9 +41,9 @@ to your project's `build.sbt`. See the REPL example below for a Flint code snipp
 
 You will need to configure Flint for your Docker and AWS environment. Flint uses [Typesafe Config](https://github.com/typesafehub/config). Take a look at the configuration template files in [conf/](conf/) for guidance.
 
-### REPL Quickstart
+### REPL
 
-There are several ways to access Flint in a REPL.
+There are several ways to use Flint in a REPL.
 
 #### SBT Console
 
@@ -85,6 +95,6 @@ cs.launchCluster(spec).foreach { managedCluster =>
 }
 ```
 
-### Contributing to Flint
+### Contributing
 
 If you'd like to contribute to the Flint codebase, please read about the contribution process in [CONTRIBUTING.md](CONTRIBUTING.md). Then consult [DEVELOPING.md](DEVELOPING.md) for tips for hacking on the codebase.
