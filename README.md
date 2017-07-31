@@ -2,6 +2,8 @@
 
 Flint is a Scala library, server and Web UI for managing on-demand Spark clusters.
 
+[![Build Status](https://semaphoreci.com/api/v1/projects/807efe73-a850-4be3-8064-dd83248bd7c2/1348779/shields_badge.svg)](https://semaphoreci.com/videoamp/flint)
+
 ### Docker Image Build and Deployment
 
 While the server can be built and deployed independently of the Web UI, we will focus on deploying the entire app. For this purpose you will need
