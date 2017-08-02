@@ -46,8 +46,10 @@ yarnBuild := {
       val exitCode = Process(
         "yarn" :: "build" :: Nil,
         uiDir.value,
+        "BABEL_ENV"                     -> "production",
         "REACT_APP_FLINT_SERVER_URL"    -> flintServiceURL,
-        "REACT_APP_FLINT_WEBSOCKET_URL" -> flintMessagingURL) !
+        "REACT_APP_FLINT_WEBSOCKET_URL" -> flintMessagingURL
+      ) !
 
       if (exitCode != 0) {
         throw new RuntimeException(s""""yarn build" exited with exit code $exitCode""")
