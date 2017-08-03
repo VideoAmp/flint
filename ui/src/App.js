@@ -66,8 +66,8 @@ const updateInstanceInCluster = (cluster, instanceId, propToUpdate) => {
 };
 
 export default class App extends React.Component {
-    baseUrl = process.env.REACT_APP_FLINT_SERVER_URL;
-    baseWebsocketUrl = process.env.REACT_APP_FLINT_WEBSOCKET_URL;
+    serverUrl = this.props.serverUrl;
+    messagingUrl = this.props.messagingUrl;
     serverId = null;
     messageNo = null;
 
@@ -83,19 +83,19 @@ export default class App extends React.Component {
         lastOwner: Store.get("lastOwner"),
     };
 
-    getClusters = () => fetch(`${this.baseUrl}/clusters`)
+    getClusters = () => fetch(`${this.serverUrl}/clusters`)
             .then(response => response.json())
             .then(clusters => this.setState({ clusters: R.indexBy(R.prop("id"), clusters) }));
 
-    getInstanceSpecs = () => fetch(`${this.baseUrl}/instanceSpecs`)
+    getInstanceSpecs = () => fetch(`${this.serverUrl}/instanceSpecs`)
             .then(response => response.json())
             .then(instanceSpecs => this.setState({ instanceSpecs }))
 
-    getPlacementGroups = () => fetch(`${this.baseUrl}/placementGroups`)
+    getPlacementGroups = () => fetch(`${this.serverUrl}/placementGroups`)
             .then(response => response.json())
             .then(placementGroups => this.setState({ placementGroups: [null].concat(placementGroups) }))
 
-    getSubnets = () => fetch(`${this.baseUrl}/subnets`)
+    getSubnets = () => fetch(`${this.serverUrl}/subnets`)
             .then(response => response.json())
             .then(subnets => this.setState({ subnets }))
 
@@ -246,9 +246,9 @@ export default class App extends React.Component {
     }
 
     componentDidMount() {
-        const socket = new ReconnectingWebSocket(`${this.baseWebsocketUrl}/messaging`);
+        const socket = new ReconnectingWebSocket(`${this.messagingUrl}/messaging`);
         socket.onopen = () => {
-            getDockerImageTags()
+            getDockerImageTags(this.serverUrl)
                 .then(sortedTags => this.setState({ tags: sortedTags }))
                 .then(this.getInstanceSpecs)
                 .then(this.getPlacementGroups)
@@ -314,7 +314,7 @@ export default class App extends React.Component {
                             tags={this.state.tags}
                             ownerDataSource={this.state.ownerDataSource}
                             defaultOwner={this.state.lastOwner}
-                            baseUrl={this.baseUrl}
+                            serverUrl={this.serverUrl}
                         />
                         <FloatingActionButton className="fab" onClick={this.handleClusterDialogOpen}>
                             <ContentAdd />

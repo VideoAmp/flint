@@ -1,7 +1,7 @@
 import R from "ramda";
 
-export default function getDockerImageTags() {
-    return fetch(`${process.env.REACT_APP_FLINT_SERVER_URL}/dockerImages`)
+export default function getDockerImageTags(serverUrl) {
+    return fetch(`${serverUrl}/dockerImages`)
         .then(response => response.json())
         .then((dockerImages) => {
             const tags = R.map(R.prop("tag"), dockerImages);

@@ -6,7 +6,12 @@ import "./index.css";
 
 injectTapEventPlugin();
 
-ReactDOM.render(
-  <App />,
-  document.getElementById("root")
-);
+fetch("endpoints.json")
+  .then(response => response.json())
+  .then((endpoints) => {
+      const { serverUrl, messagingUrl } = endpoints;
+      ReactDOM.render(
+        <App serverUrl={serverUrl} messagingUrl={messagingUrl}/>,
+        document.getElementById("root")
+      );
+  });

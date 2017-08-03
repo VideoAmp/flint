@@ -1,9 +1,5 @@
 import FlintKeys._
 
-flintServerHost := None
-flintServerUseTLS := false
-flintClientAPIVersion := (flintServerAPIVersion in LocalProject("server")).value
-
 enablePlugins(DockerPlugin)
 
 imageNames in docker := Seq(
@@ -30,32 +26,14 @@ yarn := {
 
 lazy val yarnBuild = taskKey[Unit]("yarnBuild")
 yarnBuild := {
-  flintServerHost.value match {
-    case Some(flintServerHost) =>
-      val (flintServiceURL, flintMessagingURL) = {
-        val (flintServiceScheme, flintMessagingScheme) =
-          flintServerUseTLS.value match {
-            case true  => ("https", "wss")
-            case false => ("http", "ws")
-          }
-        val flintURLSuffix = "://" + flintServerHost + "/api/version/" +
-          flintClientAPIVersion.value
-        (flintServiceScheme + flintURLSuffix, flintMessagingScheme + flintURLSuffix)
-      }
+  val exitCode = Process(
+    "yarn" :: "build" :: Nil,
+    uiDir.value,
+    "BABEL_ENV" -> "production"
+  ) !
 
-      val exitCode = Process(
-        "yarn" :: "build" :: Nil,
-        uiDir.value,
-        "BABEL_ENV"                     -> "production",
-        "REACT_APP_FLINT_SERVER_URL"    -> flintServiceURL,
-        "REACT_APP_FLINT_WEBSOCKET_URL" -> flintMessagingURL
-      ) !
-
-      if (exitCode != 0) {
-        throw new RuntimeException(s""""yarn build" exited with exit code $exitCode""")
-      }
-    case None =>
-      throw new RuntimeException("Must set flintServerHost SettingKey to nonempty value")
+  if (exitCode != 0) {
+    throw new RuntimeException(s""""yarn build" exited with exit code $exitCode""")
   }
 }
 
@@ -72,7 +50,7 @@ dockerfile in docker := {
     stageFile(uiDir.value / "build", "build")
     copyRaw("build", "/var/www/localhost/htdocs")
     expose(80)
-    entryPoint("launch-flint.sh")
+    entryPoint("launch-flint.sh", flintServerAPIVersion.value.toString)
   }
 }
 

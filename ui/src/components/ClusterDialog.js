@@ -65,7 +65,7 @@ export default class ClusterDialog extends React.Component {
 
     getSpotPrice = (subnetId, instanceType) => {
         this.setState({ spotPrice: "(fetching)" });
-        fetch(`${this.props.baseUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
+        fetch(`${this.props.serverUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
             .then(response => response.json())
             .then(([{ price: spotPrice = 0.0 }]) => this.setState({ spotPrice }));
     }
