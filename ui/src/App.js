@@ -13,7 +13,7 @@ import getMuiTheme from "material-ui/styles/getMuiTheme";
 
 import "./App.css";
 
-import getDockerImageTags from "./api/getDockerImageTags";
+import getDockerImages from "./api/getDockerImages";
 
 import Cluster from "./components/Cluster";
 import ClusterDialog from "./components/ClusterDialog";
@@ -66,8 +66,6 @@ const updateInstanceInCluster = (cluster, instanceId, propToUpdate) => {
 };
 
 export default class App extends React.Component {
-    baseUrl = process.env.REACT_APP_FLINT_SERVER_URL;
-    baseWebsocketUrl = process.env.REACT_APP_FLINT_WEBSOCKET_URL;
     serverId = null;
     messageNo = null;
 
@@ -77,25 +75,28 @@ export default class App extends React.Component {
         instanceSpecs: [],
         placementGroups: [],
         subnets: [],
-        tags: [],
+        dockerImages: [],
         socket: null,
         ownerDataSource: Store.get("ownerDataSource"),
         lastOwner: Store.get("lastOwner"),
+        serverUrl: "",
+        messagingUrl: "",
+        endpointsFetchFailed: false,
     };
 
-    getClusters = () => fetch(`${this.baseUrl}/clusters`)
+    getClusters = serverUrl => () => fetch(`${serverUrl}/clusters`)
             .then(response => response.json())
             .then(clusters => this.setState({ clusters: R.indexBy(R.prop("id"), clusters) }));
 
-    getInstanceSpecs = () => fetch(`${this.baseUrl}/instanceSpecs`)
+    getInstanceSpecs = serverUrl => () => fetch(`${serverUrl}/instanceSpecs`)
             .then(response => response.json())
             .then(instanceSpecs => this.setState({ instanceSpecs }))
 
-    getPlacementGroups = () => fetch(`${this.baseUrl}/placementGroups`)
+    getPlacementGroups = serverUrl => () => fetch(`${serverUrl}/placementGroups`)
             .then(response => response.json())
             .then(placementGroups => this.setState({ placementGroups: [null].concat(placementGroups) }))
 
-    getSubnets = () => fetch(`${this.baseUrl}/subnets`)
+    getSubnets = serverUrl => () => fetch(`${serverUrl}/subnets`)
             .then(response => response.json())
             .then(subnets => this.setState({ subnets }))
 
@@ -246,20 +247,27 @@ export default class App extends React.Component {
     }
 
     componentDidMount() {
-        const socket = new ReconnectingWebSocket(`${this.baseWebsocketUrl}/messaging`);
-        socket.onopen = () => {
-            getDockerImageTags()
-                .then(sortedTags => this.setState({ tags: sortedTags }))
-                .then(this.getInstanceSpecs)
-                .then(this.getPlacementGroups)
-                .then(this.getSubnets)
-                .then(this.getClusters);
-        };
-        socket.onmessage = ({ data }) => {
-            const message = JSON.parse(data);
-            this.handleMessage(message);
-        };
-        this.setState({ socket });
+        fetch("endpoints.json")
+        .then(response => response.json())
+        .then((endpoints) => {
+            const { serverUrl, messagingUrl } = endpoints;
+            const socket = new ReconnectingWebSocket(`${messagingUrl}/messaging`);
+            socket.onopen = () => {
+                getDockerImages(serverUrl)
+                    .then(sortedImages => this.setState({ dockerImages: sortedImages }))
+                    .then(this.getInstanceSpecs(serverUrl))
+                    .then(this.getPlacementGroups(serverUrl))
+                    .then(this.getSubnets(serverUrl))
+                    .then(this.getClusters(serverUrl));
+                this.setState({ socket });
+            };
+            socket.onmessage = ({ data }) => {
+                const message = JSON.parse(data);
+                this.handleMessage(message);
+            };
+            this.setState({ serverUrl, messagingUrl });
+        })
+      .catch(() => this.setState({ endpointsFetchFailed: true }));
     }
 
     handleClusterDialogOpen = () => {
@@ -282,43 +290,55 @@ export default class App extends React.Component {
     };
 
     render() {
+        let appPaneContents = [];
+
+        if (this.state.endpointsFetchFailed) {
+            appPaneContents = [<p key="unknown-endpoints">{ "Oh noes! Couldn't find server endpoints!" }</p>];
+        } else if (this.state.socket) {
+            const clusterContainer =
+                <div key="cluster-container" className="cluster-container">
+                    <Masonry className="clusters">
+                        {
+                            mapAndReturnObjectValues(cluster =>
+                                <div className="cluster" key={cluster.id}>
+                                     <Cluster
+                                        data={cluster}
+                                        handleClusterUpdate={this.handleClusterUpdate(cluster)}
+                                        instanceSpecs={this.state.instanceSpecs}
+                                        dockerImages={this.state.dockerImages}
+                                        socket={this.state.socket} />
+                                </div>,
+                                this.state.clusters
+                            )
+                        }
+                    </Masonry>
+                </div>;
+            const clusterDialog =
+                <ClusterDialog
+                    key="cluster-dialog"
+                    openState={this.state.clusterDialogOpen}
+                    close={this.handleClusterDialogClose}
+                    socket={this.state.socket}
+                    instanceSpecs={this.state.instanceSpecs}
+                    placementGroups={this.state.placementGroups}
+                    subnets={this.state.subnets}
+                    dockerImages={this.state.dockerImages}
+                    ownerDataSource={this.state.ownerDataSource}
+                    defaultOwner={this.state.lastOwner}
+                    serverUrl={this.state.serverUrl}
+                />;
+            const newClusterButton =
+                <FloatingActionButton key="cluster-add" className="fab" onClick={this.handleClusterDialogOpen}>
+                    <ContentAdd />
+                </FloatingActionButton>;
+            appPaneContents = [clusterContainer, clusterDialog, newClusterButton];
+        }
         return (
             <div>
                 <MuiThemeProvider muiTheme={muiTheme}>
                     <div>
                         <AppBar title="Flint" showMenuIconButton={false}/>
-                        <div className="cluster-container">
-                            <Masonry className="clusters">
-                                {
-                                    mapAndReturnObjectValues(cluster =>
-                                        <div className="cluster" key={cluster.id}>
-                                             <Cluster
-                                                data={cluster}
-                                                handleClusterUpdate={this.handleClusterUpdate(cluster)}
-                                                instanceSpecs={this.state.instanceSpecs}
-                                                tags={this.state.tags}
-                                                socket={this.state.socket} />
-                                        </div>,
-                                        this.state.clusters
-                                    )
-                                }
-                            </Masonry>
-                        </div>
-                        <ClusterDialog
-                            openState={this.state.clusterDialogOpen}
-                            close={this.handleClusterDialogClose}
-                            socket={this.state.socket}
-                            instanceSpecs={this.state.instanceSpecs}
-                            placementGroups={this.state.placementGroups}
-                            subnets={this.state.subnets}
-                            tags={this.state.tags}
-                            ownerDataSource={this.state.ownerDataSource}
-                            defaultOwner={this.state.lastOwner}
-                            baseUrl={this.baseUrl}
-                        />
-                        <FloatingActionButton className="fab" onClick={this.handleClusterDialogOpen}>
-                            <ContentAdd />
-                        </FloatingActionButton>
+                        { appPaneContents }
                     </div>
                 </MuiThemeProvider>
             </div>

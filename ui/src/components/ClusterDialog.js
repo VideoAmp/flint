@@ -36,7 +36,7 @@ const generateSubnetMenuItem =
 export default class ClusterDialog extends React.Component {
     state = {
         owner: this.props.defaultOwner,
-        tag: "",
+        dockerImage: null,
         subnetId: "",
         lifetimeHoursErrorText: "",
         workerCountErrorText: "",
@@ -65,7 +65,7 @@ export default class ClusterDialog extends React.Component {
 
     getSpotPrice = (subnetId, instanceType) => {
         this.setState({ spotPrice: "(fetching)" });
-        fetch(`${this.props.baseUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
+        fetch(`${this.props.serverUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
             .then(response => response.json())
             .then(([{ price: spotPrice = 0.0 }]) => this.setState({ spotPrice }));
     }
@@ -80,7 +80,7 @@ export default class ClusterDialog extends React.Component {
             numWorkers,
             subnetId,
             placementGroup,
-            tag,
+            dockerImage,
             isSpotCluster,
             workerBidPriceRatioErrorText,
             workerBidPriceRatioString,
@@ -98,10 +98,7 @@ export default class ClusterDialog extends React.Component {
         const messageType = isSpotCluster ? "LaunchSpotCluster" : "LaunchCluster";
         const clusterSpec = {
             id: uuid(),
-            dockerImage: {
-                repo: "videoamp/spark",
-                tag,
-            },
+            dockerImage,
             owner,
             ttl: lifetimeHours ? moment.duration(lifetimeHours, "hours").toString() : null,
             idleTimeout: idleTimeout ? moment.duration(idleTimeout, "minutes").toString() : null,
@@ -121,7 +118,7 @@ export default class ClusterDialog extends React.Component {
 
     componentWillReceiveProps(nextProps) {
         const propsToState = (props) => {
-            const tag = R.pathOr("", ["tags", 0], props);
+            const dockerImage = R.pathOr("", ["dockerImages", 0], props);
             const instanceSpecs = props.instanceSpecs ? props.instanceSpecs : [];
             const workerSpecs = R.filter(spec => spec.isSpotEligible, instanceSpecs);
             const masterInstanceType = R.pathOr("", [0, "instanceType"], instanceSpecs);
@@ -130,7 +127,7 @@ export default class ClusterDialog extends React.Component {
             const workerBidPriceRatioString =
                 this.state.workerBidPriceRatioString !== "" ? this.state.workerBidPriceRatioString : "1.1";
             return {
-                tag,
+                dockerImage,
                 instanceSpecs,
                 workerSpecs,
                 masterInstanceType,
@@ -213,7 +210,7 @@ export default class ClusterDialog extends React.Component {
     }
 
     render() {
-        const { instanceSpecs, ownerDataSource = [], subnets, openState, close, tags } = this.props;
+        const { instanceSpecs, ownerDataSource = [], subnets, openState, close, dockerImages } = this.props;
         const { workerSpecs } = this.state;
 
         const clusterDialogActions = [
@@ -260,12 +257,12 @@ export default class ClusterDialog extends React.Component {
                                 labelStyle={tagFloatingTextLabelStyle}
                                 autoWidth={true}
                                 fullWidth={true}
-                                value={this.state.tag}
-                                onChange={this.handleFieldChange("tag")}
+                                value={this.state.dockerImage}
+                                onChange={this.handleFieldChange("dockerImage")}
                                 floatingLabelText="Build">
                                 {
-                                    tags.map((tag, key) =>
-                                        <MenuItem key={key} value={tag} primaryText={tag} />
+                                    dockerImages.map((image, key) =>
+                                        <MenuItem key={key} value={image} primaryText={image.tag} />
                                     )
                                 }
                             </SelectField>

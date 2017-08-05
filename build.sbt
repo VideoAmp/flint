@@ -1,5 +1,7 @@
 import FlintKeys._
 
+val APIVersion = 2
+
 lazy val commonSettings = Seq(
   organization := "com.videoamp",
   scalaVersion := "2.12.3",
@@ -38,6 +40,7 @@ lazy val root = (project in file("."))
   .aggregate(core, server)
   .settings(commonSettings: _*)
   .settings(disablePublishing: _*)
+  .settings(flintServerAPIVersion := APIVersion)
 
 scalastyle := {}
 scalastyle in Test := {}
@@ -56,5 +59,5 @@ lazy val server =
     .dependsOn(core % "compile;test->test")
     .settings(commonSettings: _*)
     .settings(disablePublishing: _*)
-    .settings(flintServerAPIVersion := 2)
+    .settings(flintServerAPIVersion := APIVersion)
     .addSbtFiles(scalastyleSbt)

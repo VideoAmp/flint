@@ -61,26 +61,25 @@ export default class Cluster extends React.Component {
         this.setState(prevState => ({ imageChangeLocked: !prevState.imageChangeLocked }));
     };
 
-    handleImageChange = (event, index, imageTag) => {
-        const { data: cluster, handleClusterUpdate } = this.props;
-        const currentImageTag = cluster.dockerImage.tag;
+    handleImageChange = (event, index) => {
+        const { data: cluster, dockerImages, handleClusterUpdate } = this.props;
+        const image = dockerImages[index];
+        const currentImage = cluster.dockerImage;
 
-        if (currentImageTag === imageTag) return;
+        if (R.equals(currentImage, image)) return;
 
         const message = {
             clusterId: cluster.id,
-            dockerImage: {
-                repo: "videoamp/spark",
-                tag: imageTag,
-            },
+            dockerImage: image,
         };
-        this.props.socket.send(JSON.stringify(R.merge(message, { "$type": "ChangeDockerImage" })));
+        const changeImageMessage = R.merge(message, { "$type": "ChangeDockerImage" });
+        this.props.socket.send(JSON.stringify(changeImageMessage));
         handleClusterUpdate({ imageChangeInProgress: true });
     };
 
     render() {
         const { imageChangeLocked } = this.state;
-        const { socket, instanceSpecs, data: cluster, tags } = this.props;
+        const { socket, instanceSpecs, data: cluster, dockerImages } = this.props;
         const { owner, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
         const isSpotCluster = !R.isNil(workerBidPrice);
         // TODO: return short-form image tag
@@ -133,8 +132,8 @@ export default class Cluster extends React.Component {
                               value={dockerImage.tag}
                               onChange={this.handleImageChange}>
                               {
-                                  tags.map((tag, key) =>
-                                      <MenuItem key={key} value={tag} primaryText={tag} />
+                                  dockerImages.map((image, key) =>
+                                      <MenuItem key={key} value={image.tag} primaryText={image.tag} />
                                   )
                               }
                           </SelectField>
