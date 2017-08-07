@@ -5,8 +5,8 @@ import scala.concurrent.duration.FiniteDuration
 
 case class ClusterSpec(
     id: ClusterId,
+    name: String,
     dockerImage: DockerImage,
-    owner: String,
     ttl: Option[FiniteDuration],
     idleTimeout: Option[FiniteDuration],
     masterInstanceType: String,

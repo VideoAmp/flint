@@ -8,8 +8,8 @@ import scala.concurrent.duration.FiniteDuration
 
 private[messaging] case class ClusterSnapshot(
     id: ClusterId,
+    name: String,
     dockerImage: DockerImage,
-    owner: String,
     ttl: Option[FiniteDuration],
     idleTimeout: Option[FiniteDuration],
     master: InstanceSnapshot,
@@ -23,8 +23,8 @@ private[messaging] object ClusterSnapshot {
 
     ClusterSnapshot(
       id,
+      name,
       dockerImage.now,
-      owner,
       ttl,
       idleTimeout,
       InstanceSnapshot(master),

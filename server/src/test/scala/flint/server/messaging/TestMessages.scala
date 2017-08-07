@@ -10,15 +10,15 @@ import scala.util.Random
 object TestMessages {
   private val serverId    = "%8h".format(Random.nextInt)
   private val clusterId   = ClusterId()
+  private val clusterName = "Sam's Cluster"
   private val dockerImage = DockerImage("test", "me")
-  private val owner       = "Sam"
   private val ttl         = Some(10 hours)
   private val idleTimeout = Some(15 minutes)
   private val clusterSpec =
     ClusterSpec(
       clusterId,
+      clusterName,
       dockerImage,
-      owner,
       ttl,
       idleTimeout,
       "r3.xlarge",

@@ -12,7 +12,7 @@ private[service] class FlintTags(extraTags: ExtraTags) {
 
     val noTags = Map.empty[String, String]
 
-    val commonResourceTags = commonResourceRequestTags(id, owner, SparkClusterRole.Master)
+    val commonResourceTags = commonResourceRequestTags(id, name, SparkClusterRole.Master)
 
     val commonTags = Map(
       ClusterDockerImage -> dockerImage.canonicalName,
@@ -41,8 +41,9 @@ private[service] class FlintTags(extraTags: ExtraTags) {
         extraTags.tags).toSeq
   }
 
-  def workerTags(clusterId: ClusterId, owner: String): Seq[(String, String)] = {
-    val commonResourceTags = commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
+  def workerTags(clusterId: ClusterId, clusterName: String): Seq[(String, String)] = {
+    val commonResourceTags =
+      commonResourceRequestTags(clusterId, clusterName, SparkClusterRole.Worker)
     commonResourceTags ++ extraTags.tags.toSeq
   }
 }
@@ -51,12 +52,12 @@ private[service] object FlintTags {
   val ResourceName = "Name"
 
   val ClusterId          = "flint:cluster_id"
+  val ClusterName        = "flint:cluster_name"
   val ClusterDockerImage = "flint:cluster_docker_image"
   val ClusterTTL         = "flint:cluster_ttl"
   val ClusterIdleTimeout = "flint:cluster_idle_timeout"
   val ContainerState     = "flint:container_state"
   val DockerImage        = "flint:docker_image"
-  val Owner              = "flint:owner"
   val PlacementGroup     = "flint:placement_group"
   val SparkRole          = "flint:spark_cluster_role"
   val WorkerInstanceType = "flint:worker_instance_type"
@@ -66,12 +67,12 @@ private[service] object FlintTags {
 
   def commonResourceRequestTags(
       clusterId: ClusterId,
-      owner: String,
+      clusterName: String,
       role: SparkClusterRole): Seq[(String, String)] =
     Map(
-      ResourceName -> s"Flint Spark ${role.name} : $owner",
+      ResourceName -> s"Flint Spark ${role.name} : $clusterName",
       ClusterId    -> clusterId.toString,
-      Owner        -> owner,
+      ClusterName  -> clusterName,
       SparkRole    -> role.name).toIndexedSeq
 
   def dockerImageTags(dockerImage: DockerImage): Seq[(String, String)] =
