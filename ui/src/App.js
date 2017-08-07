@@ -134,7 +134,7 @@ export default class App extends React.Component {
             this.initializeMessageSequence(message);
         } else if (!this.validateMessageSequence(message)) {
             console.log("Refreshing clusters");
-            this.getClusters().then(this.initializeMessageSequence(message));
+            this.getClusters(this.state.serverUrl)().then(this.initializeMessageSequence(message));
         }
 
         console.log(message);
