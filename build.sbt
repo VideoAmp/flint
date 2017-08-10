@@ -1,6 +1,6 @@
 import FlintKeys._
 
-val APIVersion = 2
+val APIVersion = 3
 
 lazy val commonSettings = Seq(
   organization := "com.videoamp",

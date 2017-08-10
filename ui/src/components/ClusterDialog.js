@@ -35,13 +35,13 @@ const generateSubnetMenuItem =
 
 export default class ClusterDialog extends React.Component {
     state = {
-        owner: this.props.defaultOwner,
+        clusterName: this.props.defaultClusterName,
         dockerImage: null,
         subnetId: "",
         lifetimeHoursErrorText: "",
         workerCountErrorText: "",
         idleTimeoutCountErrorText: "",
-        ownerErrorText: "",
+        clusterNameErrorText: "",
         workerBidPriceRatioErrorText: "",
         workerSpecs: [],
         masterInstanceType: "",
@@ -72,7 +72,7 @@ export default class ClusterDialog extends React.Component {
 
     launchCluster = () => {
         const {
-            owner,
+            clusterName,
             lifetimeHours,
             idleTimeout,
             masterInstanceType,
@@ -86,8 +86,8 @@ export default class ClusterDialog extends React.Component {
             workerBidPriceRatioString,
         } = this.state;
 
-        if (!owner) {
-            this.setState({ ownerErrorText: "Please enter an owner" });
+        if (!clusterName) {
+            this.setState({ clusterNameErrorText: "Please enter a cluster name" });
             return;
         }
 
@@ -98,8 +98,8 @@ export default class ClusterDialog extends React.Component {
         const messageType = isSpotCluster ? "LaunchSpotCluster" : "LaunchCluster";
         const clusterSpec = {
             id: uuid(),
+            name: clusterName,
             dockerImage,
-            owner,
             ttl: lifetimeHours ? moment.duration(lifetimeHours, "hours").toString() : null,
             idleTimeout: idleTimeout ? moment.duration(idleTimeout, "minutes").toString() : null,
             masterInstanceType,
@@ -113,7 +113,7 @@ export default class ClusterDialog extends React.Component {
         const workerBidPrice = parseFloat(workerBidPriceRatioString) * workerHourlyPrice;
         const launchMessage = { "bidPrice": workerBidPrice, clusterSpec, "$type": messageType };
         this.props.socket.send(JSON.stringify(launchMessage));
-        this.props.close(owner);
+        this.props.close(clusterName);
     }
 
     componentWillReceiveProps(nextProps) {
@@ -204,13 +204,13 @@ export default class ClusterDialog extends React.Component {
         }
     }
 
-    handleOwnerChange = (owner) => {
-        const ownerErrorText = owner ? "" : "Please enter an owner";
-        this.setState({ ownerErrorText, owner });
+    handleClusterNameChange = (clusterName) => {
+        const clusterNameErrorText = clusterName ? "" : "Please enter a cluster name";
+        this.setState({ clusterNameErrorText, clusterName });
     }
 
     render() {
-        const { instanceSpecs, ownerDataSource = [], subnets, openState, close, dockerImages } = this.props;
+        const { instanceSpecs, clusterNameDataSource = [], subnets, openState, close, dockerImages } = this.props;
         const { workerSpecs } = this.state;
 
         const clusterDialogActions = [
@@ -271,14 +271,14 @@ export default class ClusterDialog extends React.Component {
                     <Grid style={R.merge(gridStyles, { minHeight: "100px" })}>
                         <Cell>
                             <AutoComplete
-                                dataSource={ownerDataSource}
-                                searchText={this.state.owner}
-                                onNewRequest={this.handleOwnerChange}
-                                onUpdateInput={this.handleOwnerChange}
+                                dataSource={clusterNameDataSource}
+                                searchText={this.state.clusterName}
+                                onNewRequest={this.handleClusterNameChange}
+                                onUpdateInput={this.handleClusterNameChange}
                                 style={fieldStyles}
-                                hintText="Enter your name here"
-                                errorText={this.state.ownerErrorText}
-                                floatingLabelText="Owner"
+                                hintText="Enter your cluster name here"
+                                errorText={this.state.clusterNameErrorText}
+                                floatingLabelText="Cluster Name"
                             />
                         </Cell>
                         <Cell>

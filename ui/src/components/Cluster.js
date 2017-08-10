@@ -80,11 +80,11 @@ export default class Cluster extends React.Component {
     render() {
         const { imageChangeLocked } = this.state;
         const { socket, instanceSpecs, data: cluster, dockerImages } = this.props;
-        const { owner, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
+        const { name: clusterName, dockerImage, master, workers = [], workerInstanceType, workerBidPrice } = cluster;
         const isSpotCluster = !R.isNil(workerBidPrice);
         // TODO: return short-form image tag
         const clusterTitle =
-            `${owner} ${dockerImage.tag.split("-")[0]}`;
+            `${clusterName} ${dockerImage.tag.split("-")[0]}`;
 
         const getImageLockIcon = () => {
             if (cluster.imageChangeInProgress) {

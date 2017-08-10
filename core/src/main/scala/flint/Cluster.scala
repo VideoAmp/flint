@@ -8,8 +8,8 @@ import rx._
 
 case class Cluster(
     id: ClusterId,
+    name: String,
     dockerImage: Rx[DockerImage],
-    owner: String,
     ttl: Option[FiniteDuration],
     idleTimeout: Option[FiniteDuration],
     master: Instance,
@@ -36,12 +36,12 @@ case class Cluster(
 object Cluster {
   private[flint] def apply(
       id: ClusterId,
+      name: String,
       dockerImage: DockerImage,
-      owner: String,
       ttl: Option[FiniteDuration],
       idleTimeout: Option[FiniteDuration],
       master: Instance,
       workers: Seq[Instance],
       launchedAt: Instant)(implicit ctx: Ctx.Owner): Cluster =
-    new Cluster(id, Var(dockerImage), owner, ttl, idleTimeout, master, Var(workers), launchedAt)
+    new Cluster(id, name, Var(dockerImage), ttl, idleTimeout, master, Var(workers), launchedAt)
 }

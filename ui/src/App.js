@@ -77,8 +77,8 @@ export default class App extends React.Component {
         subnets: [],
         dockerImages: [],
         socket: null,
-        ownerDataSource: Store.get("ownerDataSource"),
-        lastOwner: Store.get("lastOwner"),
+        clusterNameDataSource: Store.get("clusterNameDataSource"),
+        lastClusterName: Store.get("lastClusterName"),
         serverUrl: "",
         messagingUrl: "",
         endpointsFetchFailed: false,
@@ -274,16 +274,19 @@ export default class App extends React.Component {
         this.setState({ clusterDialogOpen: true });
     };
 
-    handleClusterDialogClose = (owner) => {
+    handleClusterDialogClose = (clusterName) => {
         const updatedState = { clusterDialogOpen: false };
 
-        const isOwner = !R.isNil(owner) && R.is(String, owner);
-        if (isOwner) {
-            const { ownerDataSource } = this.state;
-            const updatedOwnerDataSource = R.union([owner], ownerDataSource);
-            Store.set("ownerDataSource", updatedOwnerDataSource);
-            Store.set("lastOwner", owner);
-            this.setState(R.merge({ ownerDataSource: updatedOwnerDataSource, lastOwner: owner }, updatedState));
+        const isClusterName = !R.isNil(clusterName) && R.is(String, clusterName);
+        if (isClusterName) {
+            const { clusterNameDataSource } = this.state;
+            const updatedClusterNameDataSource = R.union([clusterName], clusterNameDataSource);
+            Store.set("clusterNameDataSource", updatedClusterNameDataSource);
+            Store.set("lastClusterName", clusterName);
+            this.setState(R.merge({
+                clusterNameDataSource: updatedClusterNameDataSource,
+                lastClusterName: clusterName,
+            }, updatedState));
         } else {
             this.setState(updatedState);
         }
@@ -323,8 +326,8 @@ export default class App extends React.Component {
                     placementGroups={this.state.placementGroups}
                     subnets={this.state.subnets}
                     dockerImages={this.state.dockerImages}
-                    ownerDataSource={this.state.ownerDataSource}
-                    defaultOwner={this.state.lastOwner}
+                    clusterNameDataSource={this.state.clusterNameDataSource}
+                    defaultClusterName={this.state.lastClusterName}
                     serverUrl={this.state.serverUrl}
                 />;
             const newClusterButton =

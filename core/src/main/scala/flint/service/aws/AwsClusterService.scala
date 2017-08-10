@@ -133,8 +133,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
         master,
         Some(s"${spec.id}-initial_workers"),
         spec.id,
+        spec.name,
         spec.dockerImage,
-        spec.owner,
         spec.numWorkers,
         spec.workerInstanceType,
         spec.placementGroup,
@@ -147,8 +147,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
           new AwsManagedCluster(
             Cluster(
               spec.id,
+              spec.name,
               spec.dockerImage,
-              spec.owner,
               spec.ttl,
               spec.idleTimeout,
               master,
@@ -171,7 +171,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     val masterUserData =
       createUserData(
         spec.id,
-        spec.owner,
+        spec.name,
         SparkClusterRole.Master,
         InstanceProvisioning.Normal,
         spec.dockerImage,
@@ -213,8 +213,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       master: Instance,
       clientToken: Option[String],
       clusterId: ClusterId,
+      clusterName: String,
       dockerImage: DockerImage,
-      owner: String,
       numWorkers: Int,
       instanceType: String,
       placementGroup: Option[String],
@@ -227,8 +227,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
             master,
             clientToken,
             clusterId,
+            clusterName,
             dockerImage,
-            owner,
             numWorkers,
             instanceType,
             placementGroup,
@@ -239,8 +239,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
             master,
             clientToken,
             clusterId,
+            clusterName,
             dockerImage,
-            owner,
             numWorkers,
             instanceType,
             placementGroup,
@@ -253,8 +253,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       master: Instance,
       clientToken: Option[String],
       clusterId: ClusterId,
+      clusterName: String,
       dockerImage: DockerImage,
-      owner: String,
       numWorkers: Int,
       instanceType: String,
       placementGroup: Option[String],
@@ -263,7 +263,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     val workerUserData =
       createWorkerUserData(
         clusterId,
-        owner,
+        clusterName,
         InstanceProvisioning.Normal,
         master.ipAddress.now.get, // Unsafe but whatevs
         workerSpecs,
@@ -286,7 +286,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
         reservation.getInstances.asScala
           .map(instance => flintInstance(clusterId, instance))
           .toIndexedSeq
-      val workerTags = FlintTags(extraInstanceTags).workerTags(clusterId, owner).map(asAwsTag)
+      val workerTags =
+        FlintTags(extraInstanceTags).workerTags(clusterId, clusterName).map(asAwsTag)
       tagResources(workers.map(_.id), workerTags).map(_ => workers)
     }
   }
@@ -295,8 +296,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       master: Instance,
       clientToken: Option[String],
       clusterId: ClusterId,
+      clusterName: String,
       dockerImage: DockerImage,
-      owner: String,
       numWorkers: Int,
       instanceType: String,
       placementGroup: Option[String],
@@ -306,7 +307,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     val workerUserData =
       createWorkerUserData(
         clusterId,
-        owner,
+        clusterName,
         InstanceProvisioning.Spot,
         master.ipAddress.now.get, // Unsafe but whatevs
         workerSpecs,
@@ -328,7 +329,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     ec2Client.requestSpotInstances(workersRequest).flatMap { spotInstancesRequests =>
       val spotInstanceRequestIds = spotInstancesRequests.map(_.getSpotInstanceRequestId)
       val spotInstanceRequestTags = InstanceTagExtractor
-        .spotInstanceRequestTags(clusterId, owner)
+        .spotInstanceRequestTags(clusterId, clusterName)
         .map(asAwsTag)
       tagResources(spotInstanceRequestIds, spotInstanceRequestTags).map(_ => Seq.empty)
     }
@@ -591,7 +592,7 @@ private[aws] object AwsClusterService {
   // private[aws] for testing
   private[aws] def createUserData(
       clusterId: ClusterId,
-      owner: String,
+      clusterName: String,
       clusterRole: SparkClusterRole,
       provisioning: InstanceProvisioning,
       dockerImage: DockerImage,
@@ -629,7 +630,7 @@ private[aws] object AwsClusterService {
       } else {
         ""
       }
-      s"Flint Spark $provisioningSubstring${clusterRole.name} : $owner"
+      s"Flint Spark $provisioningSubstring${clusterRole.name} : $clusterName"
     }
 
     def replaceContainerTagMacros(text: String): String =
@@ -650,8 +651,8 @@ private[aws] object AwsClusterService {
         .replaceMacro("DOCKER_IMAGE_KEY", FlintTags.DockerImage)
         .replaceMacro("DOCKER_IMAGE_VALUE", dockerImage.canonicalName)
         .replaceMacro("NAME_TAG_VALUE", instanceName)
-        .replaceMacro("OWNER_TAG_KEY", FlintTags.Owner)
-        .replaceMacro("OWNER_TAG_VALUE", owner)
+        .replaceMacro("CLUSTER_NAME_TAG_KEY", FlintTags.ClusterName)
+        .replaceMacro("CLUSTER_NAME_TAG_VALUE", clusterName)
         .replaceMacro("SPARK_ROLE_TAG_KEY", FlintTags.SparkRole)
         .replaceMacro("SPARK_ROLE_TAG_VALUE", clusterRole.name)
 
@@ -677,7 +678,7 @@ private[aws] object AwsClusterService {
 
   private def createWorkerUserData(
       clusterId: ClusterId,
-      owner: String,
+      clusterName: String,
       provisioning: InstanceProvisioning,
       masterIpAddress: InetAddress,
       workerSpecs: InstanceSpecs,
@@ -689,7 +690,7 @@ private[aws] object AwsClusterService {
     val baseUserData =
       createUserData(
         clusterId,
-        owner,
+        clusterName,
         SparkClusterRole.Worker,
         provisioning,
         dockerImage,

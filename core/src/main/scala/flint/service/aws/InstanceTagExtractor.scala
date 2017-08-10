@@ -11,8 +11,8 @@ import scala.concurrent.duration.FiniteDuration
 import com.amazonaws.services.ec2.model.{ Instance => AwsInstance, Tag }
 
 private[aws] object InstanceTagExtractor {
-  def spotInstanceRequestTags(clusterId: ClusterId, owner: String): Seq[(String, String)] =
-    commonResourceRequestTags(clusterId, owner, SparkClusterRole.Worker)
+  def spotInstanceRequestTags(clusterId: ClusterId, clusterName: String): Seq[(String, String)] =
+    commonResourceRequestTags(clusterId, clusterName, SparkClusterRole.Worker)
 
   def asAwsTag(tagInfo: (String, String)): Tag = new Tag(tagInfo._1, tagInfo._2)
 
@@ -47,7 +47,8 @@ private[aws] object InstanceTagExtractor {
   def getDockerImage(instance: AwsInstance): Option[FDockerImage] =
     getTag(instance, FlintTags.DockerImage).map(FDockerImage(_))
 
-  def getOwner(instance: AwsInstance): Option[String] = getTag(instance, FlintTags.Owner)
+  def getClusterName(instance: AwsInstance): Option[String] =
+    getTag(instance, FlintTags.ClusterName)
 
   def getClusterTTL(instance: AwsInstance): Option[FiniteDuration] =
     getTag(instance, FlintTags.ClusterTTL)

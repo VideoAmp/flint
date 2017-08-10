@@ -33,8 +33,8 @@ private[aws] class AwsManagedCluster(
         cluster.master,
         None,
         cluster.id,
+        cluster.name,
         cluster.dockerImage.now,
-        cluster.owner,
         count,
         workerInstanceType,
         placementGroup,
@@ -120,7 +120,7 @@ private[aws] object AwsManagedCluster {
       clusterService: AwsClusterService)(implicit ctx: Ctx.Owner): Option[AwsManagedCluster] =
     InstanceTagExtractor.findMaster(clusterId, instances).flatMap { masterAwsInstance =>
       InstanceTagExtractor.getClusterDockerImage(masterAwsInstance).flatMap { clusterDockerImage =>
-        InstanceTagExtractor.getOwner(masterAwsInstance).flatMap { owner =>
+        InstanceTagExtractor.getClusterName(masterAwsInstance).flatMap { clusterName =>
           InstanceTagExtractor.getWorkerInstanceType(masterAwsInstance).map { workerInstanceType =>
             val placementGroup = InstanceTagExtractor.getPlacementGroup(masterAwsInstance)
             val ttl            = InstanceTagExtractor.getClusterTTL(masterAwsInstance)
@@ -138,8 +138,8 @@ private[aws] object AwsManagedCluster {
             val cluster =
               Cluster(
                 clusterId,
+                clusterName,
                 clusterDockerImage,
-                owner,
                 ttl,
                 idleTimeout,
                 master,
