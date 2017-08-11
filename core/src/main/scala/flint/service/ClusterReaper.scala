@@ -1,7 +1,7 @@
 package flint
 package service
 
-import ContainerState._
+import ClusterTerminationReason._, ContainerState._
 
 import java.io.IOException
 import java.net.URL

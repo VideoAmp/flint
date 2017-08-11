@@ -11,10 +11,10 @@ private[flint] object ClusterTerminationReason {
     case IdleTimeout.name     => IdleTimeout
     case TTLExpired.name      => TTLExpired
   }
+
+  case object ClientRequested extends ClusterTerminationReason
+
+  case object IdleTimeout extends ClusterTerminationReason
+
+  case object TTLExpired extends ClusterTerminationReason
 }
-
-case object ClientRequested extends ClusterTerminationReason
-
-case object IdleTimeout extends ClusterTerminationReason
-
-case object TTLExpired extends ClusterTerminationReason

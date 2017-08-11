@@ -2,7 +2,8 @@ package flint
 package server
 package messaging
 
-import service.{ ClientRequested, ClusterService, ManagedCluster }
+import service.{ ClusterService, ClusterTerminationReason, ManagedCluster },
+ClusterTerminationReason.ClientRequested
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }

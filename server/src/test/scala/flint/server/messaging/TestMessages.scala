@@ -4,7 +4,8 @@ package messaging
 
 import ContainerState._
 import flint.InstanceState._
-import service.{ ClientRequested, ClusterSpec, ExtraTags }
+import service.{ ClusterSpec, ClusterTerminationReason, ExtraTags },
+ClusterTerminationReason.ClientRequested
 
 import scala.concurrent.duration._
 import scala.util.Random
