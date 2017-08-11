@@ -1,5 +1,7 @@
 package flint
 
+import Information._
+
 case class InstanceSpecs(
     instanceType: String,
     cores: Int,

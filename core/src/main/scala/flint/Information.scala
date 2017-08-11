@@ -73,58 +73,58 @@ object Information {
 
       def compare(x: Information, y: Information) = x.bytes.compare(y.bytes)
     }
-}
 
-final case class Bytes(override val bytes: BigInt) extends Information {
-  override def toString() = bytes + "b"
-}
+  final case class Bytes(override val bytes: BigInt) extends Information {
+    override def toString() = bytes + "b"
+  }
 
-final case class KiB(kibibytes: BigInt) extends Information {
-  override def bytes = kibibytes * 1024L
+  final case class KiB(kibibytes: BigInt) extends Information {
+    override def bytes = kibibytes * 1024L
 
-  override def toString() = kibibytes + "k"
-}
+    override def toString() = kibibytes + "k"
+  }
 
-final case class MiB(mebibytes: BigInt) extends Information {
-  override def bytes = mebibytes * 1024L * 1024L
+  final case class MiB(mebibytes: BigInt) extends Information {
+    override def bytes = mebibytes * 1024L * 1024L
 
-  def KiB: KiB = new KiB(mebibytes * 1024L)
+    def KiB: KiB = new KiB(mebibytes * 1024L)
 
-  override def toString() = mebibytes + "m"
-}
+    override def toString() = mebibytes + "m"
+  }
 
-final case class GiB(gibibytes: BigInt) extends Information {
-  override def bytes = gibibytes * 1024L * 1024L * 1024L
+  final case class GiB(gibibytes: BigInt) extends Information {
+    override def bytes = gibibytes * 1024L * 1024L * 1024L
 
-  def KiB: KiB = new KiB(gibibytes * 1024L * 1024L)
+    def KiB: KiB = new KiB(gibibytes * 1024L * 1024L)
 
-  def MiB: MiB = new MiB(gibibytes * 1024L)
+    def MiB: MiB = new MiB(gibibytes * 1024L)
 
-  override def toString() = gibibytes + "g"
-}
+    override def toString() = gibibytes + "g"
+  }
 
-final case class TiB(tebibytes: BigInt) extends Information {
-  override def bytes = tebibytes * 1024L * 1024L * 1024L * 1024L
+  final case class TiB(tebibytes: BigInt) extends Information {
+    override def bytes = tebibytes * 1024L * 1024L * 1024L * 1024L
 
-  def KiB: KiB = new KiB(tebibytes * 1024L * 1024L * 1024L)
+    def KiB: KiB = new KiB(tebibytes * 1024L * 1024L * 1024L)
 
-  def MiB: MiB = new MiB(tebibytes * 1024L * 1024L)
+    def MiB: MiB = new MiB(tebibytes * 1024L * 1024L)
 
-  def GiB: GiB = new GiB(tebibytes * 1024L)
+    def GiB: GiB = new GiB(tebibytes * 1024L)
 
-  override def toString() = tebibytes + "t"
-}
+    override def toString() = tebibytes + "t"
+  }
 
-final case class PiB(pebibytes: BigInt) extends Information {
-  override def bytes = pebibytes * 1024L * 1024L * 1024L * 1024L * 1024L
+  final case class PiB(pebibytes: BigInt) extends Information {
+    override def bytes = pebibytes * 1024L * 1024L * 1024L * 1024L * 1024L
 
-  def KiB: KiB = new KiB(pebibytes * 1024L * 1024L * 1024L * 1024L)
+    def KiB: KiB = new KiB(pebibytes * 1024L * 1024L * 1024L * 1024L)
 
-  def MiB: MiB = new MiB(pebibytes * 1024L * 1024L * 1024L)
+    def MiB: MiB = new MiB(pebibytes * 1024L * 1024L * 1024L)
 
-  def GiB: GiB = new GiB(pebibytes * 1024L * 1024L)
+    def GiB: GiB = new GiB(pebibytes * 1024L * 1024L)
 
-  def TiB: TiB = new TiB(pebibytes * 1024L)
+    def TiB: TiB = new TiB(pebibytes * 1024L)
 
-  override def toString() = pebibytes + "p"
+    override def toString() = pebibytes + "p"
+  }
 }

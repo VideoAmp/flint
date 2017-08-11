@@ -2,6 +2,8 @@ package flint
 package service
 package aws
 
+import Information._
+
 import com.typesafe.config.ConfigFactory
 
 import org.scalatest.FlatSpec

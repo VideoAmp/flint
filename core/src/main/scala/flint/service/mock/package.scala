@@ -1,6 +1,8 @@
 package flint
 package service
 
+import Information._
+
 import java.util.concurrent.{ Executors, ScheduledExecutorService }
 
 package object mock {
