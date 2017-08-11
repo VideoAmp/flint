@@ -12,6 +12,10 @@ Flint is built with [sbt](http://www.scala-sbt.org/). We recommend using the sbt
 
 In addition to `compile` and `test`, the most important sbt tasks for development are `scalafmt` and `scalastyle`. The former runs the [scalafmt](http://scalafmt.org/) code formatter, and the latter runs the [scalastyle](http://scalastyle.org/) style checker. Scalastyle is automatically run as part of compilation, and compilation will fail if scalastyle finds any errors.
 
+### Publishing the Core Library to Maven Central
+
+### Publishing the Core API Documentation
+
 ### Editors and IDEs
 
 Flint is an editor-agnostic codebase. Please do not commit any tool-specific files.
