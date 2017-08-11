@@ -97,20 +97,20 @@ package object messaging {
     override def write(value: InetAddress): JValue = JString(value.getHostAddress)
   }
 
-  private[messaging] implicit val jsonSpace: JSON[Space] = new JSON[Space] {
-    override def read(jval: JValue): JValidation[Space] = jval match {
+  private[messaging] implicit val jsonInformation: JSON[Information] = new JSON[Information] {
+    override def read(jval: JValue): JValidation[Information] = jval match {
       case JInt(bytes)  => parseBytes(bytes)
       case JLong(bytes) => parseBytes(bytes)
       case jval         => fail("Integer expected. Got " + jval.getClass.getSimpleName)
     }
 
-    override def write(value: Space): JValue = JInt(value.bytes)
+    override def write(value: Information): JValue = JInt(value.bytes)
 
     private def parseBytes(bytes: BigInt) =
       try {
-        Success(Space.fromBytes(bytes))
+        Success(Information.fromBytes(bytes))
       } catch {
-        case ex: Exception => fail("Failed to parse space: " + ex.getMessage)
+        case ex: Exception => fail("Failed to parse information: " + ex.getMessage)
       }
 
   }

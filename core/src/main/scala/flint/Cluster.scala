@@ -23,8 +23,8 @@ case class Cluster(
     Rx { workers().filterNot(_.state() == Terminated) }
 
   val cores: Rx[Int]              = Rx { runningWorkers().map(_.specs.cores).sum }
-  val memory: Rx[Space]           = Rx { runningWorkers().map(_.specs.memory).sum }
-  val storage: Rx[Space]          = Rx { runningWorkers().map(_.specs.storage.totalStorage).sum }
+  val memory: Rx[Information]     = Rx { runningWorkers().map(_.specs.memory).sum }
+  val storage: Rx[Information]    = Rx { runningWorkers().map(_.specs.storage.totalStorage).sum }
   val hourlyPrice: Rx[BigDecimal] = Rx { unterminatedWorkers().map(_.specs.hourlyPrice).sum }
 
   override def equals(other: Any): Boolean = other match {

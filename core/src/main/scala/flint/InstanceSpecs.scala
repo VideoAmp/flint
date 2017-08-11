@@ -3,17 +3,21 @@ package flint
 case class InstanceSpecs(
     instanceType: String,
     cores: Int,
-    memory: Space,
+    memory: Information,
     storage: InstanceStorageSpec,
     hourlyPrice: BigDecimal,
     isSpotEligible: Boolean)
 
-case class InstanceStorageSpec(devices: Int, storagePerDevice: Space) {
-  def totalStorage: Space = storagePerDevice * devices
+case class InstanceStorageSpec(devices: Int, storagePerDevice: Information) {
+  def totalStorage: Information = storagePerDevice * devices
 }
 
 object InstanceSpecs {
-  def apply(instanceType: String, cores: Int, memory: Space, hourlyPrice: String): InstanceSpecs =
+  def apply(
+      instanceType: String,
+      cores: Int,
+      memory: Information,
+      hourlyPrice: String): InstanceSpecs =
     InstanceSpecs(
       instanceType,
       cores,
@@ -25,7 +29,7 @@ object InstanceSpecs {
   def apply(
       instanceType: String,
       cores: Int,
-      memory: Space,
+      memory: Information,
       hourlyPrice: String,
       isSpotEligible: Boolean): InstanceSpecs =
     InstanceSpecs(
@@ -39,7 +43,7 @@ object InstanceSpecs {
   def apply(
       instanceType: String,
       cores: Int,
-      memory: Space,
+      memory: Information,
       storage: InstanceStorageSpec,
       hourlyPrice: String): InstanceSpecs =
     InstanceSpecs(instanceType, cores, memory, storage, BigDecimal(hourlyPrice), true)
