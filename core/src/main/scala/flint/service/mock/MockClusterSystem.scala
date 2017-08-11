@@ -2,6 +2,8 @@ package flint
 package service
 package mock
 
+import InstanceState._
+
 import java.net.InetAddress
 import java.time.Instant
 import java.util.UUID

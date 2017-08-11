@@ -2,6 +2,7 @@ package flint
 package server
 package messaging
 
+import flint.InstanceState._
 import service.{ ClientRequested, ClusterSpec, ExtraTags }
 
 import scala.concurrent.duration._

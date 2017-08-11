@@ -2,6 +2,8 @@ package flint
 package service
 package mock
 
+import InstanceState._
+
 import java.util.concurrent.TimeUnit
 
 import rx._

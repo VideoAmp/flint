@@ -1,5 +1,7 @@
 package flint
 
+import InstanceState._
+
 import java.net.InetAddress
 import java.time.Instant
 

@@ -2,6 +2,8 @@ package flint
 package service
 package aws
 
+import InstanceState._
+
 import java.time.{ Instant, ZonedDateTime }
 import java.time.format.DateTimeFormatter
 

@@ -1,5 +1,7 @@
 package flint
 
+import InstanceState._
+
 sealed trait ContainerState {
   protected val name = toString
 

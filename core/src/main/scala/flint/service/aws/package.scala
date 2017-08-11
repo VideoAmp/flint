@@ -1,6 +1,8 @@
 package flint
 package service
 
+import InstanceState._
+
 import java.util.concurrent.Executors
 import java.util.concurrent.ExecutorService
 

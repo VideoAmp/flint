@@ -1,6 +1,8 @@
 package flint
 package service
 
+import InstanceState._
+
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try

@@ -1,5 +1,7 @@
 package flint
 
+import InstanceState._
+
 import java.time.Instant
 
 import scala.concurrent.duration.FiniteDuration

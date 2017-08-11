@@ -12,14 +12,14 @@ object InstanceState {
     case Terminated.name  => Terminated
     case Terminating.name => Terminating
   }
+
+  case object Pending extends InstanceState
+
+  case object Running extends InstanceState
+
+  case object Starting extends InstanceState
+
+  case object Terminated extends InstanceState
+
+  case object Terminating extends InstanceState
 }
-
-case object Pending extends InstanceState
-
-case object Running extends InstanceState
-
-case object Starting extends InstanceState
-
-case object Terminated extends InstanceState
-
-case object Terminating extends InstanceState
