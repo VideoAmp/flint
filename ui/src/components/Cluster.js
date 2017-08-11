@@ -108,6 +108,14 @@ export default class Cluster extends React.Component {
         const imageChangeForbidden =
             cluster.imageChangeInProgress || master.containerState !== "ContainerRunning";
 
+        // Hide the trash button if the cluster is already on its way out to avoid requesting the
+        // termination of a cluster that's already terminating
+        const clusterTerminationButtonDisplay =
+            master.state === "Terminating" ||
+            master.state === "Terminated" ||
+            master.containerState === "ContainerStopping" ||
+            master.containerState === "ContainerStopped" ? "none" : "inline-block";
+
         return (
             <div>
                 <Card>
@@ -122,11 +130,7 @@ export default class Cluster extends React.Component {
                         }
                         <div style={{ float: "right", marginTop: "-11px" }} onTouchTap={e => e.stopPropagation()}>
                             <IconButton
-                                style={{ display:
-                                    master.state === "Terminating" ||
-                                    master.state === "Terminated" ||
-                                    master.containerState === "ContainerStopping" ||
-                                    master.containerState === "ContainerStopped" ? "none" : "inline-block" }}
+                                style={{ display: clusterTerminationButtonDisplay }}
                                 onClick={this.handleClusterTerminateDialogOpen}>
                                 <Trash />
                             </IconButton>
@@ -163,7 +167,7 @@ export default class Cluster extends React.Component {
                           </SelectField>
                         </div>
                     </CardText>
-                    <CardText style={{ fontSize: "14px", paddingTop: "0px" }} expandable={ true }>
+                    <CardText style={{ fontSize: "14px", paddingTop: "0px" }} expandable>
                         <div>Launched <ReactTimeAgo locale="en-US">{
                             new Date(launchedAt) }</ReactTimeAgo>
                         </div>
