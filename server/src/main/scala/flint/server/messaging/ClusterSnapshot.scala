@@ -4,6 +4,8 @@ package messaging
 
 import flint.service.ManagedCluster
 
+import java.time.Instant
+
 import scala.concurrent.duration.FiniteDuration
 
 private[messaging] case class ClusterSnapshot(
@@ -15,7 +17,10 @@ private[messaging] case class ClusterSnapshot(
     master: InstanceSnapshot,
     workers: List[InstanceSnapshot],
     workerInstanceType: String,
-    workerBidPrice: Option[BigDecimal])
+    subnet: Subnet,
+    placementGroup: Option[String],
+    workerBidPrice: Option[BigDecimal],
+    launchedAt: Instant)
 
 private[messaging] object ClusterSnapshot {
   def apply(managedCluster: ManagedCluster): ClusterSnapshot = {
@@ -30,7 +35,10 @@ private[messaging] object ClusterSnapshot {
       InstanceSnapshot(master),
       workers.now.toList.map(InstanceSnapshot(_)),
       managedCluster.workerInstanceType,
-      managedCluster.workerBidPrice
+      managedCluster.subnet,
+      managedCluster.placementGroup,
+      managedCluster.workerBidPrice,
+      launchedAt
     )
   }
 }

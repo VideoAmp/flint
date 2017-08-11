@@ -21,6 +21,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   override val subnets = Subnet("subnet_1", "az_1") :: Subnet("subnet_2", "az_2") :: Subnet(
     "subnet_3",
     "az_3") :: Nil
+  private val subnetsMap = subnets.map(subnet => subnet.id -> subnet).toMap
 
   override def getSpotPrices(subnet: Subnet, instanceTypes: String*): Future[Seq[SpotPrice]] = ???
 
@@ -40,6 +41,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
         clusterSystem,
         workers,
         workerInstanceType,
+        subnetsMap(spec.subnetId),
         spec.placementGroup,
         ExtraTags(),
         None

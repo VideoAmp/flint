@@ -83,6 +83,8 @@ object MessageSchemaGenerator {
         createMessageSchema[InstanceDockerImage],
         createMessageSchema[InstanceIpAddress],
         createMessageSchema[InstanceState],
+        createMessageSchema[InstanceSubnet],
+        createMessageSchema[InstanceTerminatedAt],
         createMessageSchema[WorkerAdditionAttempt],
         createMessageSchema[WorkerTerminationAttempt],
         createMessageSchema[WorkersAdded],

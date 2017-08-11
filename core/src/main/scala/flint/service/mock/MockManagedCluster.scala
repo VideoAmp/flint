@@ -2,6 +2,7 @@ package flint
 package service
 package mock
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.Future
@@ -14,6 +15,7 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
     clusterSystem: MockClusterSystem,
     workers: Var[Seq[Instance]],
     override val workerInstanceType: String,
+    override val subnet: Subnet,
     override val placementGroup: Option[String],
     override val extraInstanceTags: ExtraTags,
     override val workerBidPrice: Option[BigDecimal])(implicit protected val ctx: Ctx.Owner)
@@ -49,6 +51,11 @@ private[mock] case class MockManagedCluster(cluster: Cluster)(
           override def run() = {
             logger.debug(s"Setting instance ${instance.id} ip address to None")
             instance.ipAddress.asVar() = None
+            logger.debug(s"Setting instance ${instance.id} subnet to None")
+            instance.subnet.asVar() = None
+            val terminatedAt = Instant.now
+            logger.debug(s"Setting instance ${instance.id} termination time to $terminatedAt")
+            instance.terminatedAt.asVar() = Some(terminatedAt)
           }
         }
         simulationExecutorService.schedule(stripIpAddress, 3, TimeUnit.SECONDS)

@@ -65,6 +65,9 @@ private[aws] object InstanceTagExtractor {
   def getWorkerInstanceType(instance: AwsInstance): Option[String] =
     getTag(instance, FlintTags.WorkerInstanceType)
 
+  def getSubnetId(instance: AwsInstance): Option[String] =
+    getTag(instance, FlintTags.SubnetId)
+
   def getPlacementGroup(instance: AwsInstance): Option[String] =
     getTag(instance, FlintTags.PlacementGroup)
 

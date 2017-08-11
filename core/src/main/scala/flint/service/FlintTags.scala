@@ -16,7 +16,8 @@ private[service] class FlintTags(extraTags: ExtraTags) {
 
     val commonTags = Map(
       ClusterDockerImage -> dockerImage.canonicalName,
-      WorkerInstanceType -> workerInstanceType)
+      WorkerInstanceType -> workerInstanceType,
+      SubnetId           -> subnetId)
 
     val placementGroupTags = placementGroup
       .map(placementGroup => Map(PlacementGroup -> placementGroup))
@@ -60,6 +61,7 @@ private[service] object FlintTags {
   val DockerImage        = "flint:docker_image"
   val PlacementGroup     = "flint:placement_group"
   val SparkRole          = "flint:spark_cluster_role"
+  val SubnetId           = "flint:subnet_id"
   val WorkerInstanceType = "flint:worker_instance_type"
   val WorkerBidPrice     = "flint:worker_bid_price"
 

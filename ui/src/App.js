@@ -165,6 +165,10 @@ export default class App extends React.Component {
             this.handleInstanceUpdateMessage(message, { containerState: message.containerState });
         } else if (R.propEq("$type", "InstanceIpAddress", message)) {
             this.handleInstanceUpdateMessage(message, { ipAddress: message.ipAddress });
+        } else if (R.propEq("$type", "InstanceSubnet", message)) {
+            this.handleInstanceUpdateMessage(message, { subnet: message.subnet });
+        } else if (R.propEq("$type", "InstanceTerminatedAt", message)) {
+            this.handleInstanceUpdateMessage(message, { terminatedAt: message.terminatedAt });
         } else if (R.propEq("$type", "DockerImageChangeRequest", message)) {
             const { clusterId } = message;
 
