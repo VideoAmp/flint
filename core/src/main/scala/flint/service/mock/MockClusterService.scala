@@ -9,9 +9,10 @@ import scala.concurrent.Future
 import rx._
 
 class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
-  override val managementService = MockManagementService
+  override val managementService: ManagementService = MockManagementService
 
-  override val clusterSystem = new MockClusterSystem()
+  private val mockClusterSystem             = new MockClusterSystem()
+  override val clusterSystem: ClusterSystem = mockClusterSystem
 
   override val instanceSpecs = mock.instanceSpecs
 
@@ -28,17 +29,20 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
   override def launchCluster(spec: ClusterSpec): Future[ManagedCluster] = {
     import spec._
     val master =
-      clusterSystem.runInstance(Some(spec.dockerImage), masterInstanceType, spec.placementGroup)
+      mockClusterSystem.runInstance(
+        Some(spec.dockerImage),
+        masterInstanceType,
+        spec.placementGroup)
     val workers = Var(
       (0 until numWorkers)
         .map(_ =>
-          clusterSystem
+          mockClusterSystem
             .runInstance(Some(spec.dockerImage), workerInstanceType, spec.placementGroup))
         .toSeq)
     val cluster =
       MockManagedCluster(
         Cluster(id, name, Var(dockerImage), ttl, idleTimeout, master, workers, Instant.now))(
-        clusterSystem,
+        mockClusterSystem,
         workers,
         workerInstanceType,
         subnetsMap(spec.subnetId),
@@ -48,7 +52,7 @@ class MockClusterService(implicit ctx: Ctx.Owner) extends ClusterService {
       )
 
     clusterSystem.newClusters.asVar() = Seq(cluster)
-    clusterSystem.clusters() = clusterSystem.clusters.now.updated(id, cluster)
+    mockClusterSystem.clusters() = mockClusterSystem.clusters.now.updated(id, cluster)
     Future.successful(cluster)
   }
 

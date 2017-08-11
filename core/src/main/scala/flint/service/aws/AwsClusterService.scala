@@ -59,8 +59,9 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
 
   private lazy val ec2Client = createEc2Client(awsConfig)
 
-  override val clusterSystem =
+  private val awsClusterSystem =
     new AwsClusterSystem(this, awsConfig.get[Config]("clusters_refresh").value)
+  override val clusterSystem: ClusterSystem = awsClusterSystem
 
   private val clusterReaper = new ClusterReaper(clusterSystem.runningClusters)
   updateExecutorService.scheduleWithFixedDelay(clusterReaper, 0, 1, TimeUnit.MINUTES)
@@ -163,7 +164,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
             extraConfigTags.extend(spec.extraInstanceTags),
             workerBidPrice
           )
-        clusterSystem.addCluster(managedCluster)
+        awsClusterSystem.addCluster(managedCluster)
         managedCluster
     }
 
@@ -445,7 +446,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
               tagResources(
                 instanceIds.toStream,
                 Seq(new Tag(FlintTags.ContainerState, ContainerStopped.toString))).foreach { _ =>
-                clusterSystem.updateInstanceState(
+                awsClusterSystem.updateInstanceState(
                   terminatingInstance.getInstanceId,
                   terminatingInstance.getCurrentState)
               }
