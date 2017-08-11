@@ -12,7 +12,7 @@ private[aws] object TerminationTime extends LazyLogging {
   private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
 
   def unapply(awsInstance: AwsInstance): Option[Instant] =
-    if (instanceState2LifecycleState(awsInstance.getState) == Terminated) {
+    if (awsInstanceState2FlintInstanceState(awsInstance.getState) == Terminated) {
       Some(extractInstantFromStateTransitionReason(awsInstance))
     } else {
       None

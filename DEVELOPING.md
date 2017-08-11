@@ -44,4 +44,4 @@ The server project also includes a program, `TestMessages`, which prints example
 
 #### Mock Cluster Service
 
-Flint provides a mock cluster service for development: `flint.server.mock.MockClusterService`. You can run a Flint server with the mock cluster service by setting the `flint.server.cluster_service` configuration option to `mock`. The mock cluster simulates a cluster environment, responding to client requests and simulating instance and cluster lifecycles.
+Flint provides a mock cluster service for development: `flint.server.mock.MockClusterService`. You can run a Flint server with the mock cluster service by setting the `flint.server.cluster_service` configuration option to `mock`. The mock cluster simulates a cluster environment, responding to client requests and simulating instance and cluster states.

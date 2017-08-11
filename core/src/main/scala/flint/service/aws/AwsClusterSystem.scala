@@ -109,7 +109,7 @@ private[aws] class AwsClusterSystem private[aws] (
     }
   }
 
-  private[aws] def updateInstanceState(instanceId: String, newState: LifecycleState): Unit =
+  private[aws] def updateInstanceState(instanceId: String, newState: InstanceState): Unit =
     clusters.now.values
       .flatMap(_.cluster.instances.now)
       .find(_.id == instanceId)

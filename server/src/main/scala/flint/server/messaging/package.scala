@@ -132,8 +132,8 @@ package object messaging {
       override def write(value: T): JValue = JString(value.toString)
     }
 
-  private[messaging] implicit val lifecycleStateJson =
-    createCaseObjectJson[LifecycleState]("Lifecycle state", LifecycleState.apply)
+  private[messaging] implicit val instanceStateJson =
+    createCaseObjectJson[flint.InstanceState]("Instance state", flint.InstanceState.apply)
 
   private[messaging] implicit val containerStateJson =
     createCaseObjectJson[ContainerState]("Container state", ContainerState.apply)

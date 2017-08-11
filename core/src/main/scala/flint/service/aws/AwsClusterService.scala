@@ -352,8 +352,8 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
     val instanceId = awsInstance.getInstanceId
     val ipAddress =
       Option(awsInstance.getPrivateIpAddress).map(InetAddress.getByName)
-    val subnet                         = Option(awsInstance.getSubnetId).map(subnetsMap.apply)
-    val lifecycleState: LifecycleState = awsInstance.getState
+    val subnet                       = Option(awsInstance.getSubnetId).map(subnetsMap.apply)
+    val instanceState: InstanceState = awsInstance.getState
     val containerState =
       InstanceTagExtractor.getContainerState(awsInstance).getOrElse(ContainerPending)
     val instanceSpecs =
@@ -370,7 +370,7 @@ class AwsClusterService(flintConfig: Config)(implicit ctx: Ctx.Owner)
       subnet,
       placementGroup,
       dockerImage,
-      lifecycleState,
+      instanceState,
       containerState,
       instanceSpecs,
       launchedAt,

@@ -34,7 +34,7 @@ trait MessageTypeMappings extends DefaultTypeMappings {
               "ContainerStarting",
               "ContainerStopped",
               "ContainerStopping")),
-      "flint.LifecycleState" ->
+      "flint.InstanceState" ->
         Json.obj(
           "type" -> "string",
           "enum" ->

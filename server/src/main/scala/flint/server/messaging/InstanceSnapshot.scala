@@ -10,7 +10,7 @@ private[messaging] case class InstanceSnapshot(
     subnet: Option[Subnet],
     placementGroup: Option[String],
     dockerImage: Option[DockerImage],
-    state: LifecycleState,
+    state: flint.InstanceState,
     containerState: ContainerState,
     instanceType: String,
     launchedAt: Instant,

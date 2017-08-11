@@ -4,8 +4,11 @@ package service
 import java.util.concurrent.Executors
 import java.util.concurrent.ExecutorService
 
-import com.amazonaws.services.ec2.model.{ InstanceState, InstanceStateName, InstanceType },
-InstanceType._
+import com.amazonaws.services.ec2.model.{
+  InstanceState => AwsInstanceState,
+  InstanceStateName => AwsInstanceStateName,
+  InstanceType
+}, InstanceType._
 
 package object aws {
   private[aws] val instanceSpecs = Seq(
@@ -27,17 +30,17 @@ package object aws {
   private[aws] val instanceSpecsMap =
     instanceSpecs.map(specs => specs.instanceType -> specs).toMap
 
-  private[aws] implicit def instanceState2LifecycleState(
-      instanceState: InstanceState): LifecycleState = {
-    val instanceStateName = InstanceStateName.fromValue(instanceState.getName)
+  private[aws] implicit def awsInstanceState2FlintInstanceState(
+      instanceState: AwsInstanceState): InstanceState = {
+    val instanceStateName = AwsInstanceStateName.fromValue(instanceState.getName)
 
     instanceStateName match {
-      case InstanceStateName.Pending      => Starting
-      case InstanceStateName.Running      => Running
-      case InstanceStateName.ShuttingDown => Terminating
-      case InstanceStateName.Terminated   => Terminated
-      case InstanceStateName.Stopping     => Terminating
-      case InstanceStateName.Stopped =>
+      case AwsInstanceStateName.Pending      => Starting
+      case AwsInstanceStateName.Running      => Running
+      case AwsInstanceStateName.ShuttingDown => Terminating
+      case AwsInstanceStateName.Terminated   => Terminated
+      case AwsInstanceStateName.Stopping     => Terminating
+      case AwsInstanceStateName.Stopped =>
         sys.error(s"Unexpected instance state: $instanceStateName")
     }
   }

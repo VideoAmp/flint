@@ -7,12 +7,12 @@ import java.util.concurrent.TimeUnit
 import rx._
 
 private[mock] case class InstanceStateSimulator(
-    lifecycleState: Var[LifecycleState],
+    instanceState: Var[InstanceState],
     containerState: Var[ContainerState]) {
   private val runnable = new Runnable {
     override def run() = {
-      val (nextLifecycleState, nextContainerState) =
-        (lifecycleState.now, containerState.now) match {
+      val (nextInstanceState, nextContainerState) =
+        (instanceState.now, containerState.now) match {
           case (_, ContainerStopping)       => (Running, ContainerStopped)
           case (Running, ContainerStopped)  => (Terminating, ContainerStopped)
           case (Pending, _)                 => (Starting, ContainerPending)
@@ -23,7 +23,7 @@ private[mock] case class InstanceStateSimulator(
           case state                        => state
         }
 
-      lifecycleState() = nextLifecycleState
+      instanceState() = nextInstanceState
       containerState() = nextContainerState
     }
   }

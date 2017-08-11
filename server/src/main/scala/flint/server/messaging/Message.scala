@@ -91,7 +91,7 @@ private[messaging] final case class InstanceState(
     serverId: String,
     messageNo: Int,
     instanceId: String,
-    state: LifecycleState)
+    state: flint.InstanceState)
     extends ServerMessage
 
 private[messaging] final case class InstanceSubnet(

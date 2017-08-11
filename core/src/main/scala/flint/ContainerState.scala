@@ -3,7 +3,7 @@ package flint
 sealed trait ContainerState {
   protected val name = toString
 
-  def constrainedBy(lifecycleState: LifecycleState): ContainerState
+  def constrainedBy(instanceState: InstanceState): ContainerState
 }
 
 object ContainerState {
@@ -17,8 +17,8 @@ object ContainerState {
 }
 
 case object ContainerPending extends ContainerState {
-  override def constrainedBy(lifecycleState: LifecycleState): ContainerState =
-    lifecycleState match {
+  override def constrainedBy(instanceState: InstanceState): ContainerState =
+    instanceState match {
       case Terminating => ContainerStopping
       case Terminated  => ContainerStopped
       case _           => this
@@ -26,8 +26,8 @@ case object ContainerPending extends ContainerState {
 }
 
 case object ContainerRunning extends ContainerState {
-  override def constrainedBy(lifecycleState: LifecycleState): ContainerState =
-    lifecycleState match {
+  override def constrainedBy(instanceState: InstanceState): ContainerState =
+    instanceState match {
       case Pending     => ContainerPending
       case Starting    => ContainerStarting
       case Terminating => ContainerStopping
@@ -37,8 +37,8 @@ case object ContainerRunning extends ContainerState {
 }
 
 case object ContainerStarting extends ContainerState {
-  override def constrainedBy(lifecycleState: LifecycleState): ContainerState =
-    lifecycleState match {
+  override def constrainedBy(instanceState: InstanceState): ContainerState =
+    instanceState match {
       case Pending     => ContainerPending
       case Terminating => ContainerStopping
       case Terminated  => ContainerStopped
@@ -47,15 +47,15 @@ case object ContainerStarting extends ContainerState {
 }
 
 case object ContainerStopped extends ContainerState {
-  override def constrainedBy(lifecycleState: LifecycleState): ContainerState =
-    lifecycleState match {
+  override def constrainedBy(instanceState: InstanceState): ContainerState =
+    instanceState match {
       case _ => this
     }
 }
 
 case object ContainerStopping extends ContainerState {
-  override def constrainedBy(lifecycleState: LifecycleState): ContainerState =
-    lifecycleState match {
+  override def constrainedBy(instanceState: InstanceState): ContainerState =
+    instanceState match {
       case Pending    => ContainerStopped
       case Terminated => ContainerStopped
       case _          => this

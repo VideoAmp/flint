@@ -25,14 +25,14 @@ private[mock] class MockClusterSystem()(implicit protected val ctx: Ctx.Owner)
       dockerImage: Option[DockerImage],
       instanceType: String,
       placementGroup: Option[String]): Instance = {
-    val id             = UUID.randomUUID.toString
-    val lifecycleState = Var[LifecycleState](Pending)
-    lifecycleState.collectFirst {
+    val id            = UUID.randomUUID.toString
+    val instanceState = Var[InstanceState](Pending)
+    instanceState.collectFirst {
       case Terminated =>
         instanceStateSimulatorMap.remove(id).foreach(_.cancel)
     }
     val containerState = Var[ContainerState](ContainerPending)
-    val stateSimulator = new InstanceStateSimulator(lifecycleState, containerState)
+    val stateSimulator = new InstanceStateSimulator(instanceState, containerState)
     instanceStateSimulatorMap(id) = stateSimulator
     val specs        = instanceSpecsMap(instanceType)
     val launchedAt   = Instant.now
@@ -44,7 +44,7 @@ private[mock] class MockClusterSystem()(implicit protected val ctx: Ctx.Owner)
       Var(Some(Subnet("subnet_1", "az_1"))),
       placementGroup,
       Var(dockerImage),
-      lifecycleState,
+      instanceState,
       containerState,
       specs,
       launchedAt,
