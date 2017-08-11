@@ -2,6 +2,7 @@ package flint
 package service
 package aws
 
+import ContainerState._
 import flint.service.aws.InstanceTagExtractor.asAwsTag
 
 import java.net.InetAddress

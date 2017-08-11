@@ -2,6 +2,7 @@ package flint
 package server
 package messaging
 
+import ContainerState._
 import flint.InstanceState._
 import service.{ ClientRequested, ClusterSpec, ExtraTags }
 

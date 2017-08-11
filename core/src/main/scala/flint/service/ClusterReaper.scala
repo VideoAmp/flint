@@ -1,6 +1,8 @@
 package flint
 package service
 
+import ContainerState._
+
 import java.io.IOException
 import java.net.URL
 import java.time.Instant

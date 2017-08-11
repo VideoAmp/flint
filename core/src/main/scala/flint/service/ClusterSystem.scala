@@ -1,6 +1,8 @@
 package flint
 package service
 
+import ContainerState._
+
 import rx._
 
 trait ClusterSystem {
