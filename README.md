@@ -4,33 +4,6 @@ Flint is a Scala library, server and Web UI for managing on-demand Spark cluster
 
 [![Build Status](https://semaphoreci.com/api/v1/projects/807efe73-a850-4be3-8064-dd83248bd7c2/1348779/shields_badge.svg)](https://semaphoreci.com/videoamp/flint)
 
-### Docker Image Build and Deployment
-
-While the server can be built and deployed independently of the Web UI, we will focus on deploying the entire app. For this purpose you will need
-
-1. a trusted server to deploy to, with ports 80 and 8080 free,
-1. [sbt](https://github.com/paulp/sbt-extras),
-1. [Docker](https://www.docker.com), and
-1. push access to your Docker image repo.
-
-For the sake of these instructions, we will assume that the hostname of the server to which you plan to deploy Flint is `flint.foo.internal`. Flint does not support authentication or SSL connections out of the box, so it must be deployed to a trusted server. Build and push the Flint app Docker image by running
-```sh
-sbt 'set FlintKeys.flintServerHost := Some("flint.foo.internal:8080")' dockerBuildAndPush
-```
-
-You will need to configure the Flint server before starting it. Copy the configuration template files from the [conf/](conf/) directory to a directory on your deployment server. For the sake of this example, we will assume that directory is `/root/flint-conf`. Rename each file by removing the `-template` string from its name and fill in the configuration settings. All of these files use the [HOCON](https://github.com/typesafehub/config/blob/master/HOCON.md) configuration syntax except for `log4j2.xml`. See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring logging.
-
-On the deployment server do a `docker pull videoamp/flint-app:<version>` to download the Flint app image. Then start Flint with
-```sh
-docker run -d --name flint-app -v /root/flint-conf:/conf -p 8080:8080 -p 80:80 videoamp/flint-app:<version>
-```
-
-Browsing to `http://flint.foo.internal/` should bring up the Flint UI. If anything goes wrong, check the server logs with
-```sh
-docker logs flint-app
-```
-and check your browser's JavaScript console.
-
 ### Scala Library
 
 Add
@@ -39,9 +12,25 @@ Add
 libraryDependencies += "com.videoamp" %% "flint" % version
 ```
 
-to your project's `build.sbt`. See the REPL example below for a Flint code snippet.
+to your project's `build.sbt`. See the REPL example below for a Flint code snippet. The [Scaladoc](https://videoamp.github.io/flint/latest/api/flint/) for the latest build is also hosted online.
 
 You will need to configure Flint for your Docker and AWS environment. Flint uses [Typesafe Config](https://github.com/typesafehub/config). Take a look at the configuration template files in [conf/](conf/) for guidance.
+
+### Application
+
+To deploy the Flint server and UI, you will need a trusted server to deploy to, with ports 80 and 8080 free, and a complete Flint configuration. Copy the configuration template files from the [conf/](conf/) directory to a directory on your deployment server. For the sake of this example, we will assume that directory is `/root/flint-conf`. Rename each file by removing the `-template` string from its name and fill in the configuration settings. All of these files use the [HOCON](https://github.com/typesafehub/config/blob/master/HOCON.md) configuration syntax except for `log4j2.xml`. See http://logging.apache.org/log4j/2.x/manual/configuration.html for more information on configuring logging.
+
+On the deployment server, run `docker pull videoamp/flint-app:<version>`, where `<version>` is the version of Flint you want to deploy. Then start Flint with
+```sh
+docker run -d --name flint-app -v /root/flint-conf:/conf -p 8080:8080 -p 80:80 videoamp/flint-app:<version> <server_dns_name>:8080
+```
+The `<server_dns_name>` is the DNS hostname of the server. It's usually the FQDN of the deployment server.
+
+Browsing to port `http://<flint_app_dns_name>/` should bring up the Flint UI. If anything goes wrong, check the server logs with
+```sh
+docker logs flint-app
+```
+and check your browser's JavaScript console.
 
 ### REPL
 
@@ -99,4 +88,4 @@ cs.launchCluster(spec).foreach { managedCluster =>
 
 ### Contributing
 
-If you'd like to contribute to the Flint codebase, please read about the contribution process in [CONTRIBUTING.md](CONTRIBUTING.md). Then consult [DEVELOPING.md](DEVELOPING.md) for tips for hacking on the codebase.
+If you'd like to contribute to the Flint codebase, please read about the contribution process in [CONTRIBUTING.md](CONTRIBUTING.md). Then consult [DEVELOPING.md](DEVELOPING.md) for build instructions and guidance.
