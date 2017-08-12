@@ -300,7 +300,15 @@ export default class App extends React.Component {
         let appPaneContents = [];
 
         if (this.state.endpointsFetchFailed) {
-            appPaneContents = [<p key="unknown-endpoints">{ "Oh noes! Couldn't find server endpoints!" }</p>];
+            const imgStyle = { display: "block", margin: "0 auto" };
+            const errorDiv =
+                <div key="unknown-endpoints">
+                    <p>
+                        <img style={imgStyle} role="presentation" src="error-fire.svg" />
+                    </p>
+                    <p style={{ textAlign: "center" }}>There was a problem finding the service endpoints.</p>
+                </div>;
+            appPaneContents = [errorDiv];
         } else if (this.state.socket) {
             const clusterContainer =
                 <div key="cluster-container" className="cluster-container">
@@ -340,11 +348,12 @@ export default class App extends React.Component {
                 </FloatingActionButton>;
             appPaneContents = [clusterContainer, clusterDialog, newClusterButton];
         }
+        const flintLogoIcon = <img role="presentation" src="flint-logo.svg" style={{ height: "36px" }} />;
         return (
             <div>
                 <MuiThemeProvider muiTheme={muiTheme}>
                     <div>
-                        <AppBar title="Flint" showMenuIconButton={false}/>
+                        <AppBar title="Flint" iconElementLeft={flintLogoIcon} />
                         { appPaneContents }
                     </div>
                 </MuiThemeProvider>
