@@ -25,45 +25,46 @@ const leftAvatarStyles = { margin: 12.5 };
 export default class Instance extends React.Component {
     state = {
         copied: false,
-    }
+    };
 
     terminateWorker = (socket, { id }) => {
         const payload = JSON.stringify({ "instanceId": id, "$type": "TerminateWorker" });
         socket.send(payload);
-    }
+    };
 
     getInstanceStatusElement = (instanceState, containerState) => {
         const avatar = backgroundColor =>
-            <Avatar
+            (<Avatar
                 backgroundColor={backgroundColor}
                 size={15}
-                style={leftAvatarStyles} />;
+                style={leftAvatarStyles}
+            />);
 
         if (instanceState === "Terminated") {
             return avatar(red300);
         }
 
         if (instanceState !== "Running" || !R.has(containerState, containerStateColorMap)) {
-            return <CircularProgress size={15} style={leftAvatarStyles}/>;
+            return <CircularProgress size={15} style={leftAvatarStyles} />;
         }
 
         const backgroundColor = containerStateColorMap[containerState];
 
         return avatar(backgroundColor);
-    }
+    };
 
     onRightIconButtonClick = () => this.terminateWorker(this.props.socket, this.props.data);
 
     onSnackbarRequestClose = () => this.setState({ copied: false });
 
-    onIPAddressCopy = () => this.setState({ copied: true })
+    onIPAddressCopy = () => this.setState({ copied: true });
 
     getRightIconButton = (data, master) => {
         const { state, containerState } = data;
         if (!master && state !== "Terminating" && state !== "Terminated" &&
                 containerState !== "ContainerStopping" && containerState !== "ContainerStopped") {
             return (
-                <IconButton onClick={this.onRightIconButtonClick} touch={true}>
+                <IconButton onClick={this.onRightIconButtonClick} touch>
                     <Trash />
                 </IconButton>
             );
@@ -76,14 +77,15 @@ export default class Instance extends React.Component {
                 <IconButton
                     href={`http://${ipAddress}:8080`}
                     target="_blank"
-                    touch={true}>
+                    touch
+                >
                     <Link />
                 </IconButton>
             );
         }
 
         return null;
-    }
+    };
 
     render() {
         const { data, master, isSpotCluster } = this.props;
@@ -94,13 +96,15 @@ export default class Instance extends React.Component {
                 <ListItem
                     leftAvatar={this.getInstanceStatusElement(state, containerState)}
                     rightIconButton={this.getRightIconButton(data, master)}
-                    disabled={true}>
+                    disabled
+                >
                     <div>
                         {instanceType}
                         &nbsp;
                         <CopyToClipboard
                             text={R.defaultTo("", ipAddress)}
-                            onCopy={this.onIPAddressCopy}>
+                            onCopy={this.onIPAddressCopy}
+                        >
                             <span style={{ cursor: "pointer" }}>{ipAddress}</span>
                         </CopyToClipboard>
                         &nbsp;

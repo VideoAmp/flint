@@ -32,15 +32,16 @@ const getInstanceMapper = (socket, master, isSpotCluster) =>
                 data={instance}
                 master={master}
                 socket={socket}
-                isSpotCluster={isSpotCluster}/>
+                isSpotCluster={isSpotCluster}
+            />
             <Divider />
         </div>
     );
 
 const getActiveWorkerCount = workers =>
-  workers.filter(
-    worker => worker.containerState === "ContainerRunning"
-  ).length;
+    workers.filter(
+        worker => worker.containerState === "ContainerRunning",
+    ).length;
 
 export default class Cluster extends React.Component {
     state = {
@@ -89,7 +90,7 @@ export default class Cluster extends React.Component {
         const { imageChangeLocked } = this.state;
         const { socket, instanceSpecs, data: cluster, dockerImages } = this.props;
         const { name: clusterName, dockerImage, master, workers = [], workerInstanceType,
-          workerBidPrice, ttl, idleTimeout, subnet, placementGroup, launchedAt } = cluster;
+            workerBidPrice, ttl, idleTimeout, subnet, placementGroup, launchedAt } = cluster;
         const { id: subnetId, availabilityZone } = subnet;
         const isSpotCluster = !R.isNil(workerBidPrice);
         // TODO: return short-form image tag
@@ -121,61 +122,70 @@ export default class Cluster extends React.Component {
                 <Card>
                     <CardHeader
                         title={clusterTitle}
-                        actAsExpander={true}
+                        actAsExpander
                         titleStyle={{ "fontSize": "24px" }}
                         textStyle={{ paddingRight: "0px" }}
-                        style={{ paddingBottom: "0px", paddingRight: "0px", whiteSpace: "normal" }}>
+                        style={{ paddingBottom: "0px", paddingRight: "0px", whiteSpace: "normal" }}
+                    >
                         { // Stop propagation of onTouchTap events to prevent clicks on the buttons
-                          // in the card header from expanding the card text
+                            // in the card header from expanding the card text
                         }
                         <div style={{ float: "right", marginTop: "-11px" }} onTouchTap={e => e.stopPropagation()}>
                             <IconButton
                                 style={{ display: clusterTerminationButtonDisplay }}
-                                onClick={this.handleClusterTerminateDialogOpen}>
+                                onClick={this.handleClusterTerminateDialogOpen}
+                            >
                                 <Trash />
                             </IconButton>
                             <IconButton
                                 style={{ marginRight: "4px" }}
                                 disabled={master.containerState !== "ContainerRunning"}
-                                onClick={this.handleClusterInstanceDialogOpen}>
+                                onClick={this.handleClusterInstanceDialogOpen}
+                            >
                                 <Add />
                             </IconButton>
                         </div>
                     </CardHeader>
                     <CardText style={{ padding: "0px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center" }}>
-                          <IconButton
-                              iconStyle={{ width: "20px", height: "20px" }}
-                              style={{ width: "20px", height: "20px", padding: "0px" }}
-                              onClick={this.handleImageChangeLockChange}
-                              disabled={imageChangeForbidden}>
-                              { getImageLockIcon() }
-                          </IconButton>
-                          <SelectField
-                              style={{ width: "auth", paddingLeft: "10px" }}
-                              autoWidth={true}
-                              underlineDisabledStyle={{ display: "none" }}
-                              labelStyle={{ fontSize: "14px" }}
-                              disabled={imageChangeLocked || imageChangeForbidden}
-                              value={dockerImage.tag}
-                              onChange={this.handleImageChange}>
-                              {
-                                  dockerImages.map((image, key) =>
-                                      <MenuItem key={key} value={image.tag} primaryText={image.tag} />
-                                  )
-                              }
-                          </SelectField>
+                            <IconButton
+                                iconStyle={{ width: "20px", height: "20px" }}
+                                style={{ width: "20px", height: "20px", padding: "0px" }}
+                                onClick={this.handleImageChangeLockChange}
+                                disabled={imageChangeForbidden}
+                            >
+                                { getImageLockIcon() }
+                            </IconButton>
+                            <SelectField
+                                style={{ width: "auth", paddingLeft: "10px" }}
+                                autoWidth
+                                underlineDisabledStyle={{ display: "none" }}
+                                labelStyle={{ fontSize: "14px" }}
+                                disabled={imageChangeLocked || imageChangeForbidden}
+                                value={dockerImage.tag}
+                                onChange={this.handleImageChange}
+                            >
+                                {
+                                    dockerImages.map((image, key) =>
+                                        <MenuItem key={key} value={image.tag} primaryText={image.tag} />,
+                                    )
+                                }
+                            </SelectField>
                         </div>
                     </CardText>
                     <CardText style={{ fontSize: "14px", paddingTop: "0px" }} expandable>
                         <div>Launched <ReactTimeAgo locale="en-US">{
-                            new Date(launchedAt) }</ReactTimeAgo>
+                            new Date(launchedAt) }
+                        </ReactTimeAgo>
                         </div>
                         <div>{ ttl ? <div>Expires <ReactTimeAgo locale="en-US">{
-                            new Date(moment(launchedAt).add(moment.duration(ttl))) }</ReactTimeAgo></div> : "" }
+                            new Date(moment(launchedAt).add(moment.duration(ttl))) }
+                        </ReactTimeAgo>
+                        </div> : "" }
                         </div>
                         <div>{ idleTimeout ? <div>Idle timeout is {
-                            moment.duration(idleTimeout).asMinutes() }m</div> : "" }
+                            moment.duration(idleTimeout).asMinutes() }m
+                        </div> : "" }
                         </div>
                         <div>Launched in { subnetId } in { availabilityZone }</div>
                         <div>{ placementGroup ? <div>Placement group is { placementGroup }</div> : "" }</div>
@@ -203,12 +213,14 @@ export default class Cluster extends React.Component {
                     openState={this.state.clusterInstanceDialogOpen}
                     close={this.handleClusterInstanceDialogClose}
                     socket={socket}
-                    cluster={cluster}/>
+                    cluster={cluster}
+                />
                 <ClusterTerminateDialog
                     openState={this.state.clusterTerminateDialogOpen}
                     close={this.handleClusterTerminateDialogClose}
                     socket={socket}
-                    cluster={cluster}/>
+                    cluster={cluster}
+                />
             </div>
         );
     }

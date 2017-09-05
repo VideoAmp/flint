@@ -9,7 +9,7 @@ export default class ClusterInstanceDialog extends React.Component {
         const payload = JSON.stringify({ clusterId, "$type": "TerminateCluster" });
         this.props.socket.send(payload);
         this.props.close();
-    }
+    };
 
     render() {
         const { close, openState } = this.props;
@@ -21,7 +21,7 @@ export default class ClusterInstanceDialog extends React.Component {
             />,
             <FlatButton
                 label="Kill"
-                primary={true}
+                primary
                 onClick={this.terminateCluster}
             />,
         ];
@@ -31,7 +31,8 @@ export default class ClusterInstanceDialog extends React.Component {
                 actions={instanceDialogActions}
                 modal={false}
                 open={openState}
-                onRequestClose={close}>
+                onRequestClose={close}
+            >
                 <p> Are you sure you want to kill this cluster? </p>
             </Dialog>
         );

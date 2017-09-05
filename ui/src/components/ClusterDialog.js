@@ -58,17 +58,17 @@ export default class ClusterDialog extends React.Component {
         const getHourlyPrice = R.compose(
             parseFloat,
             R.prop("hourlyPrice"),
-            R.find(R.propEq("instanceType", workerInstanceType))
+            R.find(R.propEq("instanceType", workerInstanceType)),
         );
         return getHourlyPrice(this.props.instanceSpecs);
-    }
+    };
 
     getSpotPrice = (subnetId, instanceType) => {
         this.setState({ spotPrice: "(fetching)" });
         fetch(`${this.props.serverUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
             .then(response => response.json())
             .then(([{ price: spotPrice = 0.0 }]) => this.setState({ spotPrice }));
-    }
+    };
 
     launchCluster = () => {
         const {
@@ -114,7 +114,7 @@ export default class ClusterDialog extends React.Component {
         const launchMessage = { "bidPrice": workerBidPrice, clusterSpec, "$type": messageType };
         this.props.socket.send(JSON.stringify(launchMessage));
         this.props.close(clusterName);
-    }
+    };
 
     componentWillReceiveProps(nextProps) {
         const propsToState = (props) => {
@@ -178,36 +178,36 @@ export default class ClusterDialog extends React.Component {
     };
 
     handleFieldChange = stateName =>
-        (event, index, value) => this.setState(R.objOf(stateName, value))
+        (event, index, value) => this.setState(R.objOf(stateName, value));
 
     handleWorkerInstanceTypeChange = (event, index, workerInstanceType) => {
         const { isSpotCluster, subnetId } = this.state;
         this.setState({ workerInstanceType });
         this.refreshSpotPrice(isSpotCluster, workerInstanceType, subnetId);
-    }
+    };
 
     handleSubnetIdChange = (event, index, subnetId) => {
         const { workerInstanceType, isSpotCluster } = this.state;
         this.setState({ subnetId });
         this.refreshSpotPrice(isSpotCluster, workerInstanceType, subnetId);
-    }
+    };
 
     handleSpotClusterCheckboxChange = (event, isSpotCluster) => {
         const { workerInstanceType, subnetId } = this.state;
         this.setState({ isSpotCluster });
         this.refreshSpotPrice(isSpotCluster, workerInstanceType, subnetId);
-    }
+    };
 
     refreshSpotPrice = (isInputChecked, workerInstanceType, subnetId) => {
         if (isInputChecked && workerInstanceType !== "" && subnetId !== "") {
             this.getSpotPrice(subnetId, workerInstanceType);
         }
-    }
+    };
 
     handleClusterNameChange = (clusterName) => {
         const clusterNameErrorText = clusterName ? "" : "Please enter a cluster name";
         this.setState({ clusterNameErrorText, clusterName });
-    }
+    };
 
     render() {
         const { instanceSpecs, clusterNameDataSource = [], subnets, openState, close, dockerImages } = this.props;
@@ -220,7 +220,7 @@ export default class ClusterDialog extends React.Component {
             />,
             <FlatButton
                 label="Launch"
-                primary={true}
+                primary
                 onClick={this.launchCluster}
             />,
         ];
@@ -255,14 +255,15 @@ export default class ClusterDialog extends React.Component {
                         <Cell>
                             <SelectField
                                 labelStyle={tagFloatingTextLabelStyle}
-                                autoWidth={true}
-                                fullWidth={true}
+                                autoWidth
+                                fullWidth
                                 value={this.state.dockerImage}
                                 onChange={this.handleFieldChange("dockerImage")}
-                                floatingLabelText="Build">
+                                floatingLabelText="Build"
+                            >
                                 {
                                     dockerImages.map((image, key) =>
-                                        <MenuItem key={key} value={image} primaryText={image.tag} />
+                                        <MenuItem key={key} value={image} primaryText={image.tag} />,
                                     )
                                 }
                             </SelectField>
@@ -302,7 +303,8 @@ export default class ClusterDialog extends React.Component {
                                 value={this.state.masterInstanceType}
                                 onChange={this.handleFieldChange("masterInstanceType")}
                                 floatingLabelText="Master Type"
-                                fullWidth={true}>
+                                fullWidth
+                            >
                                 {instanceSpecs.map(generateInstanceSpecMenuItem)}
                             </SelectField>
                         </Cell>
@@ -311,7 +313,8 @@ export default class ClusterDialog extends React.Component {
                                 value={this.state.workerInstanceType}
                                 onChange={this.handleWorkerInstanceTypeChange}
                                 floatingLabelText="Worker Type"
-                                fullWidth={true}>
+                                fullWidth
+                            >
                                 {workerSpecs.map(generateInstanceSpecMenuItem)}
                             </SelectField>
                         </Cell>
@@ -352,7 +355,8 @@ export default class ClusterDialog extends React.Component {
                                 value={this.state.subnetId}
                                 onChange={this.handleSubnetIdChange}
                                 floatingLabelText="Subnet"
-                                fullWidth={true}>
+                                fullWidth
+                            >
                                 {subnets.map(generateSubnetMenuItem)}
                             </SelectField>
                         </Cell>
@@ -361,7 +365,8 @@ export default class ClusterDialog extends React.Component {
                                 value={this.state.placementGroup}
                                 onChange={this.handleFieldChange("placementGroup")}
                                 floatingLabelText="Placement Group"
-                                fullWidth={true}>
+                                fullWidth
+                            >
                                 {this.props.placementGroups.map(generatePlacementGroupMenuItem)}
                             </SelectField>
                         </Cell>

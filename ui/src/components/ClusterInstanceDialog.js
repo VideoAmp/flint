@@ -23,7 +23,7 @@ export default class ClusterInstanceDialog extends React.Component {
         this.setState({ errorText });
     };
 
-    onInstanceCountValid = count => this.setState({ count })
+    onInstanceCountValid = count => this.setState({ count });
 
     render() {
         const { close, openState } = this.props;
@@ -35,7 +35,7 @@ export default class ClusterInstanceDialog extends React.Component {
             />,
             <FlatButton
                 label="Launch"
-                primary={true}
+                primary
                 onClick={this.launchWorkers}
             />,
         ];
@@ -46,7 +46,8 @@ export default class ClusterInstanceDialog extends React.Component {
                 actions={instanceDialogActions}
                 modal={false}
                 open={openState}
-                onRequestClose={close}>
+                onRequestClose={close}
+            >
                 <NumberInput
                     id="instance-amount-input"
                     floatingLabelText="Instance Count"
