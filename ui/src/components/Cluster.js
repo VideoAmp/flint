@@ -1,4 +1,7 @@
+/* eslint-disable react/no-multi-comp */
+// TODO: Make methods part of class
 import React from "react";
+import PropTypes from "prop-types";
 import ReactTimeAgo from "react-time-ago";
 import R from "ramda";
 import moment from "moment";
@@ -20,6 +23,8 @@ import ClusterTotals from "./ClusterTotals";
 import ClusterInstanceDialog from "./ClusterInstanceDialog";
 import ClusterTerminateDialog from "./ClusterTerminateDialog";
 import Instance from "./Instance";
+import dockerImageType from "../types/dockerImage";
+import subnetType from "../types/subnet";
 
 javascriptTimeAgo.locale(require("javascript-time-ago/locales/en"));
 require("javascript-time-ago/intl-messageformat-global");
@@ -44,6 +49,37 @@ const getActiveWorkerCount = workers =>
     ).length;
 
 export default class Cluster extends React.Component {
+    static propTypes = {
+        data: PropTypes.shape({
+            dockerImage: dockerImageType,
+            id: PropTypes.string.isRequired,
+            idleTimeout: PropTypes.string.isRequired,
+            launchedAt: PropTypes.string.isRequired,
+            master: PropTypes.shape(), // TODO: Improve validation here
+            name: PropTypes.string.isRequired,
+            subnet: subnetType,
+            ttl: PropTypes.string.isRequired,
+            workerInstanceType: PropTypes.string.isRequired,
+            workers: PropTypes.arrayOf(PropTypes.object), // TODO: Improve validation here
+        }),
+        dockerImages: PropTypes.arrayOf(dockerImageType),
+        handleClusterUpdate: PropTypes.func.isRequired,
+        instanceSpecs: PropTypes.arrayOf(
+            PropTypes.shape({
+                cores: PropTypes.number.isRequired,
+                hourlyPrice: PropTypes.number.isRequired,
+                instanceType: PropTypes.string.isRequired,
+                isSpotEligible: PropTypes.bool.isRequired,
+                memory: PropTypes.number.isRequired,
+                storage: PropTypes.shape({
+                    devices: PropTypes.number.isRequired,
+                    storagePerDevice: PropTypes.number.isRequired,
+                }),
+            }),
+        ),
+        socket: PropTypes.shape().isRequired,
+    };
+
     state = {
         clusterInstanceDialogOpen: false,
         clusterTerminateDialogOpen: false,
@@ -166,26 +202,34 @@ export default class Cluster extends React.Component {
                                 onChange={this.handleImageChange}
                             >
                                 {
-                                    dockerImages.map((image, key) =>
-                                        <MenuItem key={key} value={image.tag} primaryText={image.tag} />,
+                                    dockerImages.map(image =>
+                                        <MenuItem key={image.tag} value={image.tag} primaryText={image.tag} />,
                                     )
                                 }
                             </SelectField>
                         </div>
                     </CardText>
                     <CardText style={{ fontSize: "14px", paddingTop: "0px" }} expandable>
-                        <div>Launched <ReactTimeAgo locale="en-US">{
-                            new Date(launchedAt) }
-                        </ReactTimeAgo>
+                        <div>
+                            Launched {" "}
+                            <ReactTimeAgo locale="en-US">
+                                {new Date(launchedAt)}
+                            </ReactTimeAgo>
                         </div>
-                        <div>{ ttl ? <div>Expires <ReactTimeAgo locale="en-US">{
-                            new Date(moment(launchedAt).add(moment.duration(ttl))) }
-                        </ReactTimeAgo>
-                        </div> : "" }
+                        <div>{ ttl ? (
+                            <div>
+                                Expires {" "}
+                                <ReactTimeAgo locale="en-US">
+                                    {new Date(moment(launchedAt).add(moment.duration(ttl)))}
+                                </ReactTimeAgo>
+                            </div>
+                        ) : "" }
                         </div>
-                        <div>{ idleTimeout ? <div>Idle timeout is {
-                            moment.duration(idleTimeout).asMinutes() }m
-                        </div> : "" }
+                        <div>{ idleTimeout ? (
+                            <div>
+                                Idle timeout is {moment.duration(idleTimeout).asMinutes()}m
+                            </div>
+                        ) : "" }
                         </div>
                         <div>Launched in { subnetId } in { availabilityZone }</div>
                         <div>{ placementGroup ? <div>Placement group is { placementGroup }</div> : "" }</div>

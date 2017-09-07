@@ -1,4 +1,8 @@
+/* eslint-disable react/no-multi-comp */
+// TODO: Make methods part of class
+
 import React from "react";
+import PropTypes from "prop-types";
 import R from "ramda";
 import moment from "moment";
 import uuid from "uuid/v4";
@@ -16,6 +20,8 @@ import AutoComplete from "material-ui/AutoComplete";
 import NumberInput from "material-ui-number-input";
 
 import ClusterTotals from "./ClusterTotals";
+import dockerImageType from "../types/dockerImage";
+import subnetType from "../types/subnet";
 
 const tagFloatingTextLabelStyle = {
     textOverflow: "ellipsis",
@@ -23,6 +29,8 @@ const tagFloatingTextLabelStyle = {
     overflow: "hidden",
 };
 
+// TODO: Move methods into class
+/* eslint-disable react/prop-types */
 const generateInstanceSpecMenuItem =
     ({ instanceType, hourlyPrice }, key) =>
         <MenuItem key={key} value={instanceType} primaryText={`${instanceType} ($${hourlyPrice}/hr)`} />;
@@ -32,8 +40,22 @@ const generatePlacementGroupMenuItem =
 
 const generateSubnetMenuItem =
     ({ id, availabilityZone }, key) => <MenuItem key={key} value={id} primaryText={`${id} (${availabilityZone})`} />;
+/* eslint-enable react/prop-types */
 
 export default class ClusterDialog extends React.Component {
+    static propTypes = {
+        close: PropTypes.func.isRequired,
+        clusterNameDataSource: PropTypes.arrayOf(PropTypes.string).isRequired,
+        defaultClusterName: PropTypes.string.isRequired,
+        dockerImages: PropTypes.arrayOf(dockerImageType),
+        instanceSpecs: PropTypes.arrayOf(PropTypes.object), // TODO: Improve validation
+        openState: PropTypes.bool.isRequired,
+        placementGroups: PropTypes.arrayOf(PropTypes.string).isRequired,
+        serverUrl: PropTypes.string.isRequired,
+        socket: PropTypes.shape().isRequired,
+        subnets: PropTypes.arrayOf(subnetType).isRequired,
+    };
+
     state = {
         clusterName: this.props.defaultClusterName,
         dockerImage: null,
@@ -52,68 +74,6 @@ export default class ClusterDialog extends React.Component {
         idleTimeout: 60,
         placementGroup: null,
         workerBidPriceRatioString: "",
-    };
-
-    getHourlyPrice = (workerInstanceType) => {
-        const getHourlyPrice = R.compose(
-            parseFloat,
-            R.prop("hourlyPrice"),
-            R.find(R.propEq("instanceType", workerInstanceType)),
-        );
-        return getHourlyPrice(this.props.instanceSpecs);
-    };
-
-    getSpotPrice = (subnetId, instanceType) => {
-        this.setState({ spotPrice: "(fetching)" });
-        fetch(`${this.props.serverUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
-            .then(response => response.json())
-            .then(([{ price: spotPrice = 0.0 }]) => this.setState({ spotPrice }));
-    };
-
-    launchCluster = () => {
-        const {
-            clusterName,
-            lifetimeHours,
-            idleTimeout,
-            masterInstanceType,
-            workerInstanceType,
-            numWorkers,
-            subnetId,
-            placementGroup,
-            dockerImage,
-            isSpotCluster,
-            workerBidPriceRatioErrorText,
-            workerBidPriceRatioString,
-        } = this.state;
-
-        if (!clusterName) {
-            this.setState({ clusterNameErrorText: "Please enter a cluster name" });
-            return;
-        }
-
-        if (isSpotCluster && workerBidPriceRatioErrorText !== "") {
-            return;
-        }
-
-        const messageType = isSpotCluster ? "LaunchSpotCluster" : "LaunchCluster";
-        const clusterSpec = {
-            id: uuid(),
-            name: clusterName,
-            dockerImage,
-            ttl: lifetimeHours ? moment.duration(lifetimeHours, "hours").toString() : null,
-            idleTimeout: idleTimeout ? moment.duration(idleTimeout, "minutes").toString() : null,
-            masterInstanceType,
-            workerInstanceType,
-            numWorkers,
-            subnetId,
-            placementGroup,
-        };
-
-        const workerHourlyPrice = this.getHourlyPrice(workerInstanceType);
-        const workerBidPrice = parseFloat(workerBidPriceRatioString) * workerHourlyPrice;
-        const launchMessage = { "bidPrice": workerBidPrice, clusterSpec, "$type": messageType };
-        this.props.socket.send(JSON.stringify(launchMessage));
-        this.props.close(clusterName);
     };
 
     componentWillReceiveProps(nextProps) {
@@ -175,6 +135,68 @@ export default class ClusterDialog extends React.Component {
     onWorkerBidPriceError = (error) => {
         const workerBidPriceRatioErrorText = (error === "none") ? "" : "Please enter a valid worker bid price ratio";
         this.setState({ workerBidPriceRatioErrorText });
+    };
+
+    getHourlyPrice = (workerInstanceType) => {
+        const getHourlyPrice = R.compose(
+            parseFloat,
+            R.prop("hourlyPrice"),
+            R.find(R.propEq("instanceType", workerInstanceType)),
+        );
+        return getHourlyPrice(this.props.instanceSpecs);
+    };
+
+    getSpotPrice = (subnetId, instanceType) => {
+        this.setState({ spotPrice: "(fetching)" });
+        return fetch(`${this.props.serverUrl}/spotPrices?subnetId=${subnetId}&instanceTypes=${instanceType}`)
+            .then(response => response.json())
+            .then(([{ price: spotPrice = 0.0 }]) => this.setState({ spotPrice }));
+    };
+
+    launchCluster = () => {
+        const {
+            clusterName,
+            lifetimeHours,
+            idleTimeout,
+            masterInstanceType,
+            workerInstanceType,
+            numWorkers,
+            subnetId,
+            placementGroup,
+            dockerImage,
+            isSpotCluster,
+            workerBidPriceRatioErrorText,
+            workerBidPriceRatioString,
+        } = this.state;
+
+        if (!clusterName) {
+            this.setState({ clusterNameErrorText: "Please enter a cluster name" });
+            return;
+        }
+
+        if (isSpotCluster && workerBidPriceRatioErrorText !== "") {
+            return;
+        }
+
+        const messageType = isSpotCluster ? "LaunchSpotCluster" : "LaunchCluster";
+        const clusterSpec = {
+            id: uuid(),
+            name: clusterName,
+            dockerImage,
+            ttl: lifetimeHours ? moment.duration(lifetimeHours, "hours").toString() : null,
+            idleTimeout: idleTimeout ? moment.duration(idleTimeout, "minutes").toString() : null,
+            masterInstanceType,
+            workerInstanceType,
+            numWorkers,
+            subnetId,
+            placementGroup,
+        };
+
+        const workerHourlyPrice = this.getHourlyPrice(workerInstanceType);
+        const workerBidPrice = parseFloat(workerBidPriceRatioString) * workerHourlyPrice;
+        const launchMessage = { "bidPrice": workerBidPrice, clusterSpec, "$type": messageType };
+        this.props.socket.send(JSON.stringify(launchMessage));
+        this.props.close(clusterName);
     };
 
     handleFieldChange = stateName =>
@@ -262,8 +284,8 @@ export default class ClusterDialog extends React.Component {
                                 floatingLabelText="Build"
                             >
                                 {
-                                    dockerImages.map((image, key) =>
-                                        <MenuItem key={key} value={image} primaryText={image.tag} />,
+                                    dockerImages.map(image =>
+                                        <MenuItem key={image.tag} value={image} primaryText={image.tag} />,
                                     )
                                 }
                             </SelectField>

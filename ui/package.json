@@ -13,6 +13,7 @@
     "material-ui-number-input": "^5.0.19",
     "moment": "^2.18.1",
     "moment-range": "^3.0.3",
+    "prop-types": "^15.5.10",
     "ramda": "^0.24.1",
     "react": "~15.6.1",
     "react-copy-to-clipboard": "^5.0.0",

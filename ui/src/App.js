@@ -1,3 +1,6 @@
+// TODO: Remove console.logs in later PR
+/* eslint-disable no-console */
+
 import React from "react";
 import R from "ramda";
 import ReconnectingWebSocket from "reconnecting-websocket";
@@ -66,9 +69,6 @@ const updateInstanceInCluster = (cluster, instanceId, propToUpdate) => {
 };
 
 export default class App extends React.Component {
-    serverId = null;
-    messageNo = null;
-
     state = {
         clusterDialogOpen: false,
         clusters: {},
@@ -83,6 +83,33 @@ export default class App extends React.Component {
         messagingUrl: "",
         endpointsFetchFailed: false,
     };
+
+    // TODO: Refactor block to use async() or allow requests to go async here
+    /* eslint-disable promise/no-nesting, promise/always-return, promise/catch-or-return */
+    componentDidMount() {
+        fetch("endpoints.json")
+            .then(response => response.json())
+            .then((endpoints) => {
+                const { serverUrl, messagingUrl } = endpoints;
+                const socket = new ReconnectingWebSocket(`${messagingUrl}/messaging`);
+                socket.onopen = () => {
+                    getDockerImages(serverUrl)
+                        .then(sortedImages => this.setState({ dockerImages: sortedImages }))
+                        .then(this.getInstanceSpecs(serverUrl))
+                        .then(this.getPlacementGroups(serverUrl))
+                        .then(this.getSubnets(serverUrl))
+                        .then(this.getClusters(serverUrl));
+                    this.setState({ socket });
+                };
+                socket.onmessage = ({ data }) => {
+                    const message = JSON.parse(data);
+                    this.handleMessage(message);
+                };
+                this.setState({ serverUrl, messagingUrl });
+            })
+            .catch(() => this.setState({ endpointsFetchFailed: true }));
+    }
+    /* eslint-enable promise/no-nesting, promise/always-return, promise/catch-or-return */
 
     getClusters = serverUrl => () => fetch(`${serverUrl}/clusters`)
         .then(response => response.json())
@@ -99,6 +126,9 @@ export default class App extends React.Component {
     getSubnets = serverUrl => () => fetch(`${serverUrl}/subnets`)
         .then(response => response.json())
         .then(subnets => this.setState({ subnets }));
+
+    serverId = null;
+    messageNo = null;
 
     handleClusterUpdate = cluster => (properties) => {
         const { clusters } = this.state;
@@ -134,7 +164,9 @@ export default class App extends React.Component {
             this.initializeMessageSequence(message);
         } else if (!this.validateMessageSequence(message)) {
             console.log("Refreshing clusters");
-            this.getClusters(this.state.serverUrl)().then(this.initializeMessageSequence(message));
+            this.getClusters(this.state.serverUrl)()
+                .then(this.initializeMessageSequence(message))
+                .catch(e => console.log(e));
         }
 
         console.log(message);
@@ -250,30 +282,6 @@ export default class App extends React.Component {
         return true;
     };
 
-    componentDidMount() {
-        fetch("endpoints.json")
-            .then(response => response.json())
-            .then((endpoints) => {
-                const { serverUrl, messagingUrl } = endpoints;
-                const socket = new ReconnectingWebSocket(`${messagingUrl}/messaging`);
-                socket.onopen = () => {
-                    getDockerImages(serverUrl)
-                        .then(sortedImages => this.setState({ dockerImages: sortedImages }))
-                        .then(this.getInstanceSpecs(serverUrl))
-                        .then(this.getPlacementGroups(serverUrl))
-                        .then(this.getSubnets(serverUrl))
-                        .then(this.getClusters(serverUrl));
-                    this.setState({ socket });
-                };
-                socket.onmessage = ({ data }) => {
-                    const message = JSON.parse(data);
-                    this.handleMessage(message);
-                };
-                this.setState({ serverUrl, messagingUrl });
-            })
-            .catch(() => this.setState({ endpointsFetchFailed: true }));
-    }
-
     handleClusterDialogOpen = () => {
         this.setState({ clusterDialogOpen: true });
     };
@@ -301,34 +309,38 @@ export default class App extends React.Component {
 
         if (this.state.endpointsFetchFailed) {
             const imgStyle = { display: "block", margin: "0 auto" };
-            const errorDiv =
-                (<div key="unknown-endpoints">
+            const errorDiv = (
+                <div key="unknown-endpoints">
                     <p>
-                        <img style={imgStyle} role="presentation" src="error-fire.svg" />
+                        <img style={imgStyle} alt="" src="error-fire.svg" />
                     </p>
                     <p style={{ textAlign: "center" }}>There was a problem finding the service endpoints.</p>
-                 </div>);
+                </div>
+            );
             appPaneContents = [errorDiv];
         } else if (this.state.socket) {
-            const clusterContainer =
-                (<div key="cluster-container" className="cluster-container">
+            const clusterContainer = (
+                <div key="cluster-container" className="cluster-container">
                     <Masonry className="clusters">
                         {
-                            mapAndReturnObjectValues(cluster =>
-                                (<div className="cluster" key={cluster.id}>
-                                    <Cluster
-                                        data={cluster}
-                                        handleClusterUpdate={this.handleClusterUpdate(cluster)}
-                                        instanceSpecs={this.state.instanceSpecs}
-                                        dockerImages={this.state.dockerImages}
-                                        socket={this.state.socket}
-                                    />
-                                </div>),
-                            this.state.clusters,
+                            mapAndReturnObjectValues(
+                                cluster => (
+                                    <div className="cluster" key={cluster.id}>
+                                        <Cluster
+                                            data={cluster}
+                                            handleClusterUpdate={this.handleClusterUpdate(cluster)}
+                                            instanceSpecs={this.state.instanceSpecs}
+                                            dockerImages={this.state.dockerImages}
+                                            socket={this.state.socket}
+                                        />
+                                    </div>
+                                ),
+                                this.state.clusters,
                             )
                         }
                     </Masonry>
-                 </div>);
+                </div>
+            );
             const clusterDialog =
                 (<ClusterDialog
                     key="cluster-dialog"
@@ -343,13 +355,14 @@ export default class App extends React.Component {
                     defaultClusterName={this.state.lastClusterName}
                     serverUrl={this.state.serverUrl}
                 />);
-            const newClusterButton =
-                (<FloatingActionButton key="cluster-add" className="fab" onClick={this.handleClusterDialogOpen}>
+            const newClusterButton = (
+                <FloatingActionButton key="cluster-add" className="fab" onClick={this.handleClusterDialogOpen}>
                     <ContentAdd />
-                 </FloatingActionButton>);
+                </FloatingActionButton>
+            );
             appPaneContents = [clusterContainer, clusterDialog, newClusterButton];
         }
-        const flintLogoIcon = <img role="presentation" src="flint-logo.svg" style={{ height: "36px" }} />;
+        const flintLogoIcon = <img alt="" src="flint-logo.svg" style={{ height: "36px" }} />;
         return (
             <div>
                 <MuiThemeProvider muiTheme={muiTheme}>

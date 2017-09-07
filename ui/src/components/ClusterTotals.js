@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import R from "ramda";
 import Moment from "moment";
 import { extendMoment } from "moment-range";
@@ -8,6 +9,21 @@ import { Toolbar, ToolbarGroup } from "material-ui/Toolbar";
 const moment = extendMoment(Moment);
 
 export default class ClusterTotals extends React.Component {
+    static propTypes = {
+        isSpotCluster: PropTypes.bool,
+        instanceSpecs: PropTypes.arrayOf(PropTypes.object).isRequired, // TODO: Improve validation
+        masterInstanceType: PropTypes.string.isRequired,
+        workerInstanceType: PropTypes.string.isRequired,
+        workers: PropTypes.arrayOf(PropTypes.object), // TODO: Improve validation
+        numMasters: PropTypes.number.isRequired,
+        numWorkers: PropTypes.number.isRequired,
+    };
+
+    static defaultProps = {
+        isSpotCluster: false,
+        workers: [],
+    };
+
     state = {
         numberOfCores: 1,
         ramAmount: 1,
@@ -15,6 +31,28 @@ export default class ClusterTotals extends React.Component {
         totalCostPerHour: NaN,
         totalCost: NaN,
     };
+
+    componentDidMount() {
+        this.updateClusterTotals(this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        const { instanceSpecs, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers } = this.props;
+        const masterTerminatedAt = R.pathOr(null, ["master", "terminatedAt"], this.props);
+        const equalsOldProps = R.where({
+            instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
+            master: R.pathEq(["terminatedAt"], masterTerminatedAt),
+            masterInstanceType: R.equals(masterInstanceType),
+            workers: R.eqBy(R.map(worker => worker.terminatedAt), workers),
+            workerInstanceType: R.equals(workerInstanceType),
+            numMasters: R.equals(numMasters),
+            numWorkers: R.equals(numWorkers),
+        });
+
+        if (!equalsOldProps(nextProps)) {
+            this.updateClusterTotals(nextProps);
+        }
+    }
 
     getInstanceInfo = (instanceSpecs, instanceType) =>
         R.find(R.propEq("instanceType", instanceType), instanceSpecs);
@@ -111,28 +149,6 @@ export default class ClusterTotals extends React.Component {
             ),
         });
     };
-
-    componentDidMount() {
-        this.updateClusterTotals(this.props);
-    }
-
-    componentWillReceiveProps(nextProps) {
-        const { instanceSpecs, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers } = this.props;
-        const masterTerminatedAt = R.pathOr(null, ["master", "terminatedAt"], this.props);
-        const equalsOldProps = R.where({
-            instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
-            master: R.pathEq(["terminatedAt"], masterTerminatedAt),
-            masterInstanceType: R.equals(masterInstanceType),
-            workers: R.eqBy(R.map(worker => worker.terminatedAt), workers),
-            workerInstanceType: R.equals(workerInstanceType),
-            numMasters: R.equals(numMasters),
-            numWorkers: R.equals(numWorkers),
-        });
-
-        if (!equalsOldProps(nextProps)) {
-            this.updateClusterTotals(nextProps);
-        }
-    }
 
     render() {
         const { isSpotCluster } = this.props;

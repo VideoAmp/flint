@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 import Dialog from "material-ui/Dialog";
 import FlatButton from "material-ui/FlatButton";
@@ -6,16 +7,15 @@ import FlatButton from "material-ui/FlatButton";
 import NumberInput from "material-ui-number-input";
 
 export default class ClusterInstanceDialog extends React.Component {
-    state = {
-        count: 1,
+    static propTypes = {
+        cluster: PropTypes.shape().isRequired, // TODO improve validation
+        close: PropTypes.func.isRequired,
+        openState: PropTypes.bool.isRequired,
+        socket: PropTypes.shape().isRequired,
     };
 
-    launchWorkers = () => {
-        const { count } = this.state;
-        const clusterId = this.props.cluster.id;
-        const payload = JSON.stringify({ clusterId, count, "$type": "AddWorkers" });
-        this.props.socket.send(payload);
-        this.props.close();
+    state = {
+        count: 1,
     };
 
     onInstanceCountError = (error) => {
@@ -24,6 +24,14 @@ export default class ClusterInstanceDialog extends React.Component {
     };
 
     onInstanceCountValid = count => this.setState({ count });
+
+    launchWorkers = () => {
+        const { count } = this.state;
+        const clusterId = this.props.cluster.id;
+        const payload = JSON.stringify({ clusterId, count, "$type": "AddWorkers" });
+        this.props.socket.send(payload);
+        this.props.close();
+    };
 
     render() {
         const { close, openState } = this.props;

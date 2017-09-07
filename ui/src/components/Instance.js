@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import R from "ramda";
 import CopyToClipboard from "react-copy-to-clipboard";
 
@@ -23,34 +24,19 @@ const containerStateColorMap = {
 const leftAvatarStyles = { margin: 12.5 };
 
 export default class Instance extends React.Component {
+    static propTypes = {
+        data: PropTypes.shape().isRequired, // TODO: Improve validation
+        master: PropTypes.bool.isRequired,
+        isSpotCluster: PropTypes.bool,
+        socket: PropTypes.shape().isRequired,
+    };
+
+    static defaultProps = {
+        isSpotCluster: false,
+    };
+
     state = {
         copied: false,
-    };
-
-    terminateWorker = (socket, { id }) => {
-        const payload = JSON.stringify({ "instanceId": id, "$type": "TerminateWorker" });
-        socket.send(payload);
-    };
-
-    getInstanceStatusElement = (instanceState, containerState) => {
-        const avatar = backgroundColor =>
-            (<Avatar
-                backgroundColor={backgroundColor}
-                size={15}
-                style={leftAvatarStyles}
-            />);
-
-        if (instanceState === "Terminated") {
-            return avatar(red300);
-        }
-
-        if (instanceState !== "Running" || !R.has(containerState, containerStateColorMap)) {
-            return <CircularProgress size={15} style={leftAvatarStyles} />;
-        }
-
-        const backgroundColor = containerStateColorMap[containerState];
-
-        return avatar(backgroundColor);
     };
 
     onRightIconButtonClick = () => this.terminateWorker(this.props.socket, this.props.data);
@@ -85,6 +71,32 @@ export default class Instance extends React.Component {
         }
 
         return null;
+    };
+
+    getInstanceStatusElement = (instanceState, containerState) => {
+        const avatar = backgroundColor =>
+            (<Avatar
+                backgroundColor={backgroundColor}
+                size={15}
+                style={leftAvatarStyles}
+            />);
+
+        if (instanceState === "Terminated") {
+            return avatar(red300);
+        }
+
+        if (instanceState !== "Running" || !R.has(containerState, containerStateColorMap)) {
+            return <CircularProgress size={15} style={leftAvatarStyles} />;
+        }
+
+        const backgroundColor = containerStateColorMap[containerState];
+
+        return avatar(backgroundColor);
+    };
+
+    terminateWorker = (socket, { id }) => {
+        const payload = JSON.stringify({ "instanceId": id, "$type": "TerminateWorker" });
+        socket.send(payload);
     };
 
     render() {
