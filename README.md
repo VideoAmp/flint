@@ -3,13 +3,14 @@
 Flint is a Scala library, server and Web UI for managing on-demand Spark clusters.
 
 [![Build Status](https://semaphoreci.com/api/v1/projects/807efe73-a850-4be3-8064-dd83248bd7c2/1348779/shields_badge.svg)](https://semaphoreci.com/videoamp/flint)
+[![Maven Central](https://img.shields.io/maven-central/v/com.videoamp/flint_2.12.svg)](https://repo1.maven.org/maven2/com/videoamp/flint_2.12/)
 
 ### Scala Library
 
 Add
 
 ```scala
-libraryDependencies += "com.videoamp" %% "flint" % version
+libraryDependencies += "com.videoamp" %% "flint" % "1.2.6"
 ```
 
 to your project's `build.sbt`. See the REPL example below for a Flint code snippet. The [Scaladoc](https://videoamp.github.io/flint/latest/api/flint/) for the latest build is also hosted online.
