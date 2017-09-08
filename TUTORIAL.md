@@ -1,6 +1,6 @@
-# Getting Started with Flint on AWS and Jupyter
+# Deploying Flint for Spark Clusters on AWS
 
-Flint was conceived at VideoAmp as a Web App to simplify the deployment and management of ad-hoc Spark clusters that could seamlessly access our existing production HDFS. VideoAmp had been using Jupyter to access Spark for some time, and we wanted a simple way to connect a Jupyter notebook to a Flint Spark cluster as well. We'll assume similar preconditions and goals in this tutorial for organizations that want to use Flint.
+Flint was conceived at VideoAmp as a Web App to simplify the deployment and management of ad-hoc Spark clusters that could seamlessly access our existing production HDFS. VideoAmp had been using Jupyter to access Spark for some time, and we wanted a simple way to connect a Jupyter notebook to a Flint Spark cluster as well. We'll assume similar preconditions and goals in this tutorial on deploying Flint for Spark clusters on AWS. We'll also describe how to connect to a Flint cluster from a Jupyter Scala notebook.
 
 ## Assumptions for this Tutorial
 
@@ -108,10 +108,8 @@ docker logs flint-app
 
 and check your browser's JavaScript console.
 
-## Using a Flint Cluster in a Jupyter Scala Notebook
+# Using a Flint Cluster in a Jupyter Scala Notebook
 
 VideoAmp has developed tools to make using a Flint cluster in a [Jupyter Scala](https://github.com/jupyter-scala/jupyter-scala) notebook easy and seamless. If you want to access an existing HDFS cluster, your Jupyter host will need to have Hadoop and your site's HDFS configuration files installed. Otherwise, Spark will not be able to find your HDFS filesystem.
 
 We've provided a [starter notebook](notebooks/flint_starter_notebook.ipynb) for accessing a Flint cluster. It includes comments that should make it self-explanatory. Essentially, all you need to connect a notebook to a Flint cluster is that cluster's master IP address. The bootstrapping process handles the rest.
-
-This concludes our tutorial. We hope it has proven helpful in deploying Flint in your organization. We welcome your feedback on Slack.
