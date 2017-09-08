@@ -23,12 +23,31 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused",
     "-Ywarn-unused-import"
   ),
-  scalacOptions in (Compile, console) := Seq("-language:_"),
+  scalacOptions in (Compile, console) := Seq("-language:_")
+)
+
+lazy val publicationSettings = Seq(
   publishTo := Some(
     if (isSnapshot.value)
       Opts.resolver.sonatypeSnapshots
     else
       Opts.resolver.sonatypeStaging
+  ),
+  publishMavenStyle := true,
+  licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  homepage := Some(url("https://github.com/VideoAmp/flint")),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/VideoAmp/flint"),
+      "scm:git@github.com:VideoAmp/flint.git"
+    )
+  ),
+  developers := List(
+    Developer(
+      id = "mallman",
+      name = "Michael Allman",
+      email = "msa@allman.ms",
+      url = url("https://github.com/mallman"))
   )
 )
 
@@ -36,6 +55,7 @@ lazy val disablePublishing = Seq(publishArtifact := false, publish := {}, publis
 
 lazy val root = (project in file("."))
   .aggregate(core, server)
+  .disablePlugins(SbtPgp)
   .settings(commonSettings: _*)
   .settings(disablePublishing: _*)
   .settings(flintServerAPIVersion := APIVersion)
@@ -50,11 +70,13 @@ lazy val scalastyleSbt = file("../sbt/scalastyle.sbt")
 lazy val core =
   project
     .settings(commonSettings: _*)
+    .settings(publicationSettings: _*)
     .disablePlugins(sbtassembly.AssemblyPlugin)
     .addSbtFiles(scalastyleSbt)
 lazy val server =
   project
     .dependsOn(core % "compile;test->test")
+    .disablePlugins(SbtPgp)
     .settings(commonSettings: _*)
     .settings(disablePublishing: _*)
     .settings(flintServerAPIVersion := APIVersion)
