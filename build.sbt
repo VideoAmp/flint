@@ -24,14 +24,12 @@ lazy val commonSettings = Seq(
     "-Ywarn-unused-import"
   ),
   scalacOptions in (Compile, console) := Seq("-language:_"),
-  publishTo := {
-    val vamp = "https://videoamp.jfrog.io/videoamp/"
-
+  publishTo := Some(
     if (isSnapshot.value)
-      Some("snapshots" at vamp + "snapshot")
+      Opts.resolver.sonatypeSnapshots
     else
-      Some("releases" at vamp + "release")
-  }
+      Opts.resolver.sonatypeStaging
+  )
 )
 
 lazy val disablePublishing = Seq(publishArtifact := false, publish := {}, publishLocal := {})
