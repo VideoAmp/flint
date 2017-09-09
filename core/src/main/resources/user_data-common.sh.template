@@ -97,4 +97,7 @@ aws ec2 create-tags --resources \$instance_id \
          Key=%CONTAINER_STATE_TAG_KEY%,Value=%CONTAINER_PENDING_STATE_TAG_VALUE%
 /usr/bin/time docker pull \$image 2> /tmp/docker_pull_time.txt
 
+# install keymaker 
+curl -L https://s3.amazonaws.com/ops.videoamp.com/scripts/install-keymaker.sh | sudo bash
+
 EOF
