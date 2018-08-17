@@ -1,6 +1,6 @@
 name := "flint"
 
-val awsSdkVersion = "1.11.151"
+val awsSdkVersion = "1.11.385"
 
 libraryDependencies ++= Seq(
   "com.lihaoyi"                %% "scalarx"         % "0.3.2",

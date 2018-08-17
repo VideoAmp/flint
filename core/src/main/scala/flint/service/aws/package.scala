@@ -15,18 +15,21 @@ import com.amazonaws.services.ec2.model.{
 package object aws {
   private[aws] val instanceSpecs = Seq(
     InstanceSpecs(T2Micro.toString, 1, GiB(1), "0.012", isSpotEligible = false),
-    InstanceSpecs(C38xlarge.toString, 32, GiB(52), InstanceStorageSpec(2, GiB(320)), "1.68"),
-    InstanceSpecs(D28xlarge.toString, 36, GiB(236), InstanceStorageSpec(24, GiB(2000)), "5.52"),
+    InstanceSpecs(C5d9xlarge.toString, 36, GiB(64), InstanceStorageSpec(1, GiB(900)), "1.728"),
     InstanceSpecs(I38xlarge.toString, 32, GiB(236), InstanceStorageSpec(4, GiB(1900)), "2.496"),
     InstanceSpecs(I316xlarge.toString, 64, GiB(460), InstanceStorageSpec(8, GiB(1900)), "4.992"),
-    InstanceSpecs(M4Large.toString, 2, GiB(6), "0.1"),
-    InstanceSpecs(P2Xlarge.toString, 4, GiB(52), "0.9"),
-    InstanceSpecs(P28xlarge.toString, 32, GiB(460), "7.2"),
-    InstanceSpecs(P216xlarge.toString, 64, GiB(716), "14.4"),
-    InstanceSpecs(R3Large.toString, 2, GiB(13), InstanceStorageSpec(1, GiB(32)), "0.166"),
-    InstanceSpecs(R38xlarge.toString, 32, GiB(236), InstanceStorageSpec(2, GiB(320)), "2.66"),
-    InstanceSpecs(X116xlarge.toString, 64, GiB(960), InstanceStorageSpec(1, GiB(1920)), "6.669"),
-    InstanceSpecs(X132xlarge.toString, 128, GiB(1940), InstanceStorageSpec(2, GiB(1920)), "13.338")
+    InstanceSpecs(I3Metal.toString, 64, GiB(500), InstanceStorageSpec(8, GiB(1900)), "4.992"),
+    InstanceSpecs(P32xlarge.toString, 8, GiB(53), "3.06"),
+    InstanceSpecs(P38xlarge.toString, 32, GiB(236), "12.24"),
+    InstanceSpecs(P316xlarge.toString, 64, GiB(480), "24.48"),
+    InstanceSpecs(R5dLarge.toString, 2, GiB(14), InstanceStorageSpec(1, GiB(75)), "0.166"),
+    InstanceSpecs(R5d12xlarge.toString, 48, GiB(276), InstanceStorageSpec(2, GiB(900)), "3.456"),
+    InstanceSpecs(R5d24xlarge.toString, 96, GiB(760), InstanceStorageSpec(4, GiB(900)), "6.912"),
+    InstanceSpecs(X116xlarge.toString, 64, GiB(968), InstanceStorageSpec(1, GiB(1920)), "6.669"),
+    InstanceSpecs(X132xlarge.toString, 128, GiB(1944), InstanceStorageSpec(2, GiB(1920)), "13.338"),
+    InstanceSpecs(X1e8xlarge.toString, 32, GiB(968), InstanceStorageSpec(1, GiB(960)), "6.672"),
+    InstanceSpecs(X1e16xlarge.toString, 64, GiB(1944), InstanceStorageSpec(1, GiB(1920)), "13.344"),
+    InstanceSpecs(X1e32xlarge.toString, 128, GiB(3896), InstanceStorageSpec(2, GiB(1920)), "26.688")
   )
 
   private[aws] val instanceSpecsMap =

@@ -4,8 +4,8 @@ val APIVersion = 3
 
 lazy val commonSettings = Seq(
   organization := "com.videoamp",
-  scalaVersion := "2.12.3",
-  crossScalaVersions := Seq("2.11.11", "2.12.3"),
+  scalaVersion := "2.12.6",
+  crossScalaVersions := Seq("2.11.12", "2.12.6"),
   javacOptions := Seq("-g"),
   scalacOptions := Seq(
     "-deprecation",
