@@ -17,7 +17,7 @@ dockerfile in docker := {
   val artifactTargetPath = name.value + "-assembly.jar"
 
   new Dockerfile {
-    from("frolvlad/alpine-glibc:alpine-3.9_glibc-2.29")
+    from("adoptopenjdk/openjdk11:x86_64-alpine-jdk-11.0.5_10")
     runRaw("apk update")
     copy(artifact, artifactTargetPath)
     expose(8080)
