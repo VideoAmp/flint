@@ -17,7 +17,7 @@ dockerfile in docker := {
   val artifactTargetPath = name.value + "-assembly.jar"
 
   new Dockerfile {
-    from("anapsix/alpine-java:8u172b11_jdk_unlimited")
+    from("anapsix/alpine-java:8u202b08_jdk_unlimited")
     runRaw("apk update")
     runRaw("apk add jemalloc")
     copy(artifact, artifactTargetPath)
