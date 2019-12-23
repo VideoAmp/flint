@@ -19,12 +19,10 @@ dockerfile in docker := {
   new Dockerfile {
     from("frolvlad/alpine-glibc:alpine-3.9_glibc-2.29")
     runRaw("apk update")
-    runRaw("apk add jemalloc")
     copy(artifact, artifactTargetPath)
     expose(8080)
     entryPoint(
       "env",
-      "LD_PRELOAD=/usr/lib/libjemalloc.so.2",
       "java",
       "-Dconfig.file=conf/server.conf",
       "-Dakka.loglevel=error",
