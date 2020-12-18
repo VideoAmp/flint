@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 import R from "ramda";
 import Moment from "moment";
 import { extendMoment } from "moment-range";
@@ -8,6 +9,21 @@ import { Toolbar, ToolbarGroup } from "material-ui/Toolbar";
 const moment = extendMoment(Moment);
 
 export default class ClusterTotals extends React.Component {
+    static propTypes = {
+        isSpotCluster: PropTypes.bool,
+        instanceSpecs: PropTypes.arrayOf(PropTypes.object).isRequired, // TODO: Improve validation
+        masterInstanceType: PropTypes.string.isRequired,
+        workerInstanceType: PropTypes.string.isRequired,
+        workers: PropTypes.arrayOf(PropTypes.object), // TODO: Improve validation
+        numMasters: PropTypes.number.isRequired,
+        numWorkers: PropTypes.number.isRequired,
+    };
+
+    static defaultProps = {
+        isSpotCluster: false,
+        workers: [],
+    };
+
     state = {
         numberOfCores: 1,
         ramAmount: 1,
@@ -16,27 +32,49 @@ export default class ClusterTotals extends React.Component {
         totalCost: NaN,
     };
 
+    componentDidMount() {
+        this.updateClusterTotals(this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        const { instanceSpecs, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers } = this.props;
+        const masterTerminatedAt = R.pathOr(null, ["master", "terminatedAt"], this.props);
+        const equalsOldProps = R.where({
+            instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
+            master: R.pathEq(["terminatedAt"], masterTerminatedAt),
+            masterInstanceType: R.equals(masterInstanceType),
+            workers: R.eqBy(R.map(worker => worker.terminatedAt), workers),
+            workerInstanceType: R.equals(workerInstanceType),
+            numMasters: R.equals(numMasters),
+            numWorkers: R.equals(numWorkers),
+        });
+
+        if (!equalsOldProps(nextProps)) {
+            this.updateClusterTotals(nextProps);
+        }
+    }
+
     getInstanceInfo = (instanceSpecs, instanceType) =>
-        R.find(R.propEq("instanceType", instanceType), instanceSpecs)
+        R.find(R.propEq("instanceType", instanceType), instanceSpecs);
 
     calculateNumberOfCores = (workerInstanceTypeInfo, numWorkers) => {
         const { cores: workerInstanceTypeCores } = workerInstanceTypeInfo;
         return workerInstanceTypeCores * numWorkers;
-    }
+    };
 
     calculateRamAmount = (workerInstanceTypeInfo, numWorkers) => {
         const { memory: workerInstanceTypeRam } = workerInstanceTypeInfo;
 
         const totalRamBytes = (workerInstanceTypeRam * numWorkers);
         return totalRamBytes / (2 ** 30);
-    }
+    };
 
     calculateStorageAmount = ({ storage }, numWorkers) => {
         const { devices, storagePerDevice } = storage;
 
         const totalStorageBytes = (devices * storagePerDevice * numWorkers);
         return totalStorageBytes / (2 ** 30);
-    }
+    };
 
     calculateTotalCostPerHour = (masterInstanceTypeInfo, workerInstanceTypeInfo, numMasters, numWorkers) => {
         const { hourlyPrice: masterInstanceTypeCostPerHour } = masterInstanceTypeInfo;
@@ -46,7 +84,7 @@ export default class ClusterTotals extends React.Component {
             (masterInstanceTypeCostPerHour * numMasters) + (workerInstanceTypeCostPerHour * numWorkers);
 
         return totalCost.toFixed(2);
-    }
+    };
 
     calculateTotalCost = (masterInstanceTypeInfo, master, workerInstanceTypeInfo, workers) => {
         if (this.props.isSpotCluster) {
@@ -77,25 +115,25 @@ export default class ClusterTotals extends React.Component {
         const totalCost = totalMasterCost + totalWorkerCost;
 
         return totalCost.toFixed(2);
-    }
+    };
 
     updateClusterTotals = ({
-            instanceSpecs, master, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers }) => {
+        instanceSpecs, master, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers }) => {
         const masterInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, masterInstanceType);
         const workerInstanceTypeInfo = this.getInstanceInfo(instanceSpecs, workerInstanceType);
 
         this.setState({
             numberOfCores: this.calculateNumberOfCores(
                 workerInstanceTypeInfo,
-                numWorkers
+                numWorkers,
             ),
             ramAmount: this.calculateRamAmount(
                 workerInstanceTypeInfo,
-                numWorkers
+                numWorkers,
             ),
             storageAmount: this.calculateStorageAmount(
                 workerInstanceTypeInfo,
-                numWorkers
+                numWorkers,
             ),
             totalCostPerHour: this.calculateTotalCostPerHour(
                 masterInstanceTypeInfo,
@@ -107,39 +145,17 @@ export default class ClusterTotals extends React.Component {
                 masterInstanceTypeInfo,
                 master,
                 workerInstanceTypeInfo,
-                workers
+                workers,
             ),
         });
-    }
-
-    componentDidMount() {
-        this.updateClusterTotals(this.props);
-    }
-
-    componentWillReceiveProps(nextProps) {
-        const { instanceSpecs, masterInstanceType, workers, workerInstanceType, numMasters, numWorkers } = this.props;
-        const masterTerminatedAt = R.pathOr(null, ["master", "terminatedAt"], this.props);
-        const equalsOldProps = R.where({
-            instanceSpecs: R.compose(R.isEmpty, R.differenceWith(R.eqBy(R.prop("instanceType")), instanceSpecs)),
-            master: R.pathEq(["terminatedAt"], masterTerminatedAt),
-            masterInstanceType: R.equals(masterInstanceType),
-            workers: R.eqBy(R.map(worker => worker.terminatedAt), workers),
-            workerInstanceType: R.equals(workerInstanceType),
-            numMasters: R.equals(numMasters),
-            numWorkers: R.equals(numWorkers),
-        });
-
-        if (!equalsOldProps(nextProps)) {
-            this.updateClusterTotals(nextProps);
-        }
-    }
+    };
 
     render() {
         const { isSpotCluster } = this.props;
         const { numberOfCores, ramAmount, storageAmount, totalCostPerHour, totalCost } = this.state;
         return (
             <Toolbar style={{ backgroundColor: "#F5F5F5" }}>
-                <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild={true}>
+                <ToolbarGroup style={{ paddingLeft: "24px" }} firstChild>
                     <p>
                         {numberOfCores} cores, {ramAmount} GiB RAM, {storageAmount} GiB Scratch
                         {isSpotCluster ? "" : `, $${totalCostPerHour}/hour` }

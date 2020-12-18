@@ -1,4 +1,0 @@
-  {
-    "extends": ["react-app", "videoamp"],
-    "rules": { "no-underscore-dangle": ["error", { "allow": ["__"] }] }
-  }
