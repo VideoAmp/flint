@@ -12,7 +12,7 @@ javaOptions ++= Seq(
 
 connectInput := true
 
-val log4jVersion = "2.8.2"
+val log4jVersion = "2.16.0"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"         %% "akka-http-core"  % "10.0.3",
